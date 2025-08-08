@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Panel de Mesas</h2>
+
+<div class="mesa-tablero">
+  {% for mesa in mesas %}
+    <div class="mesa {{ mesa.estado }}">
+      <strong>Mesa {{ mesa.numero }}</strong><br>
+      Estado: {{ mesa.get_estado_display }}
+    </div>
+  {% empty %}
+    <p>No hay mesas para mostrar.</p>
+  {% endfor %}
+</div>
+
+<style>
+.mesa-tablero {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+  padding: 10px;
+}
+
+.mesa {
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.15);
+  text-align: center;
+  font-weight: bold;
+  color: white;
+}
+
+.disponible {
+  background-color: green;
+}
+
+.reservada {
+  background-color: red;
+}
+
+.ocupada {
+  background-color: orange;
+}
+</style>
+{% endblock %}

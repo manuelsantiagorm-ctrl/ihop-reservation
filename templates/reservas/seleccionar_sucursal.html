@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Selecciona una sucursal</h2>
+<ul>
+  {% for sucursal in sucursales %}
+    <li>
+      <a href="{% url 'ver_mesas' sucursal.id %}">
+        {{ sucursal.nombre }} — {{ sucursal.direccion }} (CP: {{ sucursal.codigo_postal }})
+      </a>
+    </li>
+  {% endfor %}
+</ul>
+{% endblock %}

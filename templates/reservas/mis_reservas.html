@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Mis Reservaciones</h2>
+
+  {% if reserva_activa %}
+    <h3 style="color: green;">Reservación activa</h3>
+    <ul>
+      <li>
+        {{ reserva_activa.fecha|date:"F j, Y g:i a" }} —
+        {{ reserva_activa.mesa }} ({{ reserva_activa.mesa.sucursal.nombre }}) —
+        {{ reserva_activa.asistentes }} personas —
+        <em>{{ reserva_activa.get_estado_display }}</em>
+        | <a href="{% url 'cancelar_reserva' reserva_activa.id %}">Cancelar</a>
+      </li>
+    </ul>
+  {% else %}
+    <p>No tienes reservaciones activas.</p>
+  {% endif %}
+
+  <h3 style="color: gray;">Reservaciones pasadas</h3>
+  {% if reservas_pasadas %}
+    <ul>
+      {% for reserva in reservas_pasadas %}
+        <li>
+          {{ reserva.fecha|date:"F j, Y g:i a" }} —
+          {{ reserva.mesa }} ({{ reserva.mesa.sucursal.nombre }}) —
+          {{ reserva.asistentes }} personas —
+          <em>{{ reserva.get_estado_display }}</em>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No hay reservaciones anteriores.</p>
+  {% endif %}
+
+  <a href="{% url 'home' %}">Regresar al inicio</a>
+{% endblock %}

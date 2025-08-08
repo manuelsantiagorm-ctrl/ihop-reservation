@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Mesas disponibles en {{ sucursal.nombre }}</h2>
+
+<ul style="list-style: none; padding: 0;">
+    {% for mesa in mesas %}
+        <li style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
+            <strong>Mesa {{ mesa.numero }}:</strong> 
+            Capacidad: {{ mesa.capacidad }} <br>
+            <span style="color: gray;">Mesa ID: {{ mesa.id }}</span><br>
+            <a href="{% url 'reservar' mesa.id %}" style="color: white; background-color: #007bff; padding: 5px 10px; text-decoration: none; border-radius: 5px;">
+                Reservar
+            </a>
+        </li>
+    {% empty %}
+        <li>No hay mesas disponibles en esta sucursal.</li>
+    {% endfor %}
+</ul>
+
+<hr>
+<a href="{% url 'home' %}">← Volver al inicio</a> | 
+<a href="{% url 'mis_reservas' %}">Ver mis reservaciones</a>
+{% endblock %}

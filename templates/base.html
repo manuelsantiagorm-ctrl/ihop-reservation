@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>IHOP Reservation</title>
+</head>
+<body>
+
+  {% block content %}{% endblock %}
+
+  <a href="{% url 'mis_reservas' %}">Ver mis reservaciones</a>
+
+  {% if messages %}
+    <ul style="color: red;">
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+</body>
+</html>

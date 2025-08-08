@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Reservar mesa</h2>
+
+{% if messages %}
+  {% for message in messages %}
+    <p style="color: {% if message.tags == 'error' %}red{% else %}green{% endif %};">
+      {{ message }}
+    </p>
+  {% endfor %}
+{% endif %}
+
+<p><strong>Mesa:</strong> {{ mesa.nombre }} ({{ mesa.capacidad }} pax)</p>
+<p><strong>Sucursal:</strong> {{ mesa.sucursal.nombre }}</p>
+
+<form method="post">
+  {% csrf_token %}
+
+  <label for="id_fecha">Fecha y hora:</label>
+  {{ form.fecha }}
+
+  <label for="id_num_personas">Asistentes:</label>
+  {{ form.num_personas }}
+
+  <button type="submit">Confirmar reservación</button>
+  <a href="{% url 'home' %}">
+    <button type="button">Volver al inicio</button>
+  </a>
+</form>
+{% endblock %}

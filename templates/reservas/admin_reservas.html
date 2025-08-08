@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Reservas de tus sucursales</h2>
+
+  {% if reservas %}
+    <table>
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>Mesa</th>
+          <th>Fecha</th>
+          <th>Personas</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reserva in reservas %}
+          <tr>
+            <td>{{ reserva.cliente.nombre }}</td>
+            <td>{{ reserva.mesa }}</td>
+            <td>{{ reserva.fecha }}</td>
+            <td>{{ reserva.num_personas }}</td>
+            <td>{{ reserva.get_estado_display }}</td>
+            <td>
+              {% if reserva.estado == 'PEND' %}
+                <a href="{% url 'confirmar_reserva' reserva.id %}">Confirmar</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No hay reservaciones registradas para tus sucursales.</p>
+  {% endif %}
+{% endblock %}

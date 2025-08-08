@@ -60,41 +60,36 @@ class ReservaForm(forms.ModelForm):
         # 🔥 línea clave para evitar error de formato
         self.fields['fecha'].input_formats = ['%Y-%m-%dT%H:%M']
 
-    def clean(self):
-        cleaned_data = super().clean()
-        fecha = cleaned_data.get('fecha')
-        num_personas = cleaned_data.get('num_personas')
+   def clean(self):
+    cleaned_data = super().clean()
+    fecha = cleaned_data.get('fecha')
+    num_personas = cleaned_data.get('num_personas')
 
-        if not self.mesa or not self.cliente:
-            raise ValidationError("Error interno: falta información de cliente o mesa.")
+    if not self.mesa or not self.cliente:
+        raise ValidationError("Error interno: falta información de cliente o mesa.")
 
-        # Validar fecha pasada
-        if fecha and fecha < now():
-            raise ValidationError("No puedes reservar en una fecha u hora pasada.")
+    if fecha and fecha < now().replace(second=0, microsecond=0):
+        raise ValidationError("No puedes reservar en una fecha u hora pasada.")
 
-        # Validar número de personas
-        if num_personas and self.mesa.capacidad < num_personas:
-            raise ValidationError(f"La mesa solo admite hasta {self.mesa.capacidad} personas.")
+    if num_personas and self.mesa.capacidad < num_personas:
+        raise ValidationError(f"La mesa solo admite hasta {self.mesa.capacidad} personas.")
 
-        # Validar conflicto con otra reservación en la misma franja de 1 hora
-        if fecha:
-            inicio = fecha
-            fin = fecha + timedelta(hours=1)
-            conflicto = Reserva.objects.filter(
-                mesa=self.mesa,
-                fecha__lt=fin,
-                fecha__gte=inicio,
-                estado__in=['PEND', 'CONF']
-            ).exists()
-            if conflicto:
-                raise ValidationError("La mesa ya está ocupada en ese horario. Elige otra hora o mesa.")
+    inicio = fecha
+    fin = fecha + timedelta(hours=1)
+    conflicto = Reserva.objects.filter(
+        mesa=self.mesa,
+        fecha__lt=fin,
+        fecha__gte=inicio,
+        estado__in=['PEND', 'CONF']
+    ).exists()
+    if conflicto:
+        raise ValidationError("La mesa ya está ocupada en ese horario. Elige otra hora o mesa.")
 
-        # Validar que el cliente no tenga ya una reserva activa
-        reserva_existente = Reserva.objects.filter(
-            cliente=self.cliente,
-            estado__in=['PEND', 'CONF']
-        ).exists()
-        if reserva_existente:
-            raise ValidationError("Ya tienes una reservación activa. Cancélala para hacer una nueva.")
+    reserva_existente = Reserva.objects.filter(
+        cliente=self.cliente,
+        estado__in=['PEND', 'CONF']
+    ).exists()
+    if reserva_existente:
+        raise ValidationError("Ya tienes una reservación activa. Cancélala para hacer una nueva.")
 
-        return cleaned_data
+    return cleaned_data

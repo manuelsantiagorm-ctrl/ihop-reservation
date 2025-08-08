@@ -23,6 +23,18 @@
   <label for="id_num_personas">Asistentes:</label>
   {{ form.num_personas }}
 
+  <!-- ⚠️ Mostrar errores por campo -->
+  {% for field in form %}
+    {% for error in field.errors %}
+      <p style="color:red;">⚠️ {{ field.label }}: {{ error }}</p>
+    {% endfor %}
+  {% endfor %}
+
+  <!-- ⚠️ Mostrar errores generales -->
+  {% for error in form.non_field_errors %}
+    <p style="color:red;">⚠️ {{ error }}</p>
+  {% endfor %}
+
   <button type="submit">Confirmar reservación</button>
   <a href="{% url 'home' %}">
     <button type="button">Volver al inicio</button>

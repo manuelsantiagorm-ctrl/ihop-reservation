@@ -123,8 +123,8 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
+TIME_ZONE = "America/Mexico_City"
 
-TIME_ZONE = 'UTC'
 
 USE_I18N = True
 
@@ -154,3 +154,17 @@ LOGOUT_REDIRECT_URL = 'login'
 # Opcional, pero recomendado si vas a usar el sistema de autenticación de Django
 LOGIN_URL = '/login/'  # Esto se usa para redireccionar si alguien no autenticado entra a una vista protegida
 
+# ---- Configuración de reservas ----
+RESERVA_DURACION_MINUTOS = 60   # tiempo que se sientan a comer
+RESERVA_BUFFER_MINUTOS = 10     # limpieza/acomodo
+RESERVA_TOTAL_MINUTOS = RESERVA_DURACION_MINUTOS + RESERVA_BUFFER_MINUTOS  # 70
+
+# settings.py
+HORAS_PICO = [
+    (6, 10),   # 6:00 a 10:59 desayuno
+    (12, 15),  # 12:00 a 15:59 comida
+    (18, 21),  # 18:00 a 21:59 cena
+]
+
+BLOQUEO_HORAS_BAJAS = 70
+BLOQUEO_HORAS_PICO = 80

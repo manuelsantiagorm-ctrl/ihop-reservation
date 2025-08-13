@@ -1,12 +1,15 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Cliente, Reserva, Mesa, Sucursal
-from django.utils.timezone import now
-from datetime import timedelta
 from django.core.exceptions import ValidationError
-from django.forms import DateTimeInput
+from django.utils import timezone
+
+from .models import Cliente, Reserva
+from .utils import conflicto_y_disponible, minutos_bloqueo_dinamico
 
 
+# --------------------------
+# Registro de cliente
+# --------------------------
 class ClienteRegistrationForm(forms.ModelForm):
     email = forms.EmailField(required=True)
     password = forms.CharField(widget=forms.PasswordInput)
@@ -18,10 +21,17 @@ class ClienteRegistrationForm(forms.ModelForm):
         model = Cliente
         fields = ['nombre', 'telefono', 'email', 'password', 'codigo_postal']
 
+    def clean_email(self):
+        email = self.cleaned_data['email'].lower()
+        if User.objects.filter(username=email).exists():
+            raise ValidationError("Ese correo ya está registrado.")
+        return email
+
     def save(self, commit=True):
+        email = self.cleaned_data['email'].lower()
         user = User.objects.create_user(
-            username=self.cleaned_data['email'],
-            email=self.cleaned_data['email'],
+            username=email,
+            email=email,
             password=self.cleaned_data['password'],
             first_name=self.cleaned_data['nombre'],
         )
@@ -29,9 +39,9 @@ class ClienteRegistrationForm(forms.ModelForm):
         cliente = Cliente(
             user=user,
             nombre=self.cleaned_data['nombre'],
-            email=self.cleaned_data['email'],
-            telefono=self.cleaned_data['telefono'],
-            codigo_postal=self.cleaned_data['codigo_postal']
+            email=email,
+            telefono=self.cleaned_data.get('telefono', ''),
+            codigo_postal=self.cleaned_data['codigo_postal'],
         )
 
         if commit:
@@ -40,16 +50,19 @@ class ClienteRegistrationForm(forms.ModelForm):
         return user
 
 
+# --------------------------
+# Reserva
+# --------------------------
 class ReservaForm(forms.ModelForm):
     class Meta:
         model = Reserva
         fields = ['fecha', 'num_personas']
         widgets = {
-            'fecha': DateTimeInput(
+            'fecha': forms.DateTimeInput(
                 attrs={'type': 'datetime-local', 'class': 'form-control'},
-                format='%Y-%m-%dT%H:%M'  # <-- formato correcto para datetime-local
+                format='%Y-%m-%dT%H:%M'
             ),
-            'num_personas': forms.NumberInput(attrs={'class': 'form-control'}),
+            'num_personas': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -57,39 +70,54 @@ class ReservaForm(forms.ModelForm):
         self.cliente = kwargs.pop('cliente', None)
         super().__init__(*args, **kwargs)
 
-        # 🔥 línea clave para evitar error de formato
         self.fields['fecha'].input_formats = ['%Y-%m-%dT%H:%M']
 
-   def clean(self):
-    cleaned_data = super().clean()
-    fecha = cleaned_data.get('fecha')
-    num_personas = cleaned_data.get('num_personas')
+        now = timezone.localtime()
+        end = now.replace(hour=23, minute=59, second=0, microsecond=0)
+        self.fields['fecha'].widget.attrs.update({
+            'min': now.strftime('%Y-%m-%dT%H:%M'),
+            'max': end.strftime('%Y-%m-%dT%H:%M'),
+        })
 
-    if not self.mesa or not self.cliente:
-        raise ValidationError("Error interno: falta información de cliente o mesa.")
+    def clean(self):
+        cleaned = super().clean()
+        fecha = cleaned.get('fecha')
+        num_personas = cleaned.get('num_personas')
 
-    if fecha and fecha < now().replace(second=0, microsecond=0):
-        raise ValidationError("No puedes reservar en una fecha u hora pasada.")
+        if not self.mesa or not self.cliente:
+            raise ValidationError("Error interno: falta información de cliente o mesa.")
 
-    if num_personas and self.mesa.capacidad < num_personas:
-        raise ValidationError(f"La mesa solo admite hasta {self.mesa.capacidad} personas.")
+        now = timezone.localtime()
+        if not fecha:
+            raise ValidationError("Debes indicar fecha y hora.")
+        if fecha < now:
+            raise ValidationError("No puedes reservar en una fecha/hora pasada.")
+        if fecha.date() != now.date():
+            raise ValidationError("Solo puedes reservar para HOY.")
 
-    inicio = fecha
-    fin = fecha + timedelta(hours=1)
-    conflicto = Reserva.objects.filter(
-        mesa=self.mesa,
-        fecha__lt=fin,
-        fecha__gte=inicio,
-        estado__in=['PEND', 'CONF']
-    ).exists()
-    if conflicto:
-        raise ValidationError("La mesa ya está ocupada en ese horario. Elige otra hora o mesa.")
+        if num_personas is None or num_personas <= 0:
+            raise ValidationError("Indica al menos 1 persona.")
+        if num_personas > self.mesa.capacidad:
+            raise ValidationError(f"La mesa soporta máximo {self.mesa.capacidad} personas.")
 
-    reserva_existente = Reserva.objects.filter(
-        cliente=self.cliente,
-        estado__in=['PEND', 'CONF']
-    ).exists()
-    if reserva_existente:
-        raise ValidationError("Ya tienes una reservación activa. Cancélala para hacer una nueva.")
+        # Bloqueo dinámico
+        conflicto, hora_disp = conflicto_y_disponible(self.mesa, fecha)
+        if conflicto:
+            minutos = minutos_bloqueo_dinamico(fecha)
+            hora_local = timezone.localtime(hora_disp)
+            hora_str = hora_local.strftime("%H:%M")
+            raise ValidationError(
+                f"La mesa está ocupada. Bloqueo de {minutos} min. "
+                f"Disponible nuevamente a las {hora_str}."
+            )
 
-    return cleaned_data
+        return cleaned
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.mesa = self.mesa
+        obj.cliente = self.cliente
+        obj.full_clean()
+        if commit:
+            obj.save()
+        return obj

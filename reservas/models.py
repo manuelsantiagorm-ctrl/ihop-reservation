@@ -70,6 +70,11 @@ class Reserva(models.Model):
 
     class Meta:
         ordering = ['-fecha']
+        
+    class Meta:
+        indexes = [
+            models.Index(fields=["mesa", "fecha"]),
+        ]
 
 
 # ==========================

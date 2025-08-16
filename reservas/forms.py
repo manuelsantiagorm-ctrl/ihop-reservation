@@ -6,7 +6,7 @@ from django.utils import timezone
 from .models import Cliente, Reserva
 from .utils import conflicto_y_disponible, minutos_bloqueo_dinamico
 
-
+ACTIVOS = ('PEND', 'CONF')  
 # --------------------------
 # Registro de cliente
 # --------------------------
@@ -87,12 +87,12 @@ class ReservaForm(forms.ModelForm):
         if not self.mesa or not self.cliente:
             raise ValidationError("Error interno: falta información de cliente o mesa.")
 
-        now = timezone.localtime()
+        now_local = timezone.localtime()
         if not fecha:
             raise ValidationError("Debes indicar fecha y hora.")
-        if fecha < now:
+        if fecha < now_local:
             raise ValidationError("No puedes reservar en una fecha/hora pasada.")
-        if fecha.date() != now.date():
+        if fecha.date() != now_local.date():
             raise ValidationError("Solo puedes reservar para HOY.")
 
         if num_personas is None or num_personas <= 0:
@@ -100,15 +100,25 @@ class ReservaForm(forms.ModelForm):
         if num_personas > self.mesa.capacidad:
             raise ValidationError(f"La mesa soporta máximo {self.mesa.capacidad} personas.")
 
-        # Bloqueo dinámico
+        # ⛔️ NUEVO: impedir más de una reservación activa
+        # usa timezone.now() (UTC) para comparar con el campo datetime de DB
+        if Reserva.objects.filter(
+            cliente=self.cliente,
+            estado__in=ACTIVOS,
+            fecha__gte=timezone.now()
+        ).exists():
+            raise ValidationError(
+                "Ya tienes una reservación activa. Cancélala o espera a que termine para hacer otra."
+            )
+
+        # Conflicto de mesa / bloqueo dinámico (deja esto después)
         conflicto, hora_disp = conflicto_y_disponible(self.mesa, fecha)
         if conflicto:
             minutos = minutos_bloqueo_dinamico(fecha)
             hora_local = timezone.localtime(hora_disp)
             hora_str = hora_local.strftime("%H:%M")
             raise ValidationError(
-                f"La mesa está ocupada. Bloqueo de {minutos} min. "
-                f"Disponible nuevamente a las {hora_str}."
+                f"La mesa está ocupada. Bloqueo de {minutos} min. Disponible nuevamente a las {hora_str}."
             )
 
         return cleaned

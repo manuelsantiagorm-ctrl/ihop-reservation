@@ -11,7 +11,7 @@
   {% endfor %}
 {% endif %}
 
-<p><strong>Mesa:</strong> {{ mesa.nombre }} ({{ mesa.capacidad }} pax)</p>
+<p><strong>Mesa:</strong> {{ mesa.numero }} ({{ mesa.capacidad }} pax)</p>
 <p><strong>Sucursal:</strong> {{ mesa.sucursal.nombre }}</p>
 
 <form method="post">
@@ -23,21 +23,19 @@
   <label for="id_num_personas">Asistentes:</label>
   {{ form.num_personas }}
 
-  <!-- ⚠️ Mostrar errores por campo -->
+  {# Errores por campo #}
   {% for field in form %}
     {% for error in field.errors %}
       <p style="color:red;">⚠️ {{ field.label }}: {{ error }}</p>
     {% endfor %}
   {% endfor %}
 
-  <!-- ⚠️ Mostrar errores generales -->
+  {# Errores generales #}
   {% for error in form.non_field_errors %}
     <p style="color:red;">⚠️ {{ error }}</p>
   {% endfor %}
 
   <button type="submit">Confirmar reservación</button>
-  <a href="{% url 'home' %}">
-    <button type="button">Volver al inicio</button>
-  </a>
+  <a href="{% url 'reservas:home' %}">Volver al inicio</a>
 </form>
 {% endblock %}

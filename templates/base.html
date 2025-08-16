@@ -1,22 +1,77 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>IHOP Reservation</title>
+  <meta charset="UTF-8" />
+  <title>{% block title %}IHOP Reservation{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#fafafa; --card:#ffffff; --text:#222; --muted:#666;
+      --primary:#1e88e5; --primary-weak:#e3f2fd;
+      --danger:#c62828; --success:#1b5e20; --warning:#e65100;
+      --border:#e5e7eb;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--text); background:var(--bg);}
+    .container{max-width:960px; margin:0 auto; padding:24px 16px;}
+    header{background:var(--card); border-bottom:1px solid var(--border);}
+    .brand{font-weight:700; font-size:18px; margin-right:16px}
+    nav a{color:var(--primary); text-decoration:none; margin-right:12px}
+    nav a:hover{text-decoration:underline}
+    .messages{margin:16px 0; padding:0; list-style:none}
+    .msg{padding:10px 12px; border:1px solid var(--border); border-left:4px solid var(--primary); background:#fff; border-radius:8px; margin-bottom:10px}
+    .msg.success{border-left-color:var(--success); background:#f1f8f4}
+    .msg.error{border-left-color:var(--danger); background:#fdecea}
+    .msg.warning{border-left-color:var(--warning); background:#fff7e6}
+    h1{margin:8px 0 16px}
+    .section-title{color:var(--success); margin-top:12px}
+    .card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 0}
+    .muted{color:var(--muted)}
+    .btn{display:inline-block; padding:8px 12px; border-radius:8px; text-decoration:none; border:1px solid var(--border); background:var(--card)}
+    .btn-primary{background:var(--primary); color:#fff; border-color:var(--primary)}
+    .spacer{height:8px}
+    footer{margin-top:24px; padding-top:16px; color:var(--muted); border-top:1px solid var(--border); font-size:14px}
+  </style>
 </head>
 <body>
 
-  {% block content %}{% endblock %}
+  <header>
+    <div class="container" style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+      <div class="brand">IHOP Reservation</div>
+      <nav style="flex:1 1 auto;">
+        <a href="{% url 'reservas:home' %}">Inicio</a>
+        <a href="{% url 'reservas:mis_reservas' %}">Mis reservaciones</a>
+        <a href="{% url 'reservas:seleccionar_sucursal' %}">Reservar</a>
+        {% if request.user.is_staff %}
+          <a href="{% url 'reservas:admin_reservas' %}">Admin: Reservas</a>
+        {% endif %}
+      </nav>
+      <div>
+        <a class="btn" href="{% url 'logout' %}">Salir</a>
+      </div>
+    </div>
+  </header>
 
-  <a href="{% url 'mis_reservas' %}">Ver mis reservaciones</a>
+  <main class="container">
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="msg {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
 
-  {% if messages %}
-    <ul style="color: red;">
-      {% for message in messages %}
-        <li>{{ message }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+      {% if request.user.is_staff %}
+  |       <a href="{% url 'reservas:admin_mapa_sucursal' sucursal_id=2 %}">Admin: Mapa Mesas</a>
+    {% endif %}
 
+    
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="container">
+    &copy; {{ now|date:"Y" }} IHOP — Sistema de reservaciones
+  </footer>
 </body>
 </html>

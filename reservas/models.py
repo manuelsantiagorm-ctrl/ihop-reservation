@@ -52,30 +52,27 @@ class Cliente(models.Model):
 # RESERVA
 # ==========================
 class Reserva(models.Model):
+    PEND = 'PEND'
+    CONF = 'CONF'
+    CANC = 'CANC'
+    NOSH = 'NOSH'  # no show (opcional si lo usas)
+
     ESTADOS = [
-        ('CONF', 'Confirmada'),
-        ('PEND', 'Pendiente'),
-        ('CANC', 'Cancelada'),
+        (PEND, 'Pendiente'),
+        (CONF, 'Confirmada'),
+        (CANC, 'Cancelada'),
+        (NOSH, 'No show'),
     ]
 
-    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='reservas')
-    mesa = models.ForeignKey(Mesa, on_delete=models.CASCADE, related_name='reservas')
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE)
+    mesa = models.ForeignKey(Mesa, on_delete=models.CASCADE)
     fecha = models.DateTimeField()
-    num_personas = models.PositiveIntegerField()
-    estado = models.CharField(max_length=4, choices=ESTADOS, default='PEND')
+    num_personas = models.PositiveSmallIntegerField()  # ← ESTE CAMPO DEBE EXISTIR
+    estado = models.CharField(max_length=4, choices=ESTADOS, default=PEND)
     creado = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.cliente.nombre} — {self.mesa} — {self.fecha.strftime('%d/%m/%Y %H:%M')} — {self.get_estado_display()}"
-
-    class Meta:
-        ordering = ['-fecha']
-        
-    class Meta:
-        indexes = [
-            models.Index(fields=["mesa", "fecha"]),
-        ]
-
+        return f"Reserva {self.pk} - {self.mesa} - {self.fecha}"
 
 # ==========================
 # PERFIL ADMINISTRADOR

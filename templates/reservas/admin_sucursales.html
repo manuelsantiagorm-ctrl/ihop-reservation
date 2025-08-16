@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Sucursales</h1>
+<ul>
+  {% for s in sucursales %}
+    <li>
+      <strong>{{ s.nombre }}</strong> — {{ s.direccion }}
+      [ <a href="{% url 'reservas:admin_mapa_sucursal' s.id %}">Ver mapa de mesas</a> ]
+    </li>
+  {% empty %}
+    <li>No hay sucursales.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

@@ -1,21 +1,16 @@
 <h1>Bienvenido a IHOP</h1>
 
-<h2>Sucursales recomendadas</h2>
-{% if sucursales_recomendadas %}
-    <ul>
-    {% for sucursal in sucursales_recomendadas %}
-        <li><a href="{% url 'ver_mesas' sucursal.id %}">{{ sucursal.nombre }}</a></li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>No hay recomendaciones disponibles.</p>
-{% endif %}
+{# Sucursales recomendadas #}
+{% for sucursal in sucursales_recomendadas %}
+  <li>
+    <a href="{% url 'reservas:ver_mesas' sucursal.id %}">{{ sucursal.nombre }}</a>
 
-<h2>Otras sucursales</h2>
-<ul>
-{% for sucursal in otras_sucursales %}
-    <li><a href="{% url 'ver_mesas' sucursal.id %}">{{ sucursal.nombre }}</a></li>
+  </li>
 {% endfor %}
-</ul>
 
-<p><a href="{% url 'mis_reservas' %}">Ver mis reservaciones</a></p>
+{# Otras sucursales #}
+{% for sucursal in otras_sucursales %}
+  <li>
+    <a href="{% url 'reservas:ver_mesas' sucursal.id %}">{{ sucursal.nombre }}</a>
+  </li>
+{% endfor %}

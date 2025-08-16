@@ -1,38 +1,51 @@
 {% extends 'base.html' %}
+{% block title %}Mis Reservaciones · IHOP{% endblock %}
 
 {% block content %}
-  <h2>Mis Reservaciones</h2>
+  <h1>Mis Reservaciones</h1>
 
   {% if reserva_activa %}
-    <h3 style="color: green;">Reservación activa</h3>
-    <ul>
-      <li>
-        {{ reserva_activa.fecha|date:"F j, Y g:i a" }} —
-        {{ reserva_activa.mesa }} ({{ reserva_activa.mesa.sucursal.nombre }}) —
-        {{ reserva_activa.asistentes }} personas —
-        <em>{{ reserva_activa.get_estado_display }}</em>
-        | <a href="{% url 'cancelar_reserva' reserva_activa.id %}">Cancelar</a>
-      </li>
-    </ul>
-  {% else %}
-    <p>No tienes reservaciones activas.</p>
-  {% endif %}
-
-  <h3 style="color: gray;">Reservaciones pasadas</h3>
-  {% if reservas_pasadas %}
-    <ul>
-      {% for reserva in reservas_pasadas %}
+    <h2 class="section-title">Reservación activa</h2>
+    <div class="card">
+      <ul>
         <li>
-          {{ reserva.fecha|date:"F j, Y g:i a" }} —
-          {{ reserva.mesa }} ({{ reserva.mesa.sucursal.nombre }}) —
-          {{ reserva.asistentes }} personas —
-          <em>{{ reserva.get_estado_display }}</em>
+          {{ reserva_activa.fecha|date:"F j, Y g:i a" }} —
+          Mesa {{ reserva_activa.mesa.numero }} - {{ reserva_activa.mesa.sucursal.nombre }} ({{ reserva_activa.mesa.sucursal.slug }})
+          — {{ reserva_activa.num_personas }} persona{{ reserva_activa.num_personas|pluralize:"s" }}
+          — <em class="muted">
+              {% if reserva_activa.estado == "CONF" %}Confirmada{% elif reserva_activa.estado == "PEND" %}Pendiente{% else %}{{ reserva_activa.get_estado_display }}{% endif %}
+            </em>
         </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>No hay reservaciones anteriores.</p>
+      </ul>
+
+      <div class="spacer"></div>
+      <!-- Si decides permitir cancelación del cliente, deja este botón; si no, elimínalo -->
+      {# <a class="btn" href="{% url 'reservas:cancelar_reserva' reserva_activa.id %}">Cancelar reservación</a> #}
+    </div>
   {% endif %}
 
-  <a href="{% url 'home' %}">Regresar al inicio</a>
+  <h2 class="section-title">Reservaciones pasadas</h2>
+  {% if reservas_pasadas %}
+    <div class="card">
+      <ul>
+        {% for r in reservas_pasadas %}
+          <li>
+            {{ r.fecha|date:"F j, Y g:i a" }} — Mesa {{ r.mesa.numero }} - {{ r.mesa.sucursal.nombre }}
+            — {{ r.num_personas }} persona{{ r.num_personas|pluralize:"s" }}
+            — <em class="muted">
+                {% if r.estado == "CANC" %}Cancelada{% elif r.estado == "CONF" and r.fecha < now %}Finalizada{% else %}{{ r.get_estado_display }}{% endif %}
+              </em>
+          </li>
+        {% endfor %}
+      </ul>
+      <p class="muted" style="margin:8px 0 0;">Mostrando tus últimas 3 reservaciones.</p>
+    </div>
+  {% else %}
+    <div class="card">
+      <p class="muted">Aún no tienes reservaciones pasadas.</p>
+    </div>
+  {% endif %}
+
+  <div class="spacer"></div>
+  <a class="btn btn-primary" href="{% url 'reservas:seleccionar_sucursal' %}">Reservar otra mesa</a>
 {% endblock %}

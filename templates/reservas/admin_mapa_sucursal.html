@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Mapa de mesas — {{ sucursal.nombre }}</h2>
+
+<div style="display:grid;grid-template-columns:repeat(6,120px);gap:10px;">
+  {% for item in estado_mesas %}
+    {% with m=item.mesa est=item.estado %}
+      <div style="
+        border:1px solid #ccc; padding:10px; border-radius:10px; text-align:center;
+        {% if est == 'DISPONIBLE' %}background:#e6ffed;
+        {% elif est == 'RESERVADA' %}background:#fff4e5;
+        {% else %}background:#ffe6e6 {% endif %}
+      ">
+        <strong>Mesa {{ m.numero }}</strong><br>
+        <small>Cap: {{ m.capacidad }}</small><br>
+        <span>{{ est }}</span>
+      </div>
+    {% endwith %}
+  {% endfor %}
+</div>
+
+<p style="margin-top:16px;">
+  <a href="{% url 'reservas:admin_sucursales' %}">&larr; Volver a sucursales</a>
+</p>
+{% endblock %}

@@ -5,7 +5,8 @@
 <ul>
   {% for sucursal in sucursales %}
     <li>
-      <a href="{% url 'ver_mesas' sucursal.id %}">
+      <!-- OJO: usar el namespace -->
+      <a href="{% url 'reservas:ver_mesas' sucursal.id %}">
         {{ sucursal.nombre }} — {{ sucursal.direccion }} (CP: {{ sucursal.codigo_postal }})
       </a>
     </li>

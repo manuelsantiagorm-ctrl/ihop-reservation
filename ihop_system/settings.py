@@ -141,23 +141,15 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Después de iniciar sesión, ¿a dónde lo mandas?
-# Redirección después del login
-LOGIN_REDIRECT_URL = 'seleccionar_sucursal'
-
-# Esto puede cambiar si tienes otra vista como 'home'
-
-# Después de cerrar sesión, ¿a dónde lo mandas?
-LOGOUT_REDIRECT_URL = 'login'
-
-
-# Opcional, pero recomendado si vas a usar el sistema de autenticación de Django
-LOGIN_URL = '/login/'  # Esto se usa para redireccionar si alguien no autenticado entra a una vista protegida
+LOGIN_URL = 'login'                         # ← usa el nombre 'login'
+LOGIN_REDIRECT_URL = 'reservas:seleccionar_sucursal'
+LOGOUT_REDIRECT_URL = 'login' # Esto se usa para redireccionar si alguien no autenticado entra a una vista protegida
 
 # ---- Configuración de reservas ----
-RESERVA_DURACION_MINUTOS = 60   # tiempo que se sientan a comer
-RESERVA_BUFFER_MINUTOS = 10     # limpieza/acomodo
-RESERVA_TOTAL_MINUTOS = RESERVA_DURACION_MINUTOS + RESERVA_BUFFER_MINUTOS  # 70
+RESERVA_TOTAL_MINUTOS = 70
+RESERVA_DURACION_MINUTOS = 60
+RESERVA_BUFFER_MINUTOS = 10
+
 
 # settings.py
 HORAS_PICO = [

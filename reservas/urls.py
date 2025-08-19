@@ -16,7 +16,14 @@ urlpatterns = [
 
     # Admin
     path("admin/reservas/", views.admin_reservas, name="admin_reservas"),
-    path("admin/sucursales/", views.admin_sucursales, name="admin_sucursales"),
-    path("admin/sucursales/<int:sucursal_id>/mapa/", views.admin_mapa_sucursal, name="admin_mapa_sucursal"),
+   path("staff/sucursales/", views.admin_sucursales, name="admin_sucursales"),
+    path("staff/sucursal/<int:sucursal_id>/mapa/", views.admin_mapa_sucursal, name="admin_mapa_sucursal"),
+
     path("admin/confirmar/<int:reserva_id>/", views.confirmar_reserva, name="confirmar_reserva"),
+    # reservas/urls.py
+
+    path("staff/mesa/<int:mesa_id>/", views.admin_mesa_detalle, name="admin_mesa_detalle"),
+    path("staff/reserva/<int:reserva_id>/confirmar/", views.admin_confirmar_llegada, name="admin_confirmar_llegada"),
+
+
 ]

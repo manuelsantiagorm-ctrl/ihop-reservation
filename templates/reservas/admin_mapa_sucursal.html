@@ -1,21 +1,32 @@
 {% extends "base.html" %}
-{% block content %}
-<h2>Mapa de mesas — {{ sucursal.nombre }}</h2>
+{% load static %}
 
-<div style="display:grid;grid-template-columns:repeat(6,120px);gap:10px;">
-  {% for item in estado_mesas %}
-    {% with m=item.mesa est=item.estado %}
-      <div style="
-        border:1px solid #ccc; padding:10px; border-radius:10px; text-align:center;
-        {% if est == 'DISPONIBLE' %}background:#e6ffed;
-        {% elif est == 'RESERVADA' %}background:#fff4e5;
-        {% else %}background:#ffe6e6 {% endif %}
-      ">
-        <strong>Mesa {{ m.numero }}</strong><br>
-        <small>Cap: {{ m.capacidad }}</small><br>
-        <span>{{ est }}</span>
-      </div>
-    {% endwith %}
+{% block title %}Mapa de mesas — {{ sucursal.nombre }}{% endblock %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'styles/mapa.css' %}">
+    <script src="..."></script>
+{% endblock %}
+
+
+{% block content %}
+<p><a href="{% url 'reservas:admin_sucursales' %}">| Admin: Mapa Mesas</a></p>
+
+<h1>Mapa de mesas — {{ sucursal.nombre }}</h1>
+
+<div class="mapa-contenedor">
+  {% for estado in estado_mesas %}
+    <a
+      class="mesa {{ estado.estado|lower }}"
+      href="{% url 'reservas:admin_mesa_detalle' mesa_id=estado.mesa.id %}"
+      title="Ver detalle de la mesa"
+    >
+      <span class="mesa-numero">Mesa {{ estado.mesa.numero }}</span>
+      <span class="mesa-cap">Cap: {{ estado.mesa.capacidad }}</span>
+      <span class="mesa-estado">{{ estado.estado }}</span>
+    </a>
+  {% empty %}
+    <p>No hay mesas en esta sucursal.</p>
   {% endfor %}
 </div>
 

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Detalle de Mesa {{ mesa.numero }} (Sucursal: {{ mesa.sucursal.nombre }})</h2>
+
+{% if reserva %}
+  <p><strong>Estado:</strong> {{ reserva.estado }}</p>
+  <p><strong>Cliente:</strong> {{ reserva.cliente.user.get_full_name }} ({{ reserva.cliente.user.email }})</p>
+  <p><strong>Fecha y hora:</strong> {{ reserva.fecha }}</p>
+  <p><strong>Capacidad de la mesa:</strong> {{ mesa.capacidad }}</p>
+
+  <form action="{% url 'reservas:admin_confirmar_llegada' reserva.id %}" method="post">
+    {% csrf_token %}
+    <button type="submit">✅ Confirmar llegada</button>
+  </form>
+{% else %}
+  <p>⚠ No hay reservas activas o próximas para esta mesa.</p>
+{% endif %}
+
+<a href="{% url 'reservas:admin_mapa_sucursal' mesa.sucursal.id %}">← Volver al mapa</a>
+
+{% endblock %}

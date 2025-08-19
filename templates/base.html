@@ -1,9 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <title>{% block title %}IHOP Reservation{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
   <style>
     :root{
       --bg:#fafafa; --card:#ffffff; --text:#222; --muted:#666;
@@ -32,6 +34,8 @@
     .spacer{height:8px}
     footer{margin-top:24px; padding-top:16px; color:var(--muted); border-top:1px solid var(--border); font-size:14px}
   </style>
+
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
 
@@ -60,12 +64,6 @@
         {% endfor %}
       </ul>
     {% endif %}
-
-      {% if request.user.is_staff %}
-  |       <a href="{% url 'reservas:admin_mapa_sucursal' sucursal_id=2 %}">Admin: Mapa Mesas</a>
-    {% endif %}
-
-    
 
     {% block content %}{% endblock %}
   </main>

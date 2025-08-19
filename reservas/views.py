@@ -11,6 +11,7 @@ from django.db.models import Q
 from django.http import HttpResponseForbidden
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from .forms import ClienteRegistrationForm, ReservaForm
 from .models import Cliente, Sucursal, Mesa, Reserva, PerfilAdmin
@@ -21,7 +22,6 @@ from .utils import conflicto_y_disponible
 # LIMPIEZAS / HELPERS
 # ========================
 
-
 def _auto_cancel_por_tolerancia(minutos: int = 6):
     ahora = timezone.now()
     limite = ahora - timedelta(minutes=minutos)
@@ -31,26 +31,12 @@ def _auto_cancel_por_tolerancia(minutos: int = 6):
     ).update(estado='CANC')
 
 
-
 def _purge_expired_holds():
-    cutoff = timezone.now() - timedelta(minutes=10)
-    Reserva.objects.filter(estado='PEND', creado__lt=cutoff).update(estado='CANC')
-
-
-
-def _purge_expired_holds():
-    """
-    Cancela PEND muy antiguas (por campo `creado`), para limpiar “colgadas”.
-    """
     cutoff = timezone.now() - timedelta(minutes=10)
     Reserva.objects.filter(estado='PEND', creado__lt=cutoff).update(estado='CANC')
 
 
 def _rango_vigencia(fecha):
-    """
-    Devuelve (inicio, fin) de vigencia de una reserva:
-    [fecha, fecha + RESERVA_TOTAL_MINUTOS)
-    """
     total_min = getattr(settings, 'RESERVA_TOTAL_MINUTOS', 70)
     return fecha, fecha + timedelta(minutes=total_min)
 
@@ -127,7 +113,7 @@ def register(request):
 
 
 # ========================
-# HACER UNA RESERVA (CONF directa)
+# HACER UNA RESERVA
 # ========================
 
 @login_required
@@ -143,21 +129,14 @@ def reservar(request, mesa_id):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Bloqueo pesimista para evitar dobles reservas simultáneas
                     Mesa.objects.select_for_update().get(pk=mesa.pk)
 
                     fecha = form.cleaned_data['fecha']
-
-                    # Verifica conflictos
                     conflicto, hora_disp = conflicto_y_disponible(mesa, fecha)
                     if conflicto:
-                        messages.error(
-                            request,
-                            f"⚠ Lo sentimos, la mesa está ocupada hasta las {hora_disp.strftime('%H:%M')}."
-                        )
+                        messages.error(request, f"⚠ Lo sentimos, la mesa está ocupada hasta las {hora_disp.strftime('%H:%M')}.")
                         return redirect('reservas:reservar', mesa_id=mesa.id)
 
-                    # Guardar como CONF (decisión actual)
                     reserva = form.save(commit=False)
                     reserva.cliente = cliente
                     reserva.mesa = mesa
@@ -175,14 +154,11 @@ def reservar(request, mesa_id):
     else:
         form = ReservaForm(mesa=mesa, cliente=cliente)
 
-    return render(request, 'reservas/reservar.html', {
-        'form': form,
-        'mesa': mesa
-    })
+    return render(request, 'reservas/reservar.html', {'form': form, 'mesa': mesa})
 
 
 # ========================
-# CANCELAR RESERVA (cliente)
+# CANCELAR RESERVA
 # ========================
 
 @login_required
@@ -206,8 +182,8 @@ def mis_reservas(request):
     _purge_expired_holds()
 
     cliente = request.user.cliente
-    ahora = timezone.now()
     GRACIA_MINUTOS = 5
+    ahora = timezone.now()
     corte_gracia = ahora - timedelta(minutes=GRACIA_MINUTOS)
 
     activa = (
@@ -266,9 +242,7 @@ def admin_reservas(request):
     else:
         try:
             perfil = request.user.perfiladmin
-            reservaciones = Reserva.objects.filter(
-                mesa__sucursal=perfil.sucursal_asignada
-            ).order_by('-fecha')
+            reservaciones = Reserva.objects.filter(mesa__sucursal=perfil.sucursal_asignada).order_by('-fecha')
         except PerfilAdmin.DoesNotExist:
             reservaciones = Reserva.objects.none()
 
@@ -276,17 +250,17 @@ def admin_reservas(request):
 
 
 # ========================
-# ADMIN: SUCURSALES y MAPA DE MESAS
+# ADMIN: SUCURSALES Y MAPA
 # ========================
 
 @staff_member_required
+def admin_sucursales(request):
+    sucursales = Sucursal.objects.all().order_by("nombre")
+    return render(request, "reservas/admin_sucursales.html", {"sucursales": sucursales})
+
+
+@staff_member_required
 def admin_mapa_sucursal(request, sucursal_id):
-    """
-    Mapa simple de mesas para una sucursal y su estado:
-      - DISPONIBLE
-      - RESERVADA (hay reserva futura o dentro de tolerancia)
-      - OCUPADA (confirmada y ya es hora o pasó)
-    """
     _auto_cancel_por_tolerancia(minutos=6)
     _purge_expired_holds()
 
@@ -301,11 +275,7 @@ def admin_mapa_sucursal(request, sucursal_id):
     for m in mesas:
         r = (
             Reserva.objects
-            .filter(
-                mesa=m,
-                Q(estado='PEND') | Q(estado='CONF'),
-                fecha__gte=corte_gracia,
-            )
+            .filter(Q(estado='PEND') | Q(estado='CONF'), mesa=m, fecha__gte=corte_gracia)
             .order_by('fecha')
             .first()
         )
@@ -313,24 +283,46 @@ def admin_mapa_sucursal(request, sucursal_id):
         if not r:
             estado = "DISPONIBLE"
         else:
-            if r.estado == 'CONF' and r.fecha <= ahora:
-                estado = "OCUPADA"
-            else:
-                estado = "RESERVADA"
+            estado = "OCUPADA" if (r.estado == 'CONF' and r.fecha <= ahora) else "RESERVADA"
 
         estado_mesas.append({"mesa": m, "estado": estado})
 
-    # IMPORTANTE: sólo 3 argumentos posicionales (request, template, context)
-    return render(
-    request,
-    "reservas/admin_mapa_sucursal.html",
-    {"sucursal": sucursal, "estado_mesas": estado_mesas},
-)
+    return render(request, "reservas/admin_mapa_sucursal.html", {"sucursal": sucursal, "estado_mesas": estado_mesas})
 
 
+# ========================
+# ADMIN: DETALLE DE MESA + CONFIRMAR
+# ========================
 
-
-# Alias opcional si tu urls.py aún usa esta vista:
 @staff_member_required
-def admin_mapa_mesas(request, sucursal_id):
-    return admin_mapa_sucursal(request, sucursal_id)
+def admin_mesa_detalle(request, mesa_id):
+    _auto_cancel_por_tolerancia(minutos=6)
+    _purge_expired_holds()
+
+    mesa = get_object_or_404(Mesa, pk=mesa_id)
+    ahora = timezone.now()
+    tolerancia = 5
+    corte_gracia = ahora - timedelta(minutes=tolerancia)
+
+    reserva = (
+        Reserva.objects
+        .filter(mesa=mesa, fecha__gte=corte_gracia)
+        .filter(Q(estado='PEND') | Q(estado='CONF'))
+        .order_by('fecha')
+        .first()
+    )
+
+    return render(request, "reservas/admin_mesa_detalle.html", {"mesa": mesa, "reserva": reserva, "ahora": ahora})
+
+
+@staff_member_required
+@require_POST
+def admin_confirmar_llegada(request, reserva_id):
+    reserva = get_object_or_404(Reserva, pk=reserva_id)
+    if reserva.estado != 'CONF':
+        reserva.estado = 'CONF'
+        reserva.save(update_fields=['estado'])
+        messages.success(request, "✅ Llegada confirmada. Mesa ocupada.")
+    else:
+        messages.info(request, "La reservación ya estaba confirmada.")
+    return redirect("reservas:admin_mesa_detalle", mesa_id=reserva.mesa_id)

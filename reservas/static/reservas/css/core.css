@@ -1,0 +1,42 @@
+/* Tipografía y base */
+body {
+  background: linear-gradient(180deg, #f4f9ff 0%, #f8fbff 45%, #ffffff 100%) !important;
+  min-height: 100vh;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-color: #ffffff; /* respaldo si no carga el gradiente */
+}
+
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif; }
+
+/* Navbar activa */
+.navbar .nav-link.active { color: #0d6efd; font-weight: 600; }
+
+/* Select idioma */
+.lang-select { min-width: 140px; }
+
+/* Sombras y radios */
+.shadow-soft { box-shadow: 0 8px 24px rgba(16,24,40,.08); }
+.card { border-radius: 1rem; }
+.card .btn { border-radius: .7rem; }
+
+/* Utilidades */
+.object-fit-cover { object-fit: cover; }
+
+/* Hero (si lo usas en home) */
+.hero {
+  border-radius: 1.25rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+/* Cards de acción (home) */
+.action-card { transition: transform .15s ease, box-shadow .15s ease; }
+.action-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(16,24,40,.10); }
+
+/* Tarjeta de restaurante (grid estilo OpenTable) */
+.restaurant-card { border: 1px solid #eef2f7; transition: transform .15s ease, box-shadow .15s ease; }
+.restaurant-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(16,24,40,.10); }
+.restaurant-card .card-body { padding: 0.9rem 1rem 1.1rem; }
+
+/* ===== Fondo IHOP global ===== */

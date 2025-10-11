@@ -1,23 +1,21 @@
-from django.contrib import admin
+﻿from django.contrib import admin
 from django.urls import path, include
-from django.contrib.auth import views as auth_views
+from django.views.i18n import JavaScriptCatalog
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
-    # Admin
-    path("admin/", admin.site.urls),
-
-    # Tu app principal (con namespace)
     path("", include(("reservas.urls", "reservas"), namespace="reservas")),
+    path("accounts/", include("allauth.urls")),
 
-    # Login/Logout personalizados en /login y /logout
-    path(
-        "login/",
-        auth_views.LoginView.as_view(template_name="registration/login.html"),
-        name="login",
-    ),
-    path("logout/", auth_views.LogoutView.as_view(next_page="reservas:home"), name="logout"),
+    # Usa el HOTFIX local con namespace two_factor
+    path("", include(("ihop_system.two_factor_urls_hotfix", "two_factor"), namespace="two_factor")),
 
-    # Rutas estándar de auth (password reset/change) bajo /accounts/
-    # No chocan con /login y /logout porque llevan el prefijo /accounts/
-    path("accounts/", include("django.contrib.auth.urls")),
+    path("admin/", admin.site.urls),
+    path("i18n/", include("django.conf.urls.i18n")),
+    path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
+    path("", include("reservas.urls", namespace="reservas")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

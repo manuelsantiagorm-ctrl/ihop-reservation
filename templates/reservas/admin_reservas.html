@@ -1,32 +1,45 @@
 {% extends "base.html" %}
-
+{% block title %}Reservas | IHOP{% endblock %}
 {% block content %}
-  <h2>Reservaciones por sucursal</h2>
-
-  {% if reservaciones %}
-    <table border="1">
+<div class="container py-4">
+  <h1 class="h4 mb-3">Reservas</h1>
+  <form class="row g-2 mb-3" method="get">
+    <div class="col-auto">
+      <input name="q" class="form-control" placeholder="Buscar folio..." value="{{ q|default:'' }}">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-primary">Buscar</button>
+    </div>
+  </form>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
       <thead>
         <tr>
-          <th>Cliente</th>
-          <th>Sucursal</th>
-          <th>Mesa</th>
+          <th>Folio</th>
           <th>Fecha</th>
-          <th>Personas</th>
+          <th>Mesa</th>
+          <th>Sucursal</th>
+          <th>Cliente</th>
+          <th>Estado</th>
         </tr>
       </thead>
       <tbody>
-        {% for reserva in reservaciones %}
-          <tr>
-            <td>{{ reserva.cliente.usuario.email }}</td>
-            <td>{{ reserva.mesa.sucursal.nombre }}</td>
-            <td>{{ reserva.mesa.nombre }}</td>
-            <td>{{ reserva.fecha }}</td>
-            <td>{{ reserva.num_personas }}</td>
-          </tr>
-        {% endfor %}
+      {% for r in reservaciones %}
+        <tr>
+          <td>{{ r.folio }}</td>
+          <td>{{ r.fecha|date:"d/M H:i" }}</td>
+          <td>#{{ r.mesa.numero }}</td>
+          <td>{{ r.mesa.sucursal.nombre }}</td>
+          <td>{{ r.cliente.nombre }}</td>
+          <td>{{ r.get_estado_display }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" class="text-muted">Sin reservas.</td>
+        </tr>
+      {% endfor %}
       </tbody>
     </table>
-  {% else %}
-    <p>No hay reservaciones.</p>
-  {% endif %}
+  </div>
+</div>
 {% endblock %}

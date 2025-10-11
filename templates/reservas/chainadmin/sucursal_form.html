@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% if obj %}{% trans "Editar sucursal" %}{% else %}{% trans "Nueva sucursal" %}{% endif %}{% endblock %}
+{% block content %}
+<div class="container py-3" style="max-width:820px;">
+  <h1 class="h4 mb-3">
+    {% if obj %}{% trans "Editar sucursal" %}{% else %}{% trans "Nueva sucursal" %}{% endif %}
+  </h1>
+  <div class="card p-3">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="d-flex gap-2">
+        <a href="{% url 'reservas:chainadmin_sucursales' %}" class="btn btn-outline-secondary">{% trans "Cancelar" %}</a>
+        <button type="submit" class="btn btn-primary">{% trans "Guardar" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

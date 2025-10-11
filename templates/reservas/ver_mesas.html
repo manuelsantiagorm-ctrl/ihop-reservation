@@ -1,26 +1,97 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
-{% debug %}
+{% load i18n %}
+
+{% block title %}{% trans "Mesas" %} | {{ sucursal.nombre }}{% endblock %}
 
 {% block content %}
-<h2>Mesas disponibles en {{ sucursal.nombre }}</h2>
+<div class="container py-3">
 
-<ul style="list-style: none; padding: 0;">
-    {% for mesa in mesas %}
-        <li style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 8px;">
-            <strong>Mesa {{ mesa.numero }}:</strong> 
-            Capacidad: {{ mesa.capacidad }} <br>
-            <span style="color: gray;">Mesa ID: {{ mesa.id }}</span><br>
-            <a href="{% url 'reservas:reservar' mesa.id %}" style="color: white; background-color: #007bff; padding: 5px 10px; text-decoration: none; border-radius: 5px;">
-                Reservar
-            </a>
-        </li>
-    {% empty %}
-        <li>No hay mesas disponibles en esta sucursal.</li>
-    {% endfor %}
-</ul>
+  <!-- Migas -->
+  <div class="breadcrumb-lite">
+    <a href="{% url 'reservas:home' %}">{% trans "Inicio" %}</a> /
+    <a href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Sucursales" %}</a> /
+    <span>{{ sucursal.nombre }}</span>
+  </div>
 
-<hr>
-<a href="{% url 'reservas:home' %}">← Volver al inicio</a> | 
-<a href="{% url 'reservas:mis_reservas' %}">Ver mis reservaciones</a>
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <h1 class="mb-0">
+      {% blocktrans with name=sucursal.nombre|upper %}Mesas disponibles en {{ name }}{% endblocktrans %}
+    </h1>
+    <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-3 py-2 fw-bold">
+      {% blocktrans count n=mesas|length %}{{ n }} mesa{% plural %}{{ n }} mesas{% endblocktrans %}
+    </span>
+  </div>
+
+  <!-- Filtro fecha/hora -->
+  <form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-auto">
+      <label class="form-label mb-0">{% trans "Fecha" %}</label>
+      <input type="date" class="form-control" name="fecha"
+             value="{{ slot_inicio|date:'Y-m-d' }}">
+    </div>
+    <div class="col-auto">
+      <label class="form-label mb-0">{% trans "Hora" %}</label>
+      <input type="time" class="form-control" name="hora"
+             value="{{ slot_inicio|date:'H:i' }}">
+    </div>
+    <div class="col-auto">
+      <button class="btn btn-outline-primary">{% trans "Actualizar" %}</button>
+    </div>
+  </form>
+
+  {% if mesas %}
+    <div class="vstack gap-3">
+      {% for mesa in mesas %}
+        <div class="card shadow-sm rounded-3 p-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <div>
+              <h5 class="mb-1">{% blocktrans with n=mesa.numero|default:mesa.id %}Mesa {{ n }}{% endblocktrans %}</h5>
+              <div class="text-muted small">
+                ID: {{ mesa.id }} · {% trans "Ubicación" %}:
+                {% if mesa.ubicacion %}{{ mesa.ubicacion }}{% else %}{% trans "General" %}{% endif %}
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge text-bg-light border">
+                {% blocktrans with c=mesa.capacidad %}Capacidad: {{ c }}{% endblocktrans %}
+              </span>
+              {% if mesa.disponible %}
+                <span class="badge text-bg-success">{% trans "Disponible" %}</span>
+              {% else %}
+                <span class="badge text-bg-danger">{% trans "Ocupada" %}</span>
+              {% endif %}
+            </div>
+
+            <div>
+              <!-- Botón: lleva a reservar -->
+              <a class="btn btn-primary"
+                 href="{% url 'reservas:reservar' mesa.id %}?fecha={{ slot_inicio|date:'Y-m-d' }}">
+                {% trans "Ver horarios disponibles" %}
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state my-4">
+      <h5 class="fw-bold mb-2">{% trans "No hay mesas para mostrar" %}</h5>
+      <p>{% trans "Prueba con otra fecha u horario, o elige otra sucursal." %}</p>
+      <div class="mt-2">
+        <a class="btn btn-outline-primary" href="{% url 'reservas:seleccionar_sucursal' %}">
+          {% trans "Elegir otra sucursal" %}
+        </a>
+      </div>
+    </div>
+  {% endif %}
+
+  <hr class="my-4">
+
+  <div class="d-flex gap-3">
+    <a href="{% url 'reservas:home' %}" class="link">← {% trans "Volver al inicio" %}</a>
+    <a href="{% url 'reservas:mis_reservas' %}" class="link">{% trans "Ver mis reservaciones" %}</a>
+  </div>
+</div>
 {% endblock %}

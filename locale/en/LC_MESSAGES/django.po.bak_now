@@ -1,0 +1,566 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-09-26 11:41-0600\n"
+"PO-Revision-Date: 2025-09-26 11:31-0600\n"
+"Last-Translator: \n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: .\reservas\forms.py:324
+msgid "Nombre del cliente"
+msgstr "Customer name"
+
+#: .\reservas\forms.py:325
+msgid "Email (opcional)"
+msgstr "Email (optional)"
+
+#: .\reservas\views.py:1817
+msgid "Reserva creada con éxito"
+msgstr "Reservation created successfully"
+
+#: .\templates\base.html:9
+msgid "IHOP Reservation"
+msgstr "IHOP Reservation"
+
+#: .\templates\base.html:23
+msgid "Toggle navigation"
+msgstr "Toggle navigation"
+
+#: .\templates\base.html:29 .\templates\reservas\ver_mesas.html:12
+msgid "Inicio"
+msgstr "Home"
+
+#: .\templates\base.html:30
+msgid "Mis reservas"
+msgstr "My bookings"
+
+#: .\templates\base.html:31
+msgid "Reservar"
+msgstr "Book"
+
+#: .\templates\base.html:49
+msgid "Staff"
+msgstr "Staff"
+
+#: .\templates\base.html:52 .\templates\reservas\ver_mesas.html:13
+msgid "Sucursales"
+msgstr "Locations"
+
+#: .\templates\base.html:53
+msgid "Buscar folio"
+msgstr "Search folio"
+
+#: .\templates\base.html:54
+msgid "Dashboard"
+msgstr "Dashboard"
+
+#: .\templates\base.html:55
+msgid "Nueva Walk-in"
+msgstr "New Walk-in"
+
+#: .\templates\base.html:65
+#, python-format
+msgid "Hola, %(name)s"
+msgstr "Hi, %(name)s"
+
+#: .\templates\base.html:70
+msgid "Salir"
+msgstr "Sign out"
+
+#: .\templates\base.html:73
+msgid "Iniciar sesión"
+msgstr "Sign in"
+
+#: .\templates\base.html:74
+msgid "Registrarme"
+msgstr "Sign up"
+
+#: .\templates\base.html:87
+msgid "Cerrar"
+msgstr "Close"
+
+#: .\templates\panel_mesas.html:5
+msgid "Panel de Mesas"
+msgstr "Tables panel"
+
+#: .\templates\panel_mesas.html:10 .\templates\reservas\ver_mesas.html:49
+#, python-format
+msgid "Mesa %(n)s"
+msgstr "Table %(n)s"
+
+#: .\templates\panel_mesas.html:11
+msgid "Estado"
+msgstr "Status"
+
+#: .\templates\panel_mesas.html:14
+msgid "No hay mesas para mostrar."
+msgstr "No tables to display."
+
+#: .\templates\reservas\ver_mesas.html:5
+msgid "Mesas"
+msgstr "Tables"
+
+#: .\templates\reservas\ver_mesas.html:19
+#, python-format
+msgid "Mesas disponibles en %(name)s"
+msgstr "Tables available at %(name)s"
+
+#: .\templates\reservas\ver_mesas.html:22
+#, python-format
+msgid "%(n)s mesa"
+msgid_plural "%(n)s mesas"
+msgstr[0] "%(n)s table"
+msgstr[1] "%(n)s tables"
+
+#: .\templates\reservas\ver_mesas.html:29
+msgid "Fecha"
+msgstr "Date"
+
+#: .\templates\reservas\ver_mesas.html:34
+msgid "Hora"
+msgstr "Time"
+
+#: .\templates\reservas\ver_mesas.html:39
+msgid "Actualizar"
+msgstr "Update"
+
+#: .\templates\reservas\ver_mesas.html:51
+msgid "Ubicación"
+msgstr "Location"
+
+#: .\templates\reservas\ver_mesas.html:52
+msgid "General"
+msgstr "General"
+
+#: .\templates\reservas\ver_mesas.html:58
+#, python-format
+msgid "Capacidad: %(c)s"
+msgstr "Capacity: %(c)s"
+
+#: .\templates\reservas\ver_mesas.html:61
+msgid "Disponible"
+msgstr "Available"
+
+#: .\templates\reservas\ver_mesas.html:63
+msgid "Ocupada"
+msgstr "Occupied"
+
+#: .\templates\reservas\ver_mesas.html:71
+msgid "Ver horarios disponibles"
+msgstr "View available times"
+
+#: .\templates\reservas\ver_mesas.html:80
+msgid "No hay mesas para mostrar"
+msgstr "No tables to display"
+
+#: .\templates\reservas\ver_mesas.html:81
+msgid "Prueba con otra fecha u horario, o elige otra sucursal."
+msgstr "Try another date or time, or choose another branch."
+
+#: .\templates\reservas\ver_mesas.html:84
+msgid "Elegir otra sucursal"
+msgstr "Choose another branch"
+
+#: .\templates\reservas\ver_mesas.html:93
+msgid "Volver al inicio"
+msgstr "Back to home"
+
+#: .\templates\reservas\ver_mesas.html:94
+msgid "Ver mis reservaciones"
+msgstr "View my bookings"
+
+#: .\templates\seleccionar_sucursal.html:6
+msgid "Selecciona una sucursal"
+msgstr "Select a branch"
+
+#: .\templates\seleccionar_sucursal.html:12
+msgid "CP"
+msgstr "ZIP"
+
+#: .\templates\reservas\reservar.html:18
+msgid "Reservar mesa"
+msgstr "Book table"
+
+#: .\templates\reservas\reservar.html:19
+msgid "Elige un horario y confirma tu reservación."
+msgstr "Choose a time and confirm your reservation."
+
+#: .\templates\reservas\reservar.html:23
+#, python-format
+msgid "Mesa %(n)s • %(c)s pax"
+msgstr "Table %(n)s • %(c)s people"
+
+#: .\templates\reservas\reservar.html:31
+msgid "Sucursal"
+msgstr "Branch"
+
+#: .\templates\reservas\reservar.html:39
+msgid "Se completa al elegir un horario."
+msgstr "It will be completed once you select a time."
+
+#: .\templates\reservas\reservar.html:43
+msgid "Num. personas"
+msgstr "Number of people"
+
+#: .\templates\reservas\reservar.html:48
+msgid "Confirmar"
+msgstr "Confirm"
+
+#: .\templates\reservas\reservar.html:55
+msgid "Horarios disponibles"
+msgstr "Available times"
+
+#: .\templates\reservas\reservar.html:65
+msgid "Cargando horarios…"
+msgstr "Loading times…"
+
+# —— Textos usados en JavaScript vía gettext/ngettext ——
+#: js:reservar
+msgid "No hay horarios disponibles."
+msgstr "No times available."
+
+#: js:reservar
+msgid "Error al cargar los horarios."
+msgstr "Error loading times."
+
+#: js:reservar
+#, python-format
+msgid "%(n)s horario para el %(date)s"
+msgid_plural "%(n)s horarios para el %(date)s"
+msgstr[0] "%(n)s time for %(date)s"
+msgstr[1] "%(n)s times for %(date)s"
+
+#: templates/reservas/exito.html:26
+msgid "¡Tu reservación fue creada con éxito!"
+msgstr "Your reservation was created successfully!"
+
+#: templates/reservas/exito.html:29
+msgid ""
+"Presenta el <strong>FOLIO</strong> en sucursal para confirmar tu llegada."
+msgstr ""
+"Show the <strong>FOLIO</strong> at the restaurant to confirm your arrival."
+
+#: templates/reservas/exito.html:35
+msgid "Folio de reservación"
+msgstr "Reservation folio"
+
+#: templates/reservas/exito.html:38
+msgid "Copiar folio"
+msgstr "Copy folio"
+
+#: templates/reservas/exito.html:45
+msgid "Mesa"
+msgstr "Table"
+
+#: templates/reservas/exito.html:46
+msgid "Personas"
+msgstr "Guests"
+
+#: templates/reservas/exito.html:53
+msgid "Importante"
+msgstr "Important"
+
+#: templates/reservas/exito.html:55
+msgid "Llega 5 minutos antes de tu hora programada."
+msgstr "Arrive 5 minutes before your scheduled time."
+
+#: templates/reservas/exito.html:57
+msgid ""
+"Si llegas con más de %(min)s minutos de retraso, tu reservación se cancelará "
+"automáticamente y tu mesa se liberará."
+msgstr ""
+"If you arrive more than %(min)s minutes late, your reservation will be "
+"automatically cancelled and your table will be released."
+
+#: templates/reservas/exito.html:60
+msgid "Guarda este folio o toma una captura de pantalla."
+msgstr "Save this folio or take a screenshot."
+
+#: templates/reservas/exito.html:66
+msgid "Ir al inicio"
+msgstr "Go to home"
+
+
+#: .\templates\reservas\perfil.html:17
+msgid "Ver mis reservas"
+msgstr "View my bookings"
+
+#: .\templates\reservas\perfil.html:26
+msgid "Editar perfil"
+msgstr "Edit profile"
+
+#: .\templates\reservas\perfil.html:32
+msgid "Nombre"
+msgstr "Name"
+
+#: .\templates\reservas\perfil.html:36
+msgid "Correo"
+msgstr "Email"
+
+#: .\templates\reservas\perfil.html:40
+msgid "Teléfono"
+msgstr "Phone"
+
+#: .\templates\reservas\perfil.html:44
+msgid "Código postal"
+msgstr "Postal code"
+
+#: .\templates\reservas\perfil.html:49
+msgid "Guardar cambios"
+msgstr "Save changes"
+
+#: .\templates\reservas\perfil.html:50
+msgid "Cancelar"
+msgstr "Cancel"
+
+#: .\templates\reservas\perfil.html:57
+msgid "Tus datos se usan para agilizar tus reservas y sugerir sucursales cercanas."
+msgstr "Your data is used to speed up your bookings and suggest nearby locations."
+
+
+#: .\templates\reservas\mis_reservas.html:3
+msgid "Mis Reservaciones"
+msgstr "My Bookings"
+
+#: .\templates\reservas\mis_reservas.html:7
+msgid "Mis reservas"
+msgstr "My bookings"
+
+#: .\templates\reservas\mis_reservas.html:10
+msgid "Perfil"
+msgstr "Profile"
+
+#: .\templates\reservas\mis_reservas.html:11
+msgid "Nueva reserva"
+msgstr "New booking"
+
+#: .\templates\reservas\mis_reservas.html:16
+msgid "Reservación activa"
+msgstr "Active booking"
+
+#: .\templates\reservas\mis_reservas.html:21
+msgid "Mesa"
+msgstr "Table"
+
+#: .\templates\reservas\mis_reservas.html:23
+msgid "persona"
+msgid_plural "personas"
+msgstr[0] "person"
+msgstr[1] "people"
+
+#: .\templates\reservas\mis_reservas.html:28
+msgid "Confirmada"
+msgstr "Confirmed"
+
+#: .\templates\reservas\mis_reservas.html:29
+msgid "Pendiente"
+msgstr "Pending"
+
+#: .\templates\reservas\mis_reservas.html:35
+msgid "Reservaciones pasadas"
+msgstr "Past bookings"
+
+#: .\templates\reservas\mis_reservas.html:43
+msgid "Cancelada"
+msgstr "Cancelled"
+
+#: .\templates\reservas\mis_reservas.html:44
+msgid "Finalizada"
+msgstr "Finished"
+
+#: .\templates\reservas\mis_reservas.html:50
+msgid "Mostrando tus últimas 3 reservaciones."
+msgstr "Showing your last 3 bookings."
+
+#: .\templates\reservas\mis_reservas.html:55
+msgid "Aún no tienes reservaciones pasadas."
+msgstr "You don’t have any past bookings yet."
+
+#: .\templates\reservas\mis_reservas.html:60
+msgid "Reservar otra mesa"
+msgstr "Book another table"
+
+
+#: .\templates\reservas\home.html:3
+msgid "Inicio"
+msgstr "Home"
+
+#: .\templates\reservas\home.html:9
+msgid "Bienvenido a"
+msgstr "Welcome to"
+
+#: .\templates\reservas\home.html:10
+msgid "Gestiona tu perfil y haz tus reservaciones fácilmente"
+msgstr "Manage your profile and make reservations easily"
+
+#: .\templates\reservas\home.html:18
+msgid "Herramientas de administrador"
+msgstr "Admin tools"
+
+#: .\templates\reservas\home.html:20 .\templates\reservas\home.html:84
+msgid "Ver mesas"
+msgstr "View tables"
+
+#: .\templates\reservas\home.html:26
+msgid "Ej. R-250918AB"
+msgstr "Ex. R-250918AB"
+
+#: .\templates\reservas\home.html:28
+msgid "Buscar folio"
+msgstr "Search folio"
+
+#: .\templates\reservas\home.html:38
+msgid "Mi perfil"
+msgstr "My profile"
+
+#: .\templates\reservas\home.html:39
+msgid "Actualiza tus datos y preferencias."
+msgstr "Update your information and preferences."
+
+#: .\templates\reservas\home.html:40
+msgid "Abrir perfil"
+msgstr "Open profile"
+
+#: .\templates\reservas\home.html:47
+msgid "Mis reservas"
+msgstr "My bookings"
+
+#: .\templates\reservas\home.html:48
+msgid "Consulta próximas y pasadas."
+msgstr "Check upcoming and past bookings."
+
+#: .\templates\reservas\home.html:49
+msgid "Ver reservas"
+msgstr "View bookings"
+
+#: .\templates\reservas\home.html:56
+msgid "Nueva reserva"
+msgstr "New booking"
+
+#: .\templates\reservas\home.html:57
+msgid "Elige sucursal y mesa disponible."
+msgstr "Choose a branch and an available table."
+
+#: .\templates\reservas\home.html:58
+msgid "Reservar"
+msgstr "Book"
+
+#: .\templates\reservas\home.html:65
+msgid "Sucursales recomendadas"
+msgstr "Recommended branches"
+
+#: .\templates\reservas\home.html:72
+msgid "CP"
+msgstr "ZIP"
+
+#: .\templates\reservas\home.html:76
+msgid "No hay recomendaciones por ahora."
+msgstr "No recommendations for now."
+
+#: .\templates\reservas\home.html:83
+msgid "Otras sucursales"
+msgstr "Other branches"
+
+#: .\templates\reservas\home.html:93
+msgid "No hay más sucursales."
+msgstr "No more branches."
+
+#: templates/reservas/admin_walkin_reserva.html:2
+msgid "Nueva Walk-in"
+msgstr "New Walk-in"
+
+#: templates/reservas/admin_walkin_reserva.html:8
+msgid "Crear reserva rápida (Walk-in)"
+msgstr "Create quick reservation (Walk-in)"
+
+#: templates/reservas/admin_walkin_reserva.html:13
+msgid "Ver disponibilidad por fecha"
+msgstr "See availability by date"
+
+#: templates/reservas/admin_walkin_reserva.html:14
+msgid "Elige fecha/hora y personas; haz clic en un horario para precargar el formulario."
+msgstr "Choose date/time and people; click a slot to prefill the form."
+
+#: templates/reservas/admin_walkin_reserva.html:19
+msgid "Fecha"
+msgstr "Date"
+
+#: templates/reservas/admin_walkin_reserva.html:23
+msgid "Desde"
+msgstr "From"
+
+#: templates/reservas/admin_walkin_reserva.html:27
+msgid "Personas"
+msgstr "People"
+
+#: templates/reservas/admin_walkin_reserva.html:32
+msgid "Ver disponibilidad"
+msgstr "Check availability"
+
+#: templates/reservas/admin_walkin_reserva.html:52
+msgid "Nombre del cliente"
+msgstr "Customer name"
+
+#: templates/reservas/admin_walkin_reserva.html:57
+msgid "Email (opcional)"
+msgstr "Email (optional)"
+
+#: templates/reservas/admin_walkin_reserva.html:62
+msgid "Teléfono (opcional)"
+msgstr "Phone (optional)"
+
+#: templates/reservas/admin_walkin_reserva.html:69
+msgid "Sucursal"
+msgstr "Branch"
+
+#: templates/reservas/admin_walkin_reserva.html:76
+msgid "Mesa"
+msgstr "Table"
+
+#: templates/reservas/admin_walkin_reserva.html:82
+msgid "Fecha y hora"
+msgstr "Date and time"
+
+#: templates/reservas/admin_walkin_reserva.html:87
+msgid "Guardar"
+msgstr "Save"
+
+#: templates/reservas/admin_walkin_reserva.html:88
+msgid "Volver"
+msgstr "Back"
+
+# Textos del JS incrustado
+#: templates/reservas/admin_walkin_reserva.html:109
+msgid "Buscando…"
+msgstr "Searching…"
+
+#: templates/reservas/admin_walkin_reserva.html:113
+msgid "Error consultando disponibilidad."
+msgstr "Error checking availability."
+
+#: templates/reservas/admin_walkin_reserva.html:118
+msgid "No hay mesas con horarios disponibles."
+msgstr "No tables with available time slots."
+
+#: templates/reservas/admin_walkin_reserva.html:124
+msgid "Mesa"
+msgstr "Table"
+
+#: templates/reservas/admin_walkin_reserva.html:125
+msgid "cap."
+msgstr "cap."
+
+#: templates/reservas/admin_walkin_reserva.html:131
+msgid "Cap."
+msgstr "Cap."

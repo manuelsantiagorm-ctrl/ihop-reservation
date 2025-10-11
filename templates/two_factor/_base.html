@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{# Plantilla base que usan TODAS las vistas de two_factor #}
+{% block title %}{% trans "Verificación en dos pasos" %}{% endblock %}
+
+{# two_factor pinta su contenido dentro de este bloque #}
+{% block content %}
+  <div class="container py-4" style="max-width:720px;">
+    {% block content_two_factor %}{% endblock %}
+  </div>
+{% endblock %}

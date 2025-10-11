@@ -1,0 +1,9 @@
+[
+  {"model": "reservas.pais", "pk": 1, "fields": {"iso2": "MX", "nombre": "México"}},
+  {"model": "reservas.pais", "pk": 2, "fields": {"iso2": "US", "nombre": "Estados Unidos"}},
+  {"model": "reservas.pais", "pk": 3, "fields": {"iso2": "AR", "nombre": "Argentina"}},
+  {"model": "reservas.pais", "pk": 4, "fields": {"iso2": "ES", "nombre": "España"}},
+  {"model": "reservas.pais", "pk": 5, "fields": {"iso2": "CO", "nombre": "Colombia"}},
+  {"model": "reservas.pais", "pk": 6, "fields": {"iso2": "CL", "nombre": "Chile"}},
+  {"model": "reservas.pais", "pk": 7, "fields": {"iso2": "PE", "nombre": "Perú"}}
+]

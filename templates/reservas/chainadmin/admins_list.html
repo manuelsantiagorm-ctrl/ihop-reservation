@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Administradores de Sucursal" %}{% endblock %}
+{% block content %}
+<div class="container py-3" style="max-width:1100px;">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 mb-0">{% trans "Administradores de Sucursal" %}</h1>
+    <a href="{% url 'reservas:chainadmin_admin_nuevo' %}" class="btn btn-primary">
+      {% trans "Nuevo admin" %}
+    </a>
+  </div>
+  <div class="card p-3">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>{% trans "Usuario" %}</th>
+            <th>{% trans "Email" %}</th>
+            <th>{% trans "Sucursal asignada" %}</th>
+            <th>{% trans "Activo" %}</th>
+            <th class="text-end">{% trans "Acciones" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in admins %}
+          <tr>
+            <td>{{ u.username }}</td>
+            <td>{{ u.email }}</td>
+            <td>{{ perfiles.u.pk.sucursal_asignada|default:"—" }}</td>
+            <td>{% if u.is_active %}✅{% else %}❌{% endif %}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'reservas:chainadmin_admin_editar' u.pk %}">{% trans "Editar" %}</a>
+              <a class="btn btn-sm btn-outline-secondary" href="{% url 'reservas:chainadmin_admin_password' u.pk %}">{% trans "Contraseña" %}</a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'reservas:chainadmin_admin_toggle' u.pk %}">{% if u.is_active %}{% trans "Desactivar" %}{% else %}{% trans "Activar" %}{% endif %}</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-4">{% trans "Sin administradores." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

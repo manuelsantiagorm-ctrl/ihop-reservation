@@ -1,0 +1,55 @@
+<!-- templates/emails/reserva_confirmada.html -->
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Reserva confirmada</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .card { max-width: 560px; margin: 0 auto; padding: 24px; border: 1px solid #eee; border-radius: 10px; }
+    .btn { display: inline-block; padding: 10px 16px; text-decoration: none; border-radius: 8px; }
+    .primary { background:#1f6feb; color:#fff; }
+    .muted { color:#666; font-size: 14px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    h2 { font-size: 16px; margin: 16px 0 8px; }
+    .row { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>¡Tu reserva está confirmada!</h1>
+    <p>Hola {{ cliente.nombre|default:"" }}, tu reserva ha sido confirmada.</p>
+
+    <h2>Detalles</h2>
+    <div class="row"><strong>Folio:</strong> {{ reserva.folio }}</div>
+    <div class="row">
+      <strong>Fecha y hora:</strong>
+      {{ reserva.fecha|date:"d/M/Y H:i" }}
+    </div>
+    <div class="row">
+      <strong>Personas:</strong> {{ reserva.num_personas|default:1 }}
+    </div>
+    <div class="row">
+      <strong>Mesa:</strong> {{ reserva.mesa.numero|default:"-" }}
+    </div>
+    <div class="row">
+      <strong>Sucursal:</strong> {{ reserva.mesa.sucursal.nombre|default:"" }}
+    </div>
+    {% if reserva.mesa.sucursal.direccion %}
+      <div class="row"><strong>Dirección:</strong> {{ reserva.mesa.sucursal.direccion }}</div>
+    {% endif %}
+
+    {% comment %} Si tienes una URL para ver/gestionar la reserva, ponla aquí {% endcomment %}
+    {% if reserva.get_absolute_url %}
+      <p style="margin-top:16px;">
+        <a href="{{ reserva.get_absolute_url }}" class="btn primary">Ver mi reserva</a>
+      </p>
+    {% endif %}
+
+    <p class="muted" style="margin-top:20px;">
+      Si no reconoces esta reserva, responde a este correo para asistencia.
+    </p>
+  </div>
+</body>
+</html>

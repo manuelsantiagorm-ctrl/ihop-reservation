@@ -1,0 +1,11 @@
+¡Tu reserva está confirmada!
+
+Folio: {{ reserva.folio }}
+Fecha y hora: {{ reserva.fecha|date:"d/M/Y H:i" }}
+Personas: {{ reserva.num_personas|default:1 }}
+Mesa: {{ reserva.mesa.numero|default:"-" }}
+Sucursal: {{ reserva.mesa.sucursal.nombre|default:"" }}{% if reserva.mesa.sucursal.direccion %}
+Dirección: {{ reserva.mesa.sucursal.direccion }}{% endif %}{% if reserva.get_absolute_url %}
+Ver mi reserva: {{ reserva.get_absolute_url }}{% endif %}
+
+Si no reconoces esta reserva, responde a este correo para asistencia.

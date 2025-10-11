@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Dashboard Staff" %}{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+  <h1 class="mb-3">{% trans "Dashboard - Reservas" %} ({{ hoy }})</h1>
+
+  <!-- 🔎 Filtro por fecha -->
+  <form method="get" class="d-flex gap-2 align-items-center mb-3">
+    <input type="date" name="fecha" value="{{ hoy|date:'Y-m-d' }}" class="form-control" style="max-width: 200px;">
+    <button class="btn btn-outline-primary">{% trans "Filtrar" %}</button>
+  </form>
+
+  <!-- 🔍 Buscador en tiempo real -->
+  <div class="mb-3">
+    <input type="text" id="buscador" class="form-control" placeholder="{% trans 'Buscar por cliente, mesa o folio...' %}">
+  </div>
+
+  <table class="table table-striped" id="tablaReservas">
+    <thead>
+      <tr>
+        <th>{% trans "Hora" %}</th>
+        <th>{% trans "Cliente" %}</th>
+        <th>{% trans "Mesa" %}</th>
+        <th>{% trans "Personas" %}</th>
+        <th>{% trans "Estado" %}</th>
+        <th>{% trans "Folio" %}</th>
+        <th style="width:280px">{% trans "Acciones" %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in reservas %}
+        <tr>
+          <td>{{ r.fecha|date:"H:i" }}</td>
+          <td>{{ r.cliente.nombre }}</td>
+          <td>{% trans "Mesa" %} {{ r.mesa.numero }}</td>
+          <td>{{ r.num_personas }}</td>
+          <td>
+            {% if r.estado == "CONF" %}
+              <span class="badge text-bg-success">{% trans "Confirmada" %}</span>
+            {% elif r.estado == "PEND" %}
+              <span class="badge text-bg-warning">{% trans "Pendiente" %}</span>
+            {% elif r.estado == "CANC" %}
+              <span class="badge text-bg-secondary">{% trans "Cancelada" %}</span>
+            {% else %}
+              {{ r.get_estado_display }}
+            {% endif %}
+          </td>
+          <td>{{ r.folio }}</td>
+          <td class="d-flex gap-2">
+            {% if r.estado != "CANC" %}
+              <form method="post" action="{% url 'reservas:admin_cancelar_por_folio' %}">
+                {% csrf_token %}
+                <input type="hidden" name="folio" value="{{ r.folio }}">
+                <input type="hidden" name="fecha" value="{{ hoy|date:'Y-m-d' }}">
+                <button class="btn btn-sm btn-danger"
+                        onclick="return confirm('{% blocktrans with folio=r.folio %}¿Cancelar la reserva {{ folio }}?{% endblocktrans %}');">
+                  {% trans "Cancelar" %}
+                </button>
+              </form>
+            {% endif %}
+
+            {% if r.estado == "PEND" %}
+              <form method="post" action="{% url 'reservas:admin_checkin_por_folio' %}">
+                {% csrf_token %}
+                <input type="hidden" name="folio" value="{{ r.folio }}">
+                <input type="hidden" name="fecha" value="{{ hoy|date:'Y-m-d' }}">
+                <button class="btn btn-sm btn-success">{% trans "Check-in" %}</button>
+              </form>
+            {% endif %}
+
+            {% if r.estado == "CANC" %}
+              <form method="post" action="{% url 'reservas:admin_reactivar_por_folio' %}">
+                {% csrf_token %}
+                <input type="hidden" name="folio" value="{{ r.folio }}">
+                <input type="hidden" name="fecha" value="{{ hoy|date:'Y-m-d' }}">
+                <button class="btn btn-sm btn-outline-primary"
+                        onclick="return confirm('{% blocktrans with folio=r.folio %}¿Reactivar la reserva {{ folio }}?{% endblocktrans %}');">
+                  {% trans "Reactivar" %}
+                </button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center">{% trans "No hay reservas en esta fecha" %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Script buscador -->
+<script>
+document.getElementById("buscador").addEventListener("keyup", function() {
+  var value = this.value.toLowerCase();
+  var rows = document.querySelectorAll("#tablaReservas tbody tr");
+  rows.forEach(function(row) {
+    row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,218 @@
+/* ============================================================
+   MAPA / CANVAS
+   - Contenedor del plano con cuadrícula sutil, borde y esquina redonda
+   - Puedes ajustar el "background-size" para cambiar la densidad de la grilla
+   ============================================================ */
+.map-canvas{
+  position: relative;
+  width: 100%;
+  min-height: 600px;                    /* altura mínima base del lienzo */
+  background-image:
+    linear-gradient(to right, rgba(0,0,0,.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,.04) 1px, transparent 1px);
+  background-size: 24px 24px;           /* tamaño del cuadro de la grilla */
+  border: 1px solid rgba(0,0,0,.06);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: saturate(1.05);
+}
+
+/* ============================================================
+   MESA (CARD)
+   - Cada mesa es una "tarjeta" centrada por su punto (left/top %)
+   - translate(-50%,-50%) ancla el centro exacto de la mesa a esa coordenada
+   - Ajusta padding / borde / sombras para cambiar el look
+   ============================================================ */
+.mesa-node{
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 88px;
+  padding: 10px 12px 12px;
+  background: #fff;
+  border: 1.5px solid #cfe1ff;          /* color de borde base */
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.06);
+  user-select: none;
+  cursor: grab;                         /* cursor de arrastre */
+  transition: box-shadow .15s ease, border-color .15s ease, transform .08s ease;
+  z-index: 1;                           /* base baja para stacking */
+}
+.mesa-node:hover{
+  box-shadow: 0 10px 28px rgba(0,0,0,.10);
+  border-color: #9ec5fe;
+}
+.mesa-node:active{ cursor: grabbing; }
+.mesa-node:focus{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13,110,253,.25), 0 8px 26px rgba(0,0,0,.12);
+}
+
+/* Cuando la mesa está activa (doble clic) o arrastrándose, súbela arriba */
+.mesa-node.active,
+.mesa-node:focus,
+.mesa-node.dragging{
+  z-index: 999; /* asegura que quede encima de otras mesas */
+}
+
+/* ============================================================
+   BADGE / INFORMACIÓN
+   ============================================================ */
+/* Etiqueta circular con el id de la mesa (esquina superior derecha) */
+.mesa-badge{
+  position: absolute;
+  top: -10px; right: -10px;
+  background: #0d6efd;
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(13,110,253,.35);
+}
+
+/* Capacidad (título) y meta (línea secundaria) */
+.mesa-cap{
+  font-weight: 700;
+  color: #0b5ed7;
+  margin-bottom: 2px;
+}
+.mesa-meta{
+  font-size: 12px;
+  color: #6c757d;
+}
+
+/* ============================================================
+   POPOVER DE ACCIONES ( aparece al doble-clic )
+   - Por defecto está oculto (opacity 0 + pointer-events none)
+   - Se posiciona arriba y centrado respecto a la mesa
+   ============================================================ */
+.mesa-toolbar{
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%) translateY(4px);
+  display: inline-flex;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.96);
+  border: 1px solid rgba(0,0,0,.06);
+  box-shadow: 0 12px 32px rgba(0,0,0,.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease, transform .12s ease;
+  z-index: 1000;  /* asegura que esté por encima de todo */
+}
+
+/* Flechita inferior (rombo) del popover */
+.mesa-toolbar::after{
+  content: "";
+  position: absolute;
+  bottom: -6px; left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px; height: 10px;
+  background: inherit;
+  border-left: 1px solid rgba(0,0,0,.06);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+/* Estado visible del popover (la clase .active la pone el JS en la mesa) */
+.mesa-node.active .mesa-toolbar{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* Botón XS (para que el popover sea compacto) */
+.btn.btn-xs{
+  --bs-btn-padding-y: .15rem;
+  --bs-btn-padding-x: .45rem;
+  --bs-btn-font-size: .75rem;
+  border-radius: 8px;
+}
+
+/* ============================================================
+   COLORES POR ZONA
+   - Cambia el color de borde y un sutil fondo según data-zona
+   - Ajusta los valores si quieres otros tonos
+   ============================================================ */
+.mesa-node[data-zona="interior"]{
+  border-color: #2563eb;
+  background: #f8fafc;
+}
+.mesa-node[data-zona="terraza"]{
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+.mesa-node[data-zona="exterior"]{
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+/* Sombras de hover diferenciadas por zona (más color) */
+.mesa-node[data-zona="terraza"]:hover{
+  box-shadow: 0 10px 28px rgba(16,185,129,.25);
+}
+.mesa-node[data-zona="exterior"]:hover{
+  box-shadow: 0 10px 28px rgba(245,158,11,.25);
+}
+
+/* ============================================================
+   RECEPCIÓN
+   - Nodo arrastrable con look oscuro y tipografía marcada
+   ============================================================ */
+.recepcion-node{
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  background: #1e293b;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,.2);
+  user-select: none;
+  cursor: grab;
+  z-index: 900; /* debajo del popover pero encima del fondo */
+}
+.recepcion-node:active{ cursor: grabbing; }
+
+/* ============================================================
+   LEYENDA DE COLORES
+   - Puntos de color para explicar la zona de cada mesa
+   ============================================================ */
+.map-legend .legend-dot{
+  display: inline-block;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  vertical-align: -2px;
+  margin-right: 6px;
+}
+.legend-interior{ background:#2563eb }
+.legend-terraza { background:#10b981 }
+.legend-exterior{ background:#f59e0b }
+.legend-recepcion{ background:#1e293b }
+
+/* ============================================================
+   ESTADOS / AJUSTES MENORES
+   ============================================================ */
+/* Cuando el lienzo está bloqueado (no editable) puedes atenuar levemente */
+.map-canvas[data-editable="0"]{
+  filter: saturate(.9);
+}
+
+/* En pantallas pequeñas: reduce un poco la tarjeta de mesa */
+@media (max-width: 576px){
+  .mesa-node{
+    min-width: 78px;
+    padding: 8px 10px 10px;
+  }
+  .mesa-cap{ font-size: 13px; }
+  .mesa-meta{ font-size: 11px; }
+}

@@ -1,0 +1,41 @@
+{# templates/reservas/partials/footer_brand.html #}
+{% load i18n %}
+<footer class="ihop-footer">
+  <div class="container py-4 py-md-5">
+    <div class="row g-4 align-items-start">
+      <div class="col-12 col-md-7">
+        <ul class="ihop-footer__menu">
+          <li><a href="#" rel="noopener">{% trans "Menú" %}</a></li>
+          <li><a href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Sucursales" %}</a></li>
+          <li><a href="#" rel="noopener">{% trans "Facturación" %}</a></li>
+          <li><a href="#" rel="noopener">{% trans "Adquiere Una Franquicia" %}</a></li>
+        </ul>
+      </div>
+
+      <div class="col-12 col-md-5">
+        <div class="ihop-footer__social">
+          <h6 class="m-0 fw-semibold">{% trans "Únete a la conversación" %}</h6>
+          <div class="ihop-footer__icons">
+            <a href="#" aria-label="TikTok" rel="noopener"><i class="bi bi-tiktok"></i></a>
+            <a href="#" aria-label="Instagram" rel="noopener"><i class="bi bi-instagram"></i></a>
+            <a href="#" aria-label="Facebook" rel="noopener"><i class="bi bi-facebook"></i></a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr class="ihop-footer__divider my-4">
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3 small">
+      <div class="text-white-50">
+        ©{% now "Y" %} IHOP Restaurants LLC.
+      </div>
+      <ul class="ihop-footer__legal">
+        <li><a href="#" rel="noopener">{% trans "Bolsa de Empleo" %}</a></li>
+        <li><a href="#" rel="noopener">{% trans "Términos de uso" %}</a></li>
+        <li><a href="#" rel="noopener">{% trans "Política de privacidad" %}</a></li>
+        <li><a href="#" rel="noopener">{% trans "Mapa del sitio" %}</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>

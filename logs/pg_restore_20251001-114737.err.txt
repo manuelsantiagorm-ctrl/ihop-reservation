@@ -1,0 +1,303 @@
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialaccount»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialaccount DROP CONSTRAINT socialaccount_socialaccount_user_id_8146e70c_fk_auth_user_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialapp_sites»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialapp_sites DROP CONSTRAINT socialaccount_social_socialapp_id_97fb6e7d_fk_socialacc;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialapp_sites»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialapp_sites DROP CONSTRAINT socialaccount_social_site_id_2579dee5_fk_django_si;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialtoken»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialtoken DROP CONSTRAINT socialaccount_social_app_id_636a42d7_fk_socialacc;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialtoken»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialtoken DROP CONSTRAINT socialaccount_social_account_id_951f210e_fk_socialacc;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_sucursalfoto»
+La orden era: ALTER TABLE ONLY public.reservas_sucursalfoto DROP CONSTRAINT reservas_sucursalfot_sucursal_id_e74fa5bc_fk_reservas_;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_sucursal_administradores»
+La orden era: ALTER TABLE ONLY public.reservas_sucursal_administradores DROP CONSTRAINT reservas_sucursal_ad_user_id_1faf488a_fk_auth_user;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_sucursal_administradores»
+La orden era: ALTER TABLE ONLY public.reservas_sucursal_administradores DROP CONSTRAINT reservas_sucursal_ad_sucursal_id_7516a6e6_fk_reservas_;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_review»
+La orden era: ALTER TABLE ONLY public.reservas_review DROP CONSTRAINT reservas_review_sucursal_id_c4e48665_fk_reservas_sucursal_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_reserva»
+La orden era: ALTER TABLE ONLY public.reservas_reserva DROP CONSTRAINT reservas_reserva_mesa_id_37edcd0c_fk_reservas_mesa_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_reserva»
+La orden era: ALTER TABLE ONLY public.reservas_reserva DROP CONSTRAINT reservas_reserva_cliente_id_78618bc5_fk_reservas_cliente_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_perfiladmin»
+La orden era: ALTER TABLE ONLY public.reservas_perfiladmin DROP CONSTRAINT reservas_perfiladmin_user_id_a65017a8_fk_auth_user_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_perfiladmin»
+La orden era: ALTER TABLE ONLY public.reservas_perfiladmin DROP CONSTRAINT reservas_perfiladmin_sucursal_asignada_id_7754d837_fk_reservas_;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_mesa»
+La orden era: ALTER TABLE ONLY public.reservas_mesa DROP CONSTRAINT reservas_mesa_sucursal_id_e0011ddb_fk_reservas_sucursal_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_menuitem»
+La orden era: ALTER TABLE ONLY public.reservas_menuitem DROP CONSTRAINT reservas_menuitem_categoria_id_dcdb5b7e_fk_reservas_;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_menucategoria»
+La orden era: ALTER TABLE ONLY public.reservas_menucategoria DROP CONSTRAINT reservas_menucategor_sucursal_id_e8ddb6e7_fk_reservas_;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_cliente»
+La orden era: ALTER TABLE ONLY public.reservas_cliente DROP CONSTRAINT reservas_cliente_user_id_8146af3a_fk_auth_user_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_bloqueomesa»
+La orden era: ALTER TABLE ONLY public.reservas_bloqueomesa DROP CONSTRAINT reservas_bloqueomesa_sucursal_id_c2691b56_fk_reservas_;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_bloqueomesa»
+La orden era: ALTER TABLE ONLY public.reservas_bloqueomesa DROP CONSTRAINT reservas_bloqueomesa_mesa_id_54a64e79_fk_reservas_mesa_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_admin_log»
+La orden era: ALTER TABLE ONLY public.django_admin_log DROP CONSTRAINT django_admin_log_user_id_c564eba6_fk_auth_user_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_admin_log»
+La orden era: ALTER TABLE ONLY public.django_admin_log DROP CONSTRAINT django_admin_log_content_type_id_c4bce8eb_fk_django_co;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user_user_permissions»
+La orden era: ALTER TABLE ONLY public.auth_user_user_permissions DROP CONSTRAINT auth_user_user_permissions_user_id_a95ead1b_fk_auth_user_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user_user_permissions»
+La orden era: ALTER TABLE ONLY public.auth_user_user_permissions DROP CONSTRAINT auth_user_user_permi_permission_id_1fbb5f2c_fk_auth_perm;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user_groups»
+La orden era: ALTER TABLE ONLY public.auth_user_groups DROP CONSTRAINT auth_user_groups_user_id_6a12ed8b_fk_auth_user_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user_groups»
+La orden era: ALTER TABLE ONLY public.auth_user_groups DROP CONSTRAINT auth_user_groups_group_id_97559544_fk_auth_group_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_permission»
+La orden era: ALTER TABLE ONLY public.auth_permission DROP CONSTRAINT auth_permission_content_type_id_2f476e4b_fk_django_co;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_group_permissions»
+La orden era: ALTER TABLE ONLY public.auth_group_permissions DROP CONSTRAINT auth_group_permissions_group_id_b120cbf9_fk_auth_group_id;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_group_permissions»
+La orden era: ALTER TABLE ONLY public.auth_group_permissions DROP CONSTRAINT auth_group_permissio_permission_id_84c5c92e_fk_auth_perm;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.account_emailconfirmation»
+La orden era: ALTER TABLE ONLY public.account_emailconfirmation DROP CONSTRAINT account_emailconfirm_email_address_id_5b7f8c58_fk_account_e;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.account_emailaddress»
+La orden era: ALTER TABLE ONLY public.account_emailaddress DROP CONSTRAINT account_emailaddress_user_id_2c513194_fk_auth_user_id;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «unique_verified_email»
+La orden era: DROP INDEX public.unique_verified_email;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «unique_primary_email»
+La orden era: DROP INDEX public.unique_primary_email;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «socialaccount_socialtoken_app_id_636a42d7»
+La orden era: DROP INDEX public.socialaccount_socialtoken_app_id_636a42d7;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «socialaccount_socialtoken_account_id_951f210e»
+La orden era: DROP INDEX public.socialaccount_socialtoken_account_id_951f210e;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «socialaccount_socialapp_sites_socialapp_id_97fb6e7d»
+La orden era: DROP INDEX public.socialaccount_socialapp_sites_socialapp_id_97fb6e7d;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «socialaccount_socialapp_sites_site_id_2579dee5»
+La orden era: DROP INDEX public.socialaccount_socialapp_sites_site_id_2579dee5;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «socialaccount_socialaccount_user_id_8146e70c»
+La orden era: DROP INDEX public.socialaccount_socialaccount_user_id_8146e70c;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_sucursalfoto_sucursal_id_e74fa5bc»
+La orden era: DROP INDEX public.reservas_sucursalfoto_sucursal_id_e74fa5bc;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_sucursal_slug_fa9e03f2_like»
+La orden era: DROP INDEX public.reservas_sucursal_slug_fa9e03f2_like;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_sucursal_administradores_user_id_1faf488a»
+La orden era: DROP INDEX public.reservas_sucursal_administradores_user_id_1faf488a;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_sucursal_administradores_sucursal_id_7516a6e6»
+La orden era: DROP INDEX public.reservas_sucursal_administradores_sucursal_id_7516a6e6;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_review_sucursal_id_c4e48665»
+La orden era: DROP INDEX public.reservas_review_sucursal_id_c4e48665;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_reserva_mesa_id_37edcd0c»
+La orden era: DROP INDEX public.reservas_reserva_mesa_id_37edcd0c;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_reserva_liberada_en_ee8c302c»
+La orden era: DROP INDEX public.reservas_reserva_liberada_en_ee8c302c;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_reserva_folio_78ab7527_like»
+La orden era: DROP INDEX public.reservas_reserva_folio_78ab7527_like;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_reserva_cliente_id_78618bc5»
+La orden era: DROP INDEX public.reservas_reserva_cliente_id_78618bc5;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_re_fecha_92a0c0_idx»
+La orden era: DROP INDEX public.reservas_re_fecha_92a0c0_idx;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_re_cliente_5b00f2_idx»
+La orden era: DROP INDEX public.reservas_re_cliente_5b00f2_idx;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_perfiladmin_sucursal_asignada_id_7754d837»
+La orden era: DROP INDEX public.reservas_perfiladmin_sucursal_asignada_id_7754d837;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_mesa_sucursal_id_e0011ddb»
+La orden era: DROP INDEX public.reservas_mesa_sucursal_id_e0011ddb;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_menuitem_categoria_id_dcdb5b7e»
+La orden era: DROP INDEX public.reservas_menuitem_categoria_id_dcdb5b7e;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_menucategoria_sucursal_id_e8ddb6e7»
+La orden era: DROP INDEX public.reservas_menucategoria_sucursal_id_e8ddb6e7;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_bloqueomesa_sucursal_id_c2691b56»
+La orden era: DROP INDEX public.reservas_bloqueomesa_sucursal_id_c2691b56;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_bloqueomesa_mesa_id_54a64e79»
+La orden era: DROP INDEX public.reservas_bloqueomesa_mesa_id_54a64e79;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_bl_sucursa_e96a67_idx»
+La orden era: DROP INDEX public.reservas_bl_sucursa_e96a67_idx;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_bl_sucursa_d4e6b1_idx»
+La orden era: DROP INDEX public.reservas_bl_sucursa_d4e6b1_idx;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «reservas_bl_inicio_130a3d_idx»
+La orden era: DROP INDEX public.reservas_bl_inicio_130a3d_idx;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «django_site_domain_a2e37b91_like»
+La orden era: DROP INDEX public.django_site_domain_a2e37b91_like;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «django_session_session_key_c0390e0f_like»
+La orden era: DROP INDEX public.django_session_session_key_c0390e0f_like;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «django_session_expire_date_a5c62663»
+La orden era: DROP INDEX public.django_session_expire_date_a5c62663;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «django_admin_log_user_id_c564eba6»
+La orden era: DROP INDEX public.django_admin_log_user_id_c564eba6;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «django_admin_log_content_type_id_c4bce8eb»
+La orden era: DROP INDEX public.django_admin_log_content_type_id_c4bce8eb;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_user_username_6821ab7c_like»
+La orden era: DROP INDEX public.auth_user_username_6821ab7c_like;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_user_user_permissions_user_id_a95ead1b»
+La orden era: DROP INDEX public.auth_user_user_permissions_user_id_a95ead1b;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_user_user_permissions_permission_id_1fbb5f2c»
+La orden era: DROP INDEX public.auth_user_user_permissions_permission_id_1fbb5f2c;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_user_groups_user_id_6a12ed8b»
+La orden era: DROP INDEX public.auth_user_groups_user_id_6a12ed8b;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_user_groups_group_id_97559544»
+La orden era: DROP INDEX public.auth_user_groups_group_id_97559544;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_permission_content_type_id_2f476e4b»
+La orden era: DROP INDEX public.auth_permission_content_type_id_2f476e4b;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_group_permissions_permission_id_84c5c92e»
+La orden era: DROP INDEX public.auth_group_permissions_permission_id_84c5c92e;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_group_permissions_group_id_b120cbf9»
+La orden era: DROP INDEX public.auth_group_permissions_group_id_b120cbf9;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «auth_group_name_a6ea08ec_like»
+La orden era: DROP INDEX public.auth_group_name_a6ea08ec_like;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «account_emailconfirmation_key_f43612bd_like»
+La orden era: DROP INDEX public.account_emailconfirmation_key_f43612bd_like;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «account_emailconfirmation_email_address_id_5b7f8c58»
+La orden era: DROP INDEX public.account_emailconfirmation_email_address_id_5b7f8c58;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «account_emailaddress_user_id_2c513194»
+La orden era: DROP INDEX public.account_emailaddress_user_id_2c513194;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «account_emailaddress_email_03be32b2_like»
+La orden era: DROP INDEX public.account_emailaddress_email_03be32b2_like;
+pg_restore: error: could not execute query: ERROR:  no existe el índice «account_emailaddress_email_03be32b2»
+La orden era: DROP INDEX public.account_emailaddress_email_03be32b2;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_mesa»
+La orden era: ALTER TABLE ONLY public.reservas_mesa DROP CONSTRAINT uniq_mesa_por_sucursal;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialtoken»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialtoken DROP CONSTRAINT socialaccount_socialtoken_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialtoken»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialtoken DROP CONSTRAINT socialaccount_socialtoken_app_id_account_id_fca4e0ac_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialapp_sites»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialapp_sites DROP CONSTRAINT socialaccount_socialapp_sites_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialapp»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialapp DROP CONSTRAINT socialaccount_socialapp_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialapp_sites»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialapp_sites DROP CONSTRAINT socialaccount_socialapp__socialapp_id_site_id_71a9a768_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialaccount»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialaccount DROP CONSTRAINT socialaccount_socialaccount_provider_uid_fc810c6e_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.socialaccount_socialaccount»
+La orden era: ALTER TABLE ONLY public.socialaccount_socialaccount DROP CONSTRAINT socialaccount_socialaccount_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_sucursalfoto»
+La orden era: ALTER TABLE ONLY public.reservas_sucursalfoto DROP CONSTRAINT reservas_sucursalfoto_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_sucursal»
+La orden era: ALTER TABLE ONLY public.reservas_sucursal DROP CONSTRAINT reservas_sucursal_slug_key;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_sucursal»
+La orden era: ALTER TABLE ONLY public.reservas_sucursal DROP CONSTRAINT reservas_sucursal_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_sucursal_administradores»
+La orden era: ALTER TABLE ONLY public.reservas_sucursal_administradores DROP CONSTRAINT reservas_sucursal_administradores_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_sucursal_administradores»
+La orden era: ALTER TABLE ONLY public.reservas_sucursal_administradores DROP CONSTRAINT reservas_sucursal_admini_sucursal_id_user_id_01333164_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_review»
+La orden era: ALTER TABLE ONLY public.reservas_review DROP CONSTRAINT reservas_review_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_reserva»
+La orden era: ALTER TABLE ONLY public.reservas_reserva DROP CONSTRAINT reservas_reserva_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_reserva»
+La orden era: ALTER TABLE ONLY public.reservas_reserva DROP CONSTRAINT reservas_reserva_folio_78ab7527_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_perfiladmin»
+La orden era: ALTER TABLE ONLY public.reservas_perfiladmin DROP CONSTRAINT reservas_perfiladmin_user_id_key;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_perfiladmin»
+La orden era: ALTER TABLE ONLY public.reservas_perfiladmin DROP CONSTRAINT reservas_perfiladmin_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_mesa»
+La orden era: ALTER TABLE ONLY public.reservas_mesa DROP CONSTRAINT reservas_mesa_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_menuitem»
+La orden era: ALTER TABLE ONLY public.reservas_menuitem DROP CONSTRAINT reservas_menuitem_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_menucategoria»
+La orden era: ALTER TABLE ONLY public.reservas_menucategoria DROP CONSTRAINT reservas_menucategoria_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_cliente»
+La orden era: ALTER TABLE ONLY public.reservas_cliente DROP CONSTRAINT reservas_cliente_user_id_key;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_cliente»
+La orden era: ALTER TABLE ONLY public.reservas_cliente DROP CONSTRAINT reservas_cliente_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.reservas_bloqueomesa»
+La orden era: ALTER TABLE ONLY public.reservas_bloqueomesa DROP CONSTRAINT reservas_bloqueomesa_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_site»
+La orden era: ALTER TABLE ONLY public.django_site DROP CONSTRAINT django_site_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_site»
+La orden era: ALTER TABLE ONLY public.django_site DROP CONSTRAINT django_site_domain_a2e37b91_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_session»
+La orden era: ALTER TABLE ONLY public.django_session DROP CONSTRAINT django_session_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_migrations»
+La orden era: ALTER TABLE ONLY public.django_migrations DROP CONSTRAINT django_migrations_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_content_type»
+La orden era: ALTER TABLE ONLY public.django_content_type DROP CONSTRAINT django_content_type_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_content_type»
+La orden era: ALTER TABLE ONLY public.django_content_type DROP CONSTRAINT django_content_type_app_label_model_76bd3d3b_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.django_admin_log»
+La orden era: ALTER TABLE ONLY public.django_admin_log DROP CONSTRAINT django_admin_log_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user»
+La orden era: ALTER TABLE ONLY public.auth_user DROP CONSTRAINT auth_user_username_key;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user_user_permissions»
+La orden era: ALTER TABLE ONLY public.auth_user_user_permissions DROP CONSTRAINT auth_user_user_permissions_user_id_permission_id_14a6b632_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user_user_permissions»
+La orden era: ALTER TABLE ONLY public.auth_user_user_permissions DROP CONSTRAINT auth_user_user_permissions_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user»
+La orden era: ALTER TABLE ONLY public.auth_user DROP CONSTRAINT auth_user_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user_groups»
+La orden era: ALTER TABLE ONLY public.auth_user_groups DROP CONSTRAINT auth_user_groups_user_id_group_id_94350c0c_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_user_groups»
+La orden era: ALTER TABLE ONLY public.auth_user_groups DROP CONSTRAINT auth_user_groups_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_permission»
+La orden era: ALTER TABLE ONLY public.auth_permission DROP CONSTRAINT auth_permission_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_permission»
+La orden era: ALTER TABLE ONLY public.auth_permission DROP CONSTRAINT auth_permission_content_type_id_codename_01ab375a_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_group»
+La orden era: ALTER TABLE ONLY public.auth_group DROP CONSTRAINT auth_group_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_group_permissions»
+La orden era: ALTER TABLE ONLY public.auth_group_permissions DROP CONSTRAINT auth_group_permissions_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_group_permissions»
+La orden era: ALTER TABLE ONLY public.auth_group_permissions DROP CONSTRAINT auth_group_permissions_group_id_permission_id_0cd325b0_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.auth_group»
+La orden era: ALTER TABLE ONLY public.auth_group DROP CONSTRAINT auth_group_name_key;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.account_emailconfirmation»
+La orden era: ALTER TABLE ONLY public.account_emailconfirmation DROP CONSTRAINT account_emailconfirmation_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.account_emailconfirmation»
+La orden era: ALTER TABLE ONLY public.account_emailconfirmation DROP CONSTRAINT account_emailconfirmation_key_key;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.account_emailaddress»
+La orden era: ALTER TABLE ONLY public.account_emailaddress DROP CONSTRAINT account_emailaddress_user_id_email_987c8728_uniq;
+pg_restore: error: could not execute query: ERROR:  no existe la relación «public.account_emailaddress»
+La orden era: ALTER TABLE ONLY public.account_emailaddress DROP CONSTRAINT account_emailaddress_pkey;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «socialaccount_socialtoken»
+La orden era: DROP TABLE public.socialaccount_socialtoken;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «socialaccount_socialapp_sites»
+La orden era: DROP TABLE public.socialaccount_socialapp_sites;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «socialaccount_socialapp»
+La orden era: DROP TABLE public.socialaccount_socialapp;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «socialaccount_socialaccount»
+La orden era: DROP TABLE public.socialaccount_socialaccount;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_sucursalfoto»
+La orden era: DROP TABLE public.reservas_sucursalfoto;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_sucursal_administradores»
+La orden era: DROP TABLE public.reservas_sucursal_administradores;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_sucursal»
+La orden era: DROP TABLE public.reservas_sucursal;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_review»
+La orden era: DROP TABLE public.reservas_review;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_reserva»
+La orden era: DROP TABLE public.reservas_reserva;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_perfiladmin»
+La orden era: DROP TABLE public.reservas_perfiladmin;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_mesa»
+La orden era: DROP TABLE public.reservas_mesa;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_menuitem»
+La orden era: DROP TABLE public.reservas_menuitem;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_menucategoria»
+La orden era: DROP TABLE public.reservas_menucategoria;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_cliente»
+La orden era: DROP TABLE public.reservas_cliente;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «reservas_bloqueomesa»
+La orden era: DROP TABLE public.reservas_bloqueomesa;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «django_site»
+La orden era: DROP TABLE public.django_site;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «django_session»
+La orden era: DROP TABLE public.django_session;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «django_migrations»
+La orden era: DROP TABLE public.django_migrations;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «django_content_type»
+La orden era: DROP TABLE public.django_content_type;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «django_admin_log»
+La orden era: DROP TABLE public.django_admin_log;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «auth_user_user_permissions»
+La orden era: DROP TABLE public.auth_user_user_permissions;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «auth_user_groups»
+La orden era: DROP TABLE public.auth_user_groups;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «auth_user»
+La orden era: DROP TABLE public.auth_user;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «auth_permission»
+La orden era: DROP TABLE public.auth_permission;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «auth_group_permissions»
+La orden era: DROP TABLE public.auth_group_permissions;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «auth_group»
+La orden era: DROP TABLE public.auth_group;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «account_emailconfirmation»
+La orden era: DROP TABLE public.account_emailconfirmation;
+pg_restore: error: could not execute query: ERROR:  no existe la tabla «account_emailaddress»
+La orden era: DROP TABLE public.account_emailaddress;
+pg_restore: precauci�n: errores ignorados durante la recuperaci�n: 151

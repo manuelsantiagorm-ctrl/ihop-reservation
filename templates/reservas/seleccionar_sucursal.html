@@ -1,15 +1,215 @@
-{% extends 'base.html' %}
+{# templates/reservas/seleccionar_sucursal.html #}
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Find a table" %} | IHOP{% endblock %}
+{% block nav_book %}active{% endblock %}
+
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'reservas/css/home.css' %}">
+  <link rel="stylesheet" href="{% static 'reservas/css/carrusel.css' %}"> {# estilos del carrusel #}
+{% endblock %}
 
 {% block content %}
-<h2>Selecciona una sucursal</h2>
-<ul>
-  {% for sucursal in sucursales %}
-    <li>
-      <!-- OJO: usar el namespace -->
-      <a href="{% url 'reservas:ver_mesas' sucursal.id %}">
-        {{ sucursal.nombre }} — {{ sucursal.direccion }} (CP: {{ sucursal.codigo_postal }})
+<div class="py-4">
+
+  {# ====== Filtros / Hero ====== #}
+  <section class="card border-0 shadow-sm p-4 p-md-5 mb-4 hero">
+    <form method="get" action="{% url 'reservas:seleccionar_sucursal' %}">
+      <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-3">
+
+        <!-- Fecha -->
+        <div class="flex-fill">
+          <label class="form-label small text-muted mb-1">{% trans "Date" %}</label>
+          <input type="date" name="date" value="{{ date }}" class="form-control form-control-lg">
+        </div>
+
+        <!-- Hora -->
+        <div class="flex-fill">
+          <label class="form-label small text-muted mb-1">{% trans "Time" %}</label>
+          <input type="time" name="time" value="{{ time }}" class="form-control form-control-lg">
+        </div>
+
+        <!-- Party size + BOTÓN CERCA DE MÍ (SOLO DESKTOP) -->
+        <div class="flex-fill position-relative">
+          <div class="d-none d-lg-flex justify-content-center mb-2">
+            <button id="btnNearMeSelect" type="button"
+                    class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2 near-me-btn">
+              <i class="bi bi-geo-alt-fill"></i> {% trans "Cerca de mí" %}
+            </button>
+          </div>
+
+          <label class="form-label small text-muted mb-1 mt-2">{% trans "Party size" %}</label>
+          <select name="party" class="form-select form-select-lg">
+            {% for i in party_range %}
+              <option value="{{ i }}" {% if party|stringformat:'s' == i|stringformat:'s' %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Búsqueda -->
+        <div class="flex-fill">
+          <label class="form-label small text-muted mb-1">{% trans "Location, restaurant or cuisine" %}</label>
+          <input id="home-search-location" type="search" name="q" value="{{ q|default_if_none:'' }}"
+                 class="form-control form-control-lg"
+                 placeholder="{% trans 'Polanco, IHOP Centro, desayunos' %}">
+        </div>
+
+        <!-- Botón Buscar (desktop) -->
+        <div class="text-center order-first order-lg-0 mb-3 mb-lg-0 d-none d-lg-block">
+          <button class="btn btn-primary btn-lg px-5 shadow-sm d-inline-flex align-items-center gap-2">
+            <i class="bi bi-geo-alt-fill"></i> {% trans "Search" %}
+          </button>
+        </div>
+      </div>
+
+      <!-- FILA PARA MÓVIL: Cerca de mí + Buscar -->
+      <div class="d-flex d-lg-none gap-2 mt-3">
+        <button id="btnNearMeSelectMobile" type="button"
+                class="btn btn-outline-primary btn-lg flex-fill d-inline-flex align-items-center justify-content-center gap-2">
+          <i class="bi bi-geo-alt-fill"></i> {% trans "Cerca de mí" %}
+        </button>
+        <button class="btn btn-primary btn-lg flex-fill d-inline-flex align-items-center justify-content-center gap-2">
+          <i class="bi bi-search"></i> {% trans "Buscar" %}
+        </button>
+      </div>
+    </form>
+  </section>
+  {# Aviso: resultados ordenados por cercanía #}
+{% if user_lat and user_lng %}
+  <div class="alert alert-nearme d-flex align-items-center gap-3 mb-4">
+    <i class="bi bi-geo-alt-fill fs-5"></i>
+    <div class="me-auto">
+      <strong>{% trans "Restaurantes cerca de ti" %}</strong>
+      <div class="small text-muted">
+        {% trans "Estamos mostrando las sucursales ordenadas por distancia a tu ubicación" %}{% if radius_km %} ({{ radius_km }} km){% endif %}.
+      </div>
+    </div>
+
+    <div class="d-none d-md-flex gap-2">
+      <button type="button" id="btnNearMeAgain" class="btn btn-sm btn-primary">
+        {% trans "Actualizar ubicación" %}
+      </button>
+      <a class="btn btn-sm btn-outline-secondary"
+         href="{% url 'reservas:seleccionar_sucursal' %}?date={{ date }}&time={{ time }}&party={{ party }}">
+        {% trans "Ver todos" %}
       </a>
-    </li>
-  {% endfor %}
-</ul>
+    </div>
+
+    {# versión compacta en móvil #}
+    <div class="d-flex d-md-none w-100 mt-2 gap-2">
+      <button type="button" id="btnNearMeAgainMobile" class="btn btn-sm btn-primary flex-fill">
+        {% trans "Actualizar ubicación" %}
+      </button>
+      <a class="btn btn-sm btn-outline-secondary flex-fill"
+         href="{% url 'reservas:seleccionar_sucursal' %}?date={{ date }}&time={{ time }}&party={{ party }}">
+        {% trans "Ver todos" %}
+      </a>
+    </div>
+  </div>
+{% endif %}
+
+
+
+
+  {# ====== CARRUSEL DE RESULTADOS ====== #}
+  <div class="carousel js-carousel" aria-label="{% trans 'Resultados' %}">
+    <div class="carousel-header">
+      <h2 class="h6 text-muted m-0">{% trans "Available to dine now" %}</h2>
+      <div class="carousel-controls">
+        <button class="btn btn-light shadow-sm carousel-btn prev" type="button" aria-label="{% trans 'Previous' %}">‹</button>
+        <button class="btn btn-light shadow-sm carousel-btn next" type="button" aria-label="{% trans 'Next' %}">›</button>
+      </div>
+    </div>
+
+    <div class="strip" role="list">
+      {% for item in results %}
+        {% with suc=item.obj slots=item.proximos_slots km=item.distance_km lat=item.map_lat lng=item.map_lng %}
+        <div role="listitem">
+          <div class="card restaurant-card h-100 card-ot">
+
+            <a href="{% url 'reservas:sucursal_detalle' suc.slug %}?date={{ date }}&time={{ time }}&party={{ party }}"
+               class="text-decoration-none js-append-time">
+              <div class="ratio ratio-16x9 bg-light rounded-top placeholder-wave">
+                {% if suc.portada %}
+                  <img src="{{ suc.portada.url }}" alt="{{ suc.portada_alt|default:suc.nombre }}"
+                       class="rounded-top object-fit-cover" loading="lazy">
+                {% else %}
+                  <div class="d-flex rounded-top w-100 h-100 align-items-center justify-content-center text-muted" style="background:#f2f2f2;">
+                    <span class="small">{% trans "No image" %}</span>
+                  </div>
+                {% endif %}
+              </div>
+            </a>
+
+            <div class="card-body d-flex flex-column">
+              <div class="d-flex justify-content-between align-items-start gap-2">
+                <h6 class="card-title mb-0">
+                  <a href="{% url 'reservas:sucursal_detalle' suc.slug %}?date={{ date }}&time={{ time }}&party={{ party }}"
+                     class="text-dark text-decoration-none js-append-time">
+                    {{ suc.nombre }}
+                  </a>
+                </h6>
+
+                <div class="d-flex align-items-center gap-2">
+                  {% if km %}
+                    <span class="badge text-bg-light" title="{% trans 'Distance' %}">
+                      <i class="bi bi-geo-alt"></i> {{ km }} km
+                    </span>
+                  {% endif %}
+                  {% if suc.rating %}
+                    <span class="badge text-bg-light">⭐ {{ suc.rating }}</span>
+                  {% endif %}
+                </div>
+              </div>
+
+              <p class="card-text text-muted small mb-1">{{ suc.cocina }} · {{ suc.precio_nivel }}</p>
+              <p class="text-muted small mb-2 d-flex align-items-center gap-2">
+                <i class="bi bi-geo-alt"></i> {{ suc.direccion_corta }}
+                {% if lat and lng %}
+                  <a class="small text-decoration-none" target="_blank"
+                     href="https://maps.google.com/?q={{ lat }},{{ lng }}">
+                    {% trans "Map" %}
+                  </a>
+                {% endif %}
+              </p>
+
+              <div class="d-flex flex-wrap gap-2">
+                {% if slots %}
+                  {% for s in slots %}
+                    <a href="{% url 'reservas:sucursal_detalle' suc.slug %}?date={{ date }}&time={{ s|default:time }}&party={{ party }}"
+                       class="btn btn-outline-secondary btn-sm">
+                      {{ s }}
+                    </a>
+                  {% endfor %}
+                {% else %}
+                  <span class="text-muted small">{% trans "No times available." %}</span>
+                {% endif %}
+              </div>
+
+              <div class="mt-3 d-grid">
+                <a class="btn btn-primary btn-sm js-append-time"
+                   href="{% url 'reservas:sucursal_detalle' suc.slug %}?date={{ date }}&time={{ time }}&party={{ party }}">
+                  {% trans "View tables" %}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+      {% empty %}
+        <div class="text-muted small px-2">{% trans "No results for your search." %}</div>
+      {% endfor %}
+    </div>
+  </div>
+  {# ====== FIN CARRUSEL ====== #}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'reservas/js/near_me.js' %}"></script>
+  <script src="{% static 'reservas/js/carrusel.js' %}"></script>     {# mueve el strip con flechas #}
+  <script src="{% static 'reservas/js/append_time.js' %}"></script>  {# respeta hora elegida del filtro #}
 {% endblock %}

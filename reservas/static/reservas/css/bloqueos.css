@@ -1,0 +1,3 @@
+/* reservas/static/reservas/css/bloqueos.css */
+.modal .form-text { font-size: .8rem; color: #6c757d; }
+.modal .btn[disabled] { opacity: .6; pointer-events: none; }

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Sucursales{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row g-4">
+    <div class="col-12 col-lg-8">
+      <div id="map" style="width:100%;height:520px;border-radius:16px;"></div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <input id="autocomplete" class="form-control mb-3" placeholder="Buscar colonia/ciudad/lugar...">
+      <div class="d-flex gap-2 mb-3">
+        <button id="nearMeBtn" class="btn btn-primary">Cerca de mí</button>
+        <select id="radioKm" class="form-select" style="max-width:140px">
+          <option value="5">5 km</option>
+          <option value="10">10 km</option>
+          <option value="25" selected>25 km</option>
+          <option value="50">50 km</option>
+        </select>
+      </div>
+      <ul id="branchList" class="list-group small"></ul>
+    </div>
+  </div>
+</div>
+<script src="{% static 'reservas/js/store_locator.js' %}"></script>
+{% endblock %}
+    

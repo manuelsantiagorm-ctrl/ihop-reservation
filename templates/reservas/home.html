@@ -1,16 +1,200 @@
-<h1>Bienvenido a IHOP</h1>
+{% extends "base.html" %}
+{% load i18n static %}
+{% block title %}{% trans "Home" %} | IHOP{% endblock %}
+{% block nav_home %}active{% endblock %}
 
-{# Sucursales recomendadas #}
-{% for sucursal in sucursales_recomendadas %}
-  <li>
-    <a href="{% url 'reservas:ver_mesas' sucursal.id %}">{{ sucursal.nombre }}</a>
+{% block extra_css %}
+  {{ block.super }}
+  <link rel="stylesheet" href="{% static 'reservas/css/home.css' %}?v=20251010-3">
+{% endblock %}
 
-  </li>
-{% endfor %}
+{% block content %}
+<div class="py-4 home-page">
 
-{# Otras sucursales #}
-{% for sucursal in otras_sucursales %}
-  <li>
-    <a href="{% url 'reservas:ver_mesas' sucursal.id %}">{{ sucursal.nombre }}</a>
-  </li>
-{% endfor %}
+  <!-- HERO búsqueda -->
+  <section class="card border-0 shadow-sm p-4 p-md-5 mb-4 hero">
+    <form method="get" action="{% url 'reservas:seleccionar_sucursal' %}">
+      <div class="d-flex flex-column flex-lg-row align-items-lg-end gap-3">
+
+        <!-- Fecha -->
+        <div class="flex-fill">
+          <label class="form-label small text-muted mb-1">{% trans "Date" %}</label>
+          <input type="date"
+                 class="form-control form-control-lg"
+                 name="date"
+                 value="{{ request.GET.date|default:hoy|date:'Y-m-d' }}">
+        </div>
+
+        <!-- Hora -->
+        <div class="flex-fill">
+          <label class="form-label small text-muted mb-1">{% trans "Time" %}</label>
+          <input type="time"
+                 class="form-control form-control-lg"
+                 name="time"
+                 value="{% if request.GET.time %}{{ request.GET.time }}{% else %}{% now 'H:i' %}{% endif %}">
+        </div>
+
+        <!-- Party size + CERCA DE MÍ (solo desktop en esta fila) -->
+        <div class="flex-fill position-relative">
+          <div class="d-none d-lg-flex justify-content-center mb-2">
+            <button id="btnNearMeHome" type="button"
+                    class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-2 near-me-btn">
+              <i class="bi bi-geo-alt-fill"></i>
+              {% trans "Cerca de mí" %}
+            </button>
+          </div>
+
+          <label class="form-label small text-muted mb-1 mt-2">{% trans "Party size" %}</label>
+          <select class="form-select form-select-lg" name="party">
+            {% for i in party_range %}
+              <option value="{{ i }}" {% if party_default == i|stringformat:'s' %}selected{% endif %}>{{ i }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Búsqueda -->
+        <div class="flex-fill">
+          <label class="form-label small text-muted mb-1">
+            {% trans "Location, restaurant or cuisine" %}
+          </label>
+          <input id="home-search-location"
+                 type="search"
+                 class="form-control form-control-lg"
+                 name="q"
+                 value="{{ request.GET.q }}"
+                 placeholder="{% trans 'Polanco, IHOP Centro, desayunos' %}">
+        </div>
+
+        <!-- Botón Buscar (solo desktop en esta fila) -->
+        <div class="text-center order-first order-lg-0 mb-3 mb-lg-0 d-none d-lg-block">
+          <button class="btn btn-primary btn-lg px-5 shadow-sm d-inline-flex align-items-center gap-2">
+            <i class="bi bi-geo-alt-fill"></i>
+            {% trans "Search" %}
+          </button>
+        </div>
+      </div>
+
+      <!-- Fila móvil: Cerca de mí + Buscar -->
+      <div class="d-flex d-lg-none gap-2 mt-3">
+        <button id="btnNearMeHomeMobile" type="button"
+                class="btn btn-outline-primary btn-lg flex-fill d-inline-flex align-items-center justify-content-center gap-2">
+          <i class="bi bi-geo-alt-fill"></i> {% trans "Cerca de mí" %}
+        </button>
+        <button class="btn btn-primary btn-lg flex-fill d-inline-flex align-items-center justify-content-center gap-2">
+          <i class="bi bi-search"></i> {% trans "Buscar" %}
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Accesos rápidos -->
+  <div class="row g-4 mb-5">
+    <div class="col-md-4">
+      <div class="card shadow-soft h-100 text-center p-4 border-0 action-card">
+        <div class="mb-3 text-primary display-6"><i class="bi bi-person-circle"></i></div>
+        <h5 class="fw-bold">{% trans "My profile" %}</h5>
+        <p class="text-muted">{% trans "Update your data and preferences." %}</p>
+        <a href="{% url 'reservas:perfil' %}" class="btn btn-outline-primary">{% trans "Open profile" %}</a>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-soft h-100 text-center p-4 border-0 action-card">
+        <div class="mb-3 text-success display-6"><i class="bi bi-journal-text"></i></div>
+        <h5 class="fw-bold">{% trans "My bookings" %}</h5>
+        <p class="text-muted">{% trans "See upcoming and past bookings." %}</p>
+        <a href="{% url 'reservas:mis_reservas' %}" class="btn btn-success">{% trans "View bookings" %}</a>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-soft h-100 text-center p-4 border-0 action-card">
+        <div class="mb-3 text-danger display-6"><i class="bi bi-calendar-check"></i></div>
+        <h5 class="fw-bold">{% trans "New booking" %}</h5>
+        <p class="text-muted">{% trans "Choose a location and an available table." %}</p>
+        <a href="{% url 'reservas:seleccionar_sucursal' %}" class="btn btn-danger">{% trans "Book" %}</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Carrusel de sucursales -->
+  {% include "reservas/partials/carrusel_sucursales.html" with sucursales=sucursales|slice:":12" %}
+
+  <!-- Recomendadas -->
+  <div class="section-title mb-2 mt-5">
+    <h4 class="fw-bold">{% trans "Available to dine now" %}</h4>
+    <div class="rule"></div>
+    <a href="{% url 'reservas:seleccionar_sucursal' %}" class="small text-primary text-decoration-none">
+      {% trans "View all" %} →
+    </a>
+  </div>
+
+  <div class="row g-3 mb-5 restaurant-grid">
+    {% for suc in sucursales_recomendadas %}
+      <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+        <a href="{% url 'reservas:sucursal_detalle' suc.slug %}?date={{ hoy|date:'Y-m-d' }}&party={{ party_default }}"
+           class="card restaurant-card h-100 text-decoration-none js-append-time">
+          <div class="ratio ratio-16x9 bg-light rounded-top placeholder-wave">
+            {% if suc.portada %}
+              <img src="{{ suc.portada.url }}" alt="{{ suc.nombre }}" class="rounded-top object-fit-cover">
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <h6 class="card-title text-dark mb-0">{{ suc.nombre }}</h6>
+              {% if suc.rating %}<span class="badge text-bg-light">⭐ {{ suc.rating }}</span>{% endif %}
+            </div>
+            <p class="card-text text-muted small mb-1">{{ suc.cocina }} · {{ suc.precio_nivel }}</p>
+            <p class="text-muted small mb-0">
+              <i class="bi bi-geo-alt me-1"></i>{{ suc.direccion_corta }}
+            </p>
+          </div>
+        </a>
+      </div>
+    {% empty %}
+      <div class="col-12"><p class="text-muted">{% trans "No recommendations for now." %}</p></div>
+    {% endfor %}
+  </div>
+
+  <!-- Otras sucursales -->
+  <div class="card shadow-sm h-100 p-4 border-0 other-locations">
+    <h5 class="fw-bold mb-3">{% trans "Other locations" %}</h5>
+    {% for suc in otras_sucursales %}
+      <div class="d-flex justify-content-between align-items-center location-item">
+        <div>
+          <strong class="d-block">{{ suc.nombre }}</strong>
+          <small class="text-muted">{{ suc.direccion_corta }}</small>
+        </div>
+        <a href="{% url 'reservas:sucursal_detalle' suc.slug %}?date={{ hoy|date:'Y-m-d' }}&party={{ party_default }}"
+           class="btn btn-sm btn-outline-secondary js-append-time">
+          {% trans "View tables" %}
+        </a>
+      </div>
+    {% empty %}
+      <p class="text-muted mb-0">{% trans "No more locations." %}</p>
+    {% endfor %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  {{ block.super }}
+  <script src="{% static 'reservas/js/near_me.js' %}"></script>
+  <script>
+    // Añade la hora seleccionada a los links con clase .js-append-time
+    (function(){
+      const timeInput = document.querySelector('.hero input[name="time"]');
+      if (!timeInput) return;
+      document.querySelectorAll('.js-append-time').forEach(link=>{
+        link.addEventListener('click',()=>{
+          const t = (timeInput.value || '').trim();
+          if(!t) return;
+          const url = new URL(link.href, window.location.origin);
+          url.searchParams.set('time', t);
+          link.href = url.toString();
+        });
+      });
+    })();
+  </script>
+{% endblock %}

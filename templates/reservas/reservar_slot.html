@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Reservar" %} | {{ sucursal.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width: 860px;">
+  <a href="{% url 'reservas:sucursal_detalle' slug=sucursal.slug %}" class="text-decoration-none mb-3 d-inline-flex align-items-center gap-2">
+    <i class="bi bi-arrow-left-short"></i> {% trans "Volver a la sucursal" %}
+  </a>
+
+  <!-- Encabezado elegante -->
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+      <div>
+        <h1 class="h4 mb-1">{% trans "Confirma tu reserva" %}</h1>
+        <div class="text-muted">
+          <span class="fw-semibold">{{ sucursal.nombre }}</span>
+          · {% trans "Fecha" %}: <b>{{ fecha }}</b>
+        </div>
+      </div>
+      <div class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2">
+        <i class="bi bi-calendar-event me-1"></i> IHOP
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario -->
+  <div class="card border-0 shadow-sm">
+    <form method="post" action="{% url 'reservas:reservar_auto' sucursal.id %}" class="card-body p-4">
+      {% csrf_token %}
+      <input type="hidden" name="fecha" value="{{ fecha }}">
+
+      <!-- Hora -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="hora">
+          <i class="bi bi-clock me-1"></i> {% trans "Selecciona la hora" %}
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-clock"></i></span>
+          <input id="hora"
+                 class="form-control"
+                 type="time"
+                 name="hora"
+                 value="{{ hora_sugerida|default:'' }}"
+                 required>
+        </div>
+        <div class="form-text">{% trans "Puedes ajustar la hora antes de reservar." %}</div>
+      </div>
+
+      <!-- Personas -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold" for="party">
+          <i class="bi bi-people me-1"></i> {% trans "¿Para cuántas personas?" %}
+        </label>
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-person"></i></span>
+          <input id="party"
+                 class="form-control"
+                 type="number"
+                 name="party"
+                 min="1"
+                 max="{{ cap_max|default:12 }}"
+                 value="{{ party_default|default:2 }}"
+                 required>
+        </div>
+        <div class="form-text">{% trans "El sistema te asignará automáticamente la mejor mesa disponible." %}</div>
+      </div>
+
+      <!-- Teléfono -->
+      <div class="mb-4">
+        <label class="form-label fw-semibold" for="telefono">
+          <i class="bi bi-telephone me-1"></i> {% trans "Teléfono de contacto" %}
+        </label>
+        <div class="input-group">
+          <span class="input-group-text">+52</span>
+          <input id="telefono"
+                 class="form-control"
+                 type="tel"
+                 name="telefono"
+                 inputmode="tel"
+                 pattern="[0-9\s\-]{8,20}"
+                 placeholder="{% trans 'Ej. 33 1234 5678' %}"
+                 required>
+        </div>
+        <div class="form-text">
+          {% trans "Usaremos este número para confirmarte detalles de la reserva." %}
+        </div>
+      </div>
+
+      <!-- Botones -->
+      <div class="d-flex flex-column flex-sm-row gap-2">
+        <button class="btn btn-primary px-4" type="submit">
+          <i class="bi bi-check2-circle me-1"></i> {% trans "Reservar" %}
+        </button>
+        <a class="btn btn-light px-4" href="{% url 'reservas:sucursal_detalle' slug=sucursal.slug %}">
+          {% trans "Cancelar" %}
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Estética ligera (opcional) -->
+<style>
+  .bg-primary-subtle{ background: rgba(13,110,253,.08); }
+  .text-primary-emphasis{ color: #0d6efd; }
+</style>
+{% endblock %}

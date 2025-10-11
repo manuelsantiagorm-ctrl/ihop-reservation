@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Nueva Walk-in" %}{% endblock %}
+
+{% block content %}
+<div class="container py-3" style="max-width: 880px;">
+  <h1 class="mb-4">{% trans "Crear reserva rápida (Walk-in)" %}</h1>
+
+  <div class="card p-3 mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+      <h5 class="mb-0">{% trans "Ver disponibilidad por fecha" %}</h5>
+      <small class="text-muted">
+        {% trans "Elige fecha/hora y personas; haz clic en un horario para precargar el formulario." %}
+      </small>
+    </div>
+
+    <div class="row g-2">
+      <div class="col-md-3">
+        <label class="form-label">{% trans "Fecha" %}</label>
+        <input type="date" id="dispFecha" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{% trans "Desde" %}</label>
+        <input type="time" id="dispDesde" class="form-control" step="60">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">{% trans "Personas" %}</label>
+        <input type="number" id="dispPersonas" class="form-control" min="1" value="{{ form.initial.num_personas|default:1 }}">
+      </div>
+      <div class="col-md-3 align-self-end">
+        <button type="button" id="btnBuscarDisp" class="btn btn-outline-primary w-100">
+          <i class="bi bi-search"></i> {% trans "Ver disponibilidad" %}
+        </button>
+      </div>
+    </div>
+
+    <div id="dispResultados" class="row g-3 mt-3"></div>
+  </div>
+
+  <form method="post" class="card p-3">
+    {% csrf_token %}
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Nombre del cliente" %}</label>
+        {{ form.nombre_cliente }}{{ form.nombre_cliente.errors }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Email (opcional)" %}</label>
+        {{ form.email_cliente }}{{ form.email_cliente.errors }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Teléfono (opcional)" %}</label>
+        {{ form.telefono_cliente }}{{ form.telefono_cliente.errors }}
+      </div>
+
+      {% if form.sucursal.is_hidden %}
+        {{ form.sucursal }}
+      {% else %}
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Sucursal" %}</label>
+        {{ form.sucursal }}
+      </div>
+      {% endif %}
+
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Mesa" %}</label>
+        {{ form.mesa }}{{ form.mesa.errors }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Fecha y hora" %}</label>
+        {{ form.fecha }}{{ form.fecha.errors }}
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">{% trans "Personas" %}</label>
+        {{ form.num_personas }}
+      </div>
+    </div>
+
+    <div class="mt-3 d-flex gap-2">
+      <button class="btn btn-primary">{% trans "Guardar" %}</button>
+      <a class="btn btn-secondary" href="{% url 'reservas:admin_dashboard' %}">{% trans "Volver" %}</a>
+    </div>
+  </form>
+</div>
+
+<!-- Config (mínimo inline para pasar i18n/urls al JS externo) -->
+<script id="walkin-config" type="application/json">
+{
+  "urls": {
+    "api_slots_base": "{% url 'reservas:api_slots_sucursal' 0 %}"
+  },
+  "i18n": {
+    "searching": "{% trans 'Buscando…' %}",
+    "error": "{% trans 'Error consultando disponibilidad.' %}",
+    "no_slots": "{% trans 'No hay mesas con horarios disponibles.' %}",
+    "cap": "{% trans 'Cap.' %}",
+    "list_title": "{% trans 'Horarios disponibles' %}",
+    "select_table_hint": "{% trans 'Seleccione la mesa en el formulario antes de guardar.' %}"
+  }
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="{% static 'reservas/css/walkin.css' %}">
+<script src="{% static 'reservas/js/walkin.js' %}"></script>
+{% endblock %}

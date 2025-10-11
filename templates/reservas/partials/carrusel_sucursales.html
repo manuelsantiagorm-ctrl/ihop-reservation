@@ -1,0 +1,44 @@
+{% load i18n static %}
+
+<div class="carousel js-carousel" aria-label="{% trans 'Available around lunchtime' %}">
+  <div class="carousel-header">
+    <h2 class="h6 text-muted m-0">{% trans "Available around lunchtime" %}</h2>
+    <div class="carousel-controls">
+      <button class="btn btn-light shadow-sm carousel-btn prev" type="button" aria-label="{% trans 'Previous' %}">‹</button>
+      <button class="btn btn-light shadow-sm carousel-btn next" type="button" aria-label="{% trans 'Next' %}">›</button>
+    </div>
+  </div>
+
+  <div class="strip" role="list">
+    {% now "Y-m-d" as today %}
+    {% for s in sucursales %}
+      <a role="listitem"
+         class="card card-ot me-3 text-decoration-none js-append-time"
+         href="{% url 'reservas:seleccionar_sucursal' %}?id={{ s.id }}&date={{ today }}">
+        <div class="ratio ratio-16x9 card-img-top overflow-hidden rounded-top">
+          {% if s.portada %}
+            <img src="{{ s.portada.url }}" class="w-100 h-100 object-fit-cover" alt="{{ s.nombre }}">
+          {% else %}
+            <img src="{% static 'reservas/img/placeholder-restaurant.jpg' %}" class="w-100 h-100 object-fit-cover" alt="placeholder">
+          {% endif %}
+        </div>
+        <div class="card-body p-2">
+          <div class="d-flex align-items-center small text-muted mb-1">
+            <span class="me-1">⭐</span>
+            <strong class="me-1">{{ s.rating|default:"4.7" }}</strong>
+            <span class="text-muted">· {{ s.precio_signos|default:"$$" }} · {{ s.ciudad }}</span>
+          </div>
+          <h3 class="h6 text-dark m-0 mb-1">{{ s.nombre }}</h3>
+          <div class="small text-muted mb-2">
+            {% blocktrans with n=s.reservas_hoy|default:0 %}Reservado {{ n }} veces hoy{% endblocktrans %}
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            <span class="btn btn-sm btn-outline-primary">{% trans "Ver disponibilidad" %}</span>
+          </div>
+        </div>
+      </a>
+    {% empty %}
+      <div class="text-muted small px-2">{% trans "No branches to show." %}</div>
+    {% endfor %}
+  </div>
+</div>

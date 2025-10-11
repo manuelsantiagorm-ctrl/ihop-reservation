@@ -1,0 +1,49 @@
+/* Tamaños y respiración del header */
+.navbar-ihop {
+  /* base en móvil */
+  padding-top: .9rem;
+  padding-bottom: .9rem;
+  font-size: 0.98rem;
+}
+
+/* marca más visible */
+.navbar-ihop .navbar-brand {
+  font-size: 1.25rem;            /* móvil */
+  letter-spacing: .2px;
+}
+
+/* enlaces más fáciles de tocar */
+.navbar-ihop .nav-link {
+  padding: .6rem .9rem;
+}
+
+/* selector de idioma alineado con la altura */
+.navbar-ihop .lang-select {
+  height: calc(2.35rem + 2px);
+  padding-top: .25rem;
+  padding-bottom: .25rem;
+}
+
+/* en desktop subimos todo un punto */
+@media (min-width: 992px) {
+  .navbar-ihop {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+  .navbar-ihop .navbar-brand {
+    font-size: 1.5rem;
+  }
+  .navbar-ihop .nav-link {
+    font-size: 1rem;
+    padding: .75rem 1rem;
+  }
+  .navbar-ihop .btn,
+  .navbar-ihop .form-select {
+    font-size: .95rem;
+  }
+}
+
+/* sutil mejora del sombreado al aumentar altura */
+.navbar-ihop.shadow-sm {
+  box-shadow: 0 4px 14px rgba(0,0,0,.06);
+}

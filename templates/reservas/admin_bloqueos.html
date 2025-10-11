@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Bloqueos" %} | {{ sucursal.nombre }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reservas/css/bloqueos.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+  <div class="breadcrumb-lite">
+    <a href="{% url 'reservas:admin_sucursales' %}">{% trans "Sucursales" %}</a> /
+    <a href="{% url 'reservas:admin_mapa_sucursal' sucursal.id %}">{% trans "Mapa" %}</a> /
+    <span>{% trans "Bloqueos" %}</span>
+  </div>
+
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h1 class="page-title mb-1">{% trans "Bloqueos programados" %}</h1>
+      <div class="small-muted">{% trans "Filtra, revisa y elimina bloqueos por mesa o por sucursal." %}</div>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{% url 'reservas:admin_mapa_sucursal' sucursal.id %}">
+        ← {% trans "Volver al mapa" %}
+      </a>
+      <button class="btn btn-dark" data-bs-toggle="modal" data-bs-target="#modalBloqueo">
+        <i class="bi bi-calendar-plus"></i> {% trans "Nuevo bloqueo" %}
+      </button>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form class="row g-3" id="filtrosForm">
+        <div class="col-12 col-md-3">
+          <label class="form-label">{% trans "Ámbito" %}</label>
+          <select class="form-select" id="filtroScope">
+            <option value="">{% trans "Todos" %}</option>
+            <option value="sucursal">{% trans "Sucursal" %}</option>
+            <option value="mesa">{% trans "Mesa" %}</option>
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">{% trans "Mesa" %}</label>
+          <select class="form-select" id="filtroMesa">
+            <option value="">{% trans "(Todas)" %}</option>
+            {% for m in mesas %}
+              <option value="{{ m.id }}">#{{ m.numero }} · id {{ m.id }} ({{ m.capacidad }} pax)</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">{% trans "Desde" %}</label>
+          <input type="date" class="form-control" id="filtroDesde" value="{{ timezone.localdate|date:'Y-m-d' }}">
+        </div>
+        <div class="col-12 col-md-3 d-flex align-items-end gap-2">
+          <button type="button" class="btn btn-primary" id="btnAplicarFiltros">{% trans "Aplicar" %}</button>
+          <button type="button" class="btn btn-outline-secondary" id="btnResetFiltros">{% trans "Limpiar" %}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-sm align-middle" id="tablaBloqueos">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="chkAll"></th>
+              <th>#</th>
+              <th>{% trans "Ámbito" %}</th>
+              <th>{% trans "Mesa" %}</th>
+              <th>{% trans "Inicio" %}</th>
+              <th>{% trans "Fin" %}</th>
+              <th>{% trans "Motivo" %}</th>
+              <th class="text-end">{% trans "Acciones" %}</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-2">
+        <div class="text-muted small d-none" id="lblVacio">{% trans "No hay bloqueos para los filtros actuales." %}</div>
+        <div class="text-danger small d-none" id="lblError">{% trans "No se pudo cargar la lista." %}</div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" id="btnEliminarSel" disabled>
+            <i class="bi bi-trash"></i> {% trans "Eliminar seleccionados" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Modales y config reutilizados del mapa #}
+  {% include "reservas/admin_mapa_sucursal.html" with only %}
+  {# Solo necesitamos los modales y config: copiamos mini bloque #}
+  <div id="bloqueosConfig"
+       data-sucursal-id="{{ sucursal.id }}"
+       data-url-create="{% url 'reservas:admin_api_bloqueo_create' %}"
+       data-url-list="{% url 'reservas:admin_api_bloqueo_list' %}"
+       data-url-delete="{% url 'reservas:admin_api_bloqueo_delete' %}">
+  </div>
+  <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+  {# Modal de crear bloqueo (mismo que usas en el mapa) #}
+  {% include "reservas/_modal_bloqueo_solo.html" %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'reservas/js/bloqueos_page.js' %}"></script>
+{% endblock %}

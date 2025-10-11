@@ -1,0 +1,484 @@
+/* ===========================
+   IHOP System – Mejora visual
+   (solo estilos, sin cambiar estructura)
+   =========================== */
+/************  HOME – BLOQUE INFERIOR ELEGANTE  ************/
+
+/* Título + regla muy sutil */
+.section-title{
+  display:flex;align-items:center;gap:.75rem;margin:2.25rem 0 1rem;
+}
+.section-title h4{
+  margin:0;font-weight:800;letter-spacing:.2px;
+}
+.section-title .rule{
+  flex:1 1 auto;height:1px;
+  background:linear-gradient(90deg,#e5e7eb,rgba(229,231,235,0));
+  border-radius:1px;
+}
+
+/* Grid parejo de tarjetas (hover sutil, sin “rebotar”) */
+.restaurant-grid{row-gap:1.25rem;}
+.restaurant-card{
+  border:0;border-radius:16px;background:#fff;overflow:hidden;
+  box-shadow:0 1px 2px rgba(0,0,0,.03), 0 8px 24px rgba(2,6,23,.05);
+  transition:box-shadow .2s ease, transform .15s ease;
+}
+.restaurant-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 8px 20px rgba(2,6,23,.08);
+}
+.restaurant-card .ratio{border-bottom:1px solid #f2f4f7;}
+.restaurant-card img{width:100%;height:100%;transition:transform .4s ease;}
+.restaurant-card:hover img{transform:scale(1.03);}
+.restaurant-card .badge{
+  background:#eef2f7 !important;color:#0f172a !important;border-radius:10px;
+}
+.restaurant-card .card-body{min-height:128px}
+
+/* Panel “Other locations” – tarjeta suave */
+.other-locations.card{
+  border-radius:18px; background:#fff;
+  border:1px solid #eef2f7;
+  box-shadow:0 1px 2px rgba(0,0,0,.03), 0 10px 24px rgba(2,6,23,.05);
+}
+.other-locations h5{font-weight:800;letter-spacing:.2px;margin-bottom:1rem;}
+
+/* Filas limpias y parejas */
+.other-locations .location-item{
+  padding:.85rem 0;
+  border-bottom:1px solid #f1f3f5;
+  transition:background-color .15s ease;
+}
+.other-locations .location-item:last-child{border-bottom:0;}
+.other-locations .location-item:hover{background:#fafbfc;}
+.other-locations strong{font-weight:700;}
+.other-locations small{color:#64748b;}
+
+/* Botón “View tables” estilo ghost/link */
+.other-locations .btn.btn-outline-secondary{
+  border:0; background:transparent; color:#111827;
+  padding:.25rem .5rem; font-weight:600; border-radius:8px;
+}
+.other-locations .btn.btn-outline-secondary:hover{
+  background:#111827; color:#fff;
+}
+
+/* Flechita sutil al pasar */
+.other-locations .location-item .btn::after{
+  content:"→"; display:inline-block; margin-left:.35rem;
+  transform:translateX(0); transition:transform .15s ease;
+}
+.other-locations .location-item:hover .btn::after{ transform:translateX(2px); }
+
+/* Paleta + tipografía */
+:root{
+  --brand: #1D4ED8;          /* azul acción */
+  --brand-2: #DC2626;        /* rojo acción */
+  --ink: #0f172a;            /* texto */
+  --muted: #64748b;          /* texto secundario */
+  --bg-soft: #f8fafc;        /* fondos suaves */
+}
+body { color: var(--ink); }
+
+/* ----- HERO más “premium” ----- */
+/* === Fondo degradado para el hero === */
+.hero {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f1ff 40%, #f9fbff 100%);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  transition: box-shadow .3s ease;
+}
+
+.hero:hover {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+/* Ajuste del formulario dentro */
+.hero input,
+.hero select {
+  border: 1px solid #d0d7e2;
+  background-color: #fff;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.hero input:focus,
+.hero select:focus {
+  border-color: #4f80ff;
+  box-shadow: 0 0 0 3px rgba(79,128,255,0.15);
+}
+
+/* Botón de buscar con degradado */
+.hero button.btn-primary {
+  background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+  border: none;
+  box-shadow: 0 3px 10px rgba(37,99,235,0.3);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.hero button.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37,99,235,0.4);
+}
+
+.hero .btn.btn-primary.btn-lg {
+  padding-inline: 1.5rem;
+  border-radius: .9rem;
+  box-shadow: 0 8px 18px rgba(29, 78, 216, .15);
+  transition: transform .15s ease, box-shadow .25s ease, background-color .15s ease;
+}
+.hero .btn.btn-primary.btn-lg:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(29, 78, 216, .2);
+}
+
+/* Enlace “Cerca de mí” */
+.near-me-link {
+  font-size: .92rem;
+  color: var(--brand);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  transition: color .2s ease, transform .2s ease;
+}
+.near-me-link:hover { text-decoration: underline; transform: translateY(-1px); }
+
+/* Altura consistente desktop (conservar tu regla) */
+@media (min-width: 992px) {
+  .hero .form-control-lg,
+  .hero .form-select-lg { height: 48px; }
+}
+
+/* ----- Cards de atajos (“action-card”) ----- */
+.card.shadow-soft {
+  border-radius: 1.25rem !important;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.04),
+    0 8px 24px rgba(2,6,23,.06);
+  transition: transform .2s ease, box-shadow .25s ease;
+}
+.card.shadow-soft:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.05),
+    0 18px 44px rgba(2,6,23,.10);
+}
+.action-card .btn { border-radius: .8rem; }
+
+/* ----- Cards de restaurantes ----- */
+.restaurant-card {
+  border: 0;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background: #fff;
+  transition: transform .2s ease, box-shadow .25s ease, border-color .25s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(2,6,23,.06);
+}
+.restaurant-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(2,6,23,.1), 0 24px 48px rgba(2,6,23,.08);
+}
+.restaurant-card .ratio { overflow: hidden; }
+.restaurant-card img {
+  width: 100%;
+  height: 100%;
+  transition: transform .5s ease;
+}
+.restaurant-card:hover img { transform: scale(1.06); }
+.restaurant-card .badge {
+  background: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-radius: .75rem;
+}
+
+/* ----- Listado “Otras sucursales” ----- */
+.card.shadow-sm.border-0 {
+  border-radius: 1.25rem;
+}
+.card.shadow-sm.border-0 .btn.btn-outline-secondary {
+  border-radius: .75rem;
+  transition: background-color .2s ease, color .2s ease, transform .15s ease;
+}
+.card.shadow-sm.border-0 .btn.btn-outline-secondary:hover {
+  transform: translateY(-1px);
+  background-color: #111827;
+  color: #fff;
+}
+
+/* ----- Micro-interacciones generales ----- */
+.btn, .form-control, .form-select, .list-group-item {
+  transition: background-color .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease, transform .15s ease;
+}
+a.text-primary.text-decoration-none:hover { text-decoration: underline; }
+
+/* ----- Carrusel horizontal (si tu partial lo usa con overflow-x) ----- */
+.scroll-snap-x {
+  scroll-snap-type: x mandatory;
+}
+.scroll-snap-x > * {
+  scroll-snap-align: start;
+}
+
+/* ----- Placeholder más suave ----- */
+.placeholder-wave { background: linear-gradient(90deg,#f5f7fb 25%,#eef2f7 37%,#f5f7fb 63%); }
+
+/* ----- Lista Near Me (si usas list-group) ----- */
+#nearMeResults .list-group-item {
+  border: 1px solid #e5e7eb;
+  border-radius: .9rem;
+  margin-bottom: .6rem;
+  box-shadow: 0 2px 8px rgba(2,6,23,.04);
+}
+#nearMeResults .list-group-item:hover {
+  border-color: #d1d5db;
+  transform: translateY(-2px);
+}
+
+/* ----- Accesibilidad: focus visible bonito ----- */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 .25rem rgba(29,78,216,.25) !important;
+  transition: box-shadow .25s ease;
+}
+
+
+/* -------------------------------
+   SECCIÓN: Available to dine now
+---------------------------------*/
+.section-title {
+  display: flex; align-items: center; gap: .75rem;
+  margin: 2rem 0 1rem;
+}
+.section-title h4 {
+  margin: 0; font-weight: 800; letter-spacing: .2px;
+}
+.section-title .rule {
+  flex: 1 1 auto; height: 2px;
+  background: linear-gradient(90deg,#e5e7eb, rgba(229,231,235,0));
+  border-radius: 2px;
+}
+
+.restaurant-grid { /* aplica a la fila que ya tienes */
+  row-gap: 1rem;    /* más compacto y uniforme */
+}
+.restaurant-card {
+  border-radius: 1rem; background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(2,6,23,.06);
+}
+.restaurant-card .ratio { border-bottom: 1px solid #f1f5f9; }
+.restaurant-card .card-body { min-height: 130px; }       /* alturas parejas */
+.restaurant-card .card-title { font-weight: 700; }
+.restaurant-card .badge {
+  background: #f1f5f9 !important; color: #0f172a !important; border-radius: .75rem;
+}
+.restaurant-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 28px rgba(2,6,23,.10), 0 26px 54px rgba(2,6,23,.08);
+}
+
+/* -------------------------------
+   SECCIÓN: Other locations (card)
+---------------------------------*/
+.other-locations.card {
+  border-radius: 1.25rem; background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 12px 28px rgba(2,6,23,.06);
+  border: 1px solid #eef2f7;
+}
+.other-locations h5 {
+  font-weight: 800; letter-spacing: .2px; margin-bottom: 1rem;
+}
+
+.other-locations .location-item {
+  padding: .9rem 0;
+  border-bottom: 1px solid #eef2f7;
+  transition: background-color .18s ease, transform .15s ease, box-shadow .2s ease;
+}
+.other-locations .location-item:last-child { border-bottom: 0; }
+
+.other-locations .location-item:hover {
+  background: #fafafa;
+  transform: translateY(-1px);
+}
+.other-locations .location-item strong { font-weight: 700; }
+.other-locations .location-item small { color: #64748b; }
+
+/* botón "View tables" más fino */
+.other-locations .btn.btn-outline-secondary{
+  border-radius: .7rem;
+  border-color: #e5e7eb; color: #0f172a;
+  padding: .4rem .7rem; font-weight: 600;
+}
+.other-locations .btn.btn-outline-secondary:hover{
+  background:#111827; color:#fff; border-color:#111827;
+}
+
+/* flecha sutil al pasar */
+.other-locations .location-item .btn::after{
+  content: "→"; display: inline-block; margin-left:.4rem; transition: transform .15s ease;
+}
+.other-locations .location-item:hover .btn::after{ transform: translateX(2px); }
+
+/* espacio respirable alrededor de todo el bloque inferior */
+.section-soft {
+  background: #f8fafc;
+  border-radius: 1rem;
+  padding: 1.25rem;
+}
+/* --- título y línea decorativa --- */
+.section-title{display:flex;align-items:center;gap:.75rem;margin:2rem 0 1rem;}
+.section-title h4{margin:0;font-weight:800;letter-spacing:.2px;}
+.section-title .rule{flex:1 1 auto;height:2px;background:linear-gradient(90deg,#e5e7eb,rgba(229,231,235,0));border-radius:2px;}
+
+/* --- grid parejo --- */
+.restaurant-grid{row-gap:1rem;}
+.restaurant-card{border:0;border-radius:1.25rem;overflow:hidden;background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(2,6,23,.06);
+  transition:transform .2s ease,box-shadow .25s ease,border-color .25s ease;}
+.restaurant-card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(2,6,23,.10),0 26px 54px rgba(2,6,23,.08);}
+.restaurant-card .ratio{overflow:hidden;border-bottom:1px solid #f1f5f9;}
+.restaurant-card img{width:100%;height:100%;transition:transform .5s ease;}
+.restaurant-card:hover img{transform:scale(1.06);}
+.restaurant-card .badge{background:#f1f5f9!important;color:#0f172a!important;border-radius:.75rem;}
+.restaurant-card .card-body{min-height:130px;}
+
+/* --- panel other locations --- */
+.other-locations.card{border-radius:1.25rem;background:#fff;border:1px solid #eef2f7;
+  box-shadow:0 1px 2px rgba(0,0,0,.04),0 12px 28px rgba(2,6,23,.06);}
+.other-locations h5{font-weight:800;letter-spacing:.2px;margin-bottom:1rem;}
+.other-locations .location-item{padding:.9rem 0;border-bottom:1px solid #eef2f7;
+  transition:background-color .18s ease,transform .15s ease,box-shadow .2s ease;}
+.other-locations .location-item:last-child{border-bottom:0;}
+.other-locations .location-item:hover{background:#fafafa;transform:translateY(-1px);}
+.other-locations .btn.btn-outline-secondary{border-radius:.7rem;border-color:#e5e7eb;color:#0f172a;padding:.4rem .7rem;font-weight:600;}
+.other-locations .btn.btn-outline-secondary:hover{background:#111827;color:#fff;border-color:#111827;}
+.other-locations .location-item .btn::after{content:"→";display:inline-block;margin-left:.4rem;transition:transform .15s ease;}
+.other-locations .location-item:hover .btn::after{transform:translateX(2px);}
+
+
+/* ===== Scope del Home para ganar especificidad ===== */
+.home-page .hero{
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f1ff 40%, #f9fbff 100%);
+  border-radius: 1.25rem;
+  box-shadow: 0 8px 24px rgba(0,0,0,.05);
+}
+.home-page .hero .form-control-lg,
+.home-page .hero .form-select-lg{
+  border:1px solid #d0d7e2;
+}
+.home-page .hero .form-control-lg:focus,
+.home-page .hero .form-select-lg:focus{
+  border-color:#4f80ff;
+  box-shadow:0 0 0 3px rgba(79,128,255,.15);
+}
+.home-page .hero .btn.btn-primary{
+  background: linear-gradient(90deg,#2563eb 0%, #60a5fa 100%);
+  border:0;
+  box-shadow:0 3px 10px rgba(37,99,235,.3);
+}
+
+/* Bloque inferior elegante (con scope para evitar overrides de core.css) */
+.home-page .section-title{display:flex;align-items:center;gap:.75rem;margin:2.25rem 0 1rem;}
+.home-page .section-title h4{margin:0;font-weight:800;letter-spacing:.2px;}
+.home-page .section-title .rule{flex:1;height:1px;background:linear-gradient(90deg,#e5e7eb,rgba(229,231,235,0));border-radius:1px;}
+
+.home-page .restaurant-grid{row-gap:1.25rem;}
+.home-page .restaurant-card{
+  border:0;border-radius:16px;background:#fff;overflow:hidden;
+  box-shadow:0 1px 2px rgba(0,0,0,.03),0 8px 24px rgba(2,6,23,.05);
+  transition:box-shadow .2s ease, transform .15s ease;
+}
+.home-page .restaurant-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(2,6,23,.08);}
+.home-page .restaurant-card .ratio{border-bottom:1px solid #f2f4f7;}
+.home-page .restaurant-card img{transition:transform .4s ease;}
+.home-page .restaurant-card:hover img{transform:scale(1.03);}
+.home-page .restaurant-card .badge{background:#eef2f7!important;color:#0f172a!important;border-radius:10px;}
+.home-page .restaurant-card .card-body{min-height:128px;}
+
+.home-page .other-locations.card{
+  border-radius:18px;background:#fff;border:1px solid #eef2f7;
+  box-shadow:0 1px 2px rgba(0,0,0,.03),0 10px 24px rgba(2,6,23,.05);
+}
+.home-page .other-locations h5{font-weight:800;letter-spacing:.2px;margin-bottom:1rem;}
+.home-page .other-locations .location-item{padding:.85rem 0;border-bottom:1px solid #f1f3f5;transition:background-color .15s ease;}
+.home-page .other-locations .location-item:last-child{border-bottom:0;}
+.home-page .other-locations .location-item:hover{background:#fafbfc;}
+.home-page .other-locations .btn.btn-outline-secondary{border:0;background:transparent;color:#111827;padding:.25rem .5rem;font-weight:600;border-radius:8px;}
+.home-page .other-locations .btn.btn-outline-secondary:hover{background:#111827;color:#fff;}
+.home-page .other-locations .location-item .btn::after{content:"→";display:inline-block;margin-left:.35rem;transform:translateX(0);transition:transform .15s ease;}
+.home-page .other-locations .location-item:hover .btn::after{transform:translateX(2px);}
+
+/* Botón Cerca de mí elevado 1.5cm y centrado sobre Party size (solo desktop) */
+/* ====== Botón “Cerca de mí” refinado ====== */
+.near-me-btn {
+  height: 52px; /* 🔹 más grande */
+  font-size: 1.5rem; /* 🔹 texto un poco más grande */
+  border-radius: 12px;
+  font-weight: 600;
+  padding: 0 20px;
+  position: relative;
+  top: -0.9cm; /* 🔹 bajado un poco (antes era -1.5cm) */
+  transition: transform .15s ease, box-shadow .25s ease, background-color .15s ease;
+}
+
+.near-me-btn i {
+  font-size: 1.5rem; /* 🔹 ícono más grande */
+}
+
+.near-me-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.25);
+}
+
+/* 🔸 En móviles vuelve a su posición normal */
+@media (max-width: 991.98px) {
+  .near-me-btn {
+    top: 0;
+    width: 100%;
+    height: 46px;
+  }
+}
+
+/* Aviso NearMe */
+.alert-nearme{
+  background: linear-gradient(180deg, #e9f2ff 0%, #eef6ff 100%);
+  border: 1px solid #d6e6ff;
+  color: #0b5ed7; /* tono primario de Bootstrap */
+  border-radius: 14px;
+}
+.alert-nearme .btn-primary{
+  box-shadow: 0 1px 0 rgba(0,0,0,.05);
+}
+
+
+
+
+
+
+/* ====== Botón “Cerca de mí” ====== */
+.near-me-container {
+  position: relative;
+  margin-top: -70px; /* sube el botón sobre party size */
+}
+
+.near-me-container button {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+}
+
+.near-me-container button:hover {
+  background-color: #2563eb;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.25);
+}
+
+/* Ajuste responsive */
+@media (max-width: 992px) {
+  .near-me-container {
+    margin-top: 0;
+    text-align: center;
+  }
+}

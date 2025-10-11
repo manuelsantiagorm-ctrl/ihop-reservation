@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <h3 class="fw-bold mb-3">{{ titulo }}</h3>
+
+  <form method="post" enctype="multipart/form-data" class="card p-3 shadow-sm">
+    {% csrf_token %}
+
+    {% if messages %}
+      {% for m in messages %}
+        <div class="alert alert-{{ m.tags }} mb-2">{{ m }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Nombre</label>
+        {{ form.nombre }}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Buscar dirección (Google)</label>
+        <input id="gmaps-autocomplete" class="form-control" placeholder="Escribe calle y número..." autocomplete="off">
+        <div class="form-text">Elige una sugerencia o ajusta el pin en el mapa.</div>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Dirección (formateada)</label>
+        {{ form.direccion }}
+      </div>
+
+      <div class="col-md-3">
+        <label class="form-label">Código Postal</label>
+        {{ form.codigo_postal }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Precio</label>
+        {{ form.precio_nivel }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Rating</label>
+        {{ form.rating }}
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Reviews</label>
+        {{ form.reviews }}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Cocina</label>
+        {{ form.cocina }}
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Portada</label>
+        {{ form.portada }}
+        <div class="mt-2">{{ form.portada_alt }}</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Administradores</label>
+        {{ form.administradores }}
+      </div>
+
+      <div class="col-md-6 d-flex align-items-center">
+        <div class="form-check mt-4">
+          {{ form.recomendado }} <label class="form-check-label">Recomendado</label>
+        </div>
+        <div class="form-check mt-4 ms-4">
+          {{ form.activo }} <label class="form-check-label">Activo</label>
+        </div>
+      </div>
+
+      {{ form.lat }} {{ form.lng }} {{ form.place_id }}
+
+      <div class="col-12">
+        <div id="admin-branch-map" style="height:420px;border-radius:12px;" class="w-100 bg-light"></div>
+        <div class="d-flex gap-2 mt-2">
+          <button class="btn btn-outline-secondary btn-sm" type="button" id="btnUseMyLocation">
+            <i class="bi bi-geo"></i> Usar mi ubicación
+          </button>
+          <span class="text-muted small">Arrastra el pin para ajustar la ubicación exacta.</span>
+        </div>
+      </div>
+
+      <div class="col-12">
+        <button class="btn btn-primary">Guardar</button>
+        <a href="{% url 'reservas:admin_sucursales' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'reservas/js/admin_sucursal_form.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Sucursales" %}{% endblock %}
+{% block content %}
+<div class="container py-3" style="max-width:1000px;">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h4 mb-0">{% trans "Sucursales" %}</h1>
+    <a href="{% url 'reservas:chainadmin_sucursal_nueva' %}" class="btn btn-primary">
+      {% trans "Nueva sucursal" %}
+    </a>
+  </div>
+
+  <div class="card p-3">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>{% trans "Nombre" %}</th>
+            <th>{% trans "Slug" %}</th>
+            <th>{% trans "Activo" %}</th>
+            <th class="text-end">{% trans "Acciones" %}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in object_list %}
+          <tr>
+            <td>{{ s.nombre }}</td>
+            <td>{{ s.slug }}</td>
+            <td>{% if s.activo %}✅{% else %}❌{% endif %}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'reservas:chainadmin_sucursal_editar' s.pk %}">{% trans "Editar" %}</a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'reservas:chainadmin_sucursal_eliminar' s.pk %}">{% trans "Eliminar" %}</a>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-4">{% trans "No hay sucursales." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

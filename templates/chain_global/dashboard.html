@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-4">
+  <h1 class="mb-3">Panel Global (Superusuario)</h1>
+
+  <div class="mb-3 d-flex gap-2">
+    <a class="btn btn-primary" href="{% url 'reservas:chain_global_role_create' %}">Asignar rol a usuario existente</a>
+    <a class="btn btn-success" href="{% url 'reservas:chain_global_create_country_admin_user' %}">Crear usuario + rol país</a>
+  </div>
+
+  <h5 class="mt-4">Administradores por país</h5>
+  <div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+      <thead>
+        <tr><th>Usuario</th><th>País</th><th>Estado</th><th>Creado</th><th style="width:1%"></th></tr>
+      </thead>
+      <tbody>
+      {% for r in roles %}
+        <tr>
+          <td>{{ r.user.get_full_name|default:r.user.email }}</td>
+          <td>{{ r.pais.nombre }} ({{ r.pais.iso2 }})</td>
+          <td>
+            {% if r.activo %}
+              <span class="badge text-bg-success">ACTIVO</span>
+            {% else %}
+              <span class="badge text-bg-secondary">INACTIVO</span>
+            {% endif %}
+          </td>
+          <td>{{ r.creado_en|date:"Y-m-d H:i" }}</td>
+          <td>
+            <form method="post" action="{% url 'reservas:chain_global_role_toggle' r.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-outline-secondary btn-sm" type="submit">
+                {% if r.activo %}Desactivar{% else %}Activar{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="text-center text-muted">Sin roles registrados</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

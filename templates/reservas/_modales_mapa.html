@@ -1,0 +1,104 @@
+{% load i18n %}
+
+<!-- Crear mesa -->
+<div class="modal fade" id="modalCreateMesa" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog">
+    <form class="modal-content" method="post" action="{% url 'reservas:admin_mesa_crear' sucursal.id %}">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">{% trans "Crear mesa" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans "Cerrar" %}"></button>
+      </div>
+
+      <div class="modal-body vstack gap-3">
+        <div>
+          <label class="form-label">{% trans "Número de mesa" %}</label>
+          <input type="number" name="numero" class="form-control" required>
+        </div>
+
+        <div>
+          <label class="form-label">{% trans "Capacidad" %}</label>
+          <input type="number" name="capacidad" class="form-control" min="1" required>
+        </div>
+
+        <div>
+          <label class="form-label">{% trans "Zona" %}</label>
+          <select class="form-select" name="zona">
+            <option value="interior">{% trans "Interior" %}</option>
+            <option value="terraza">{% trans "Terraza" %}</option>
+            <option value="exterior">{% trans "Exterior" %}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">{% trans "Ubicación (opcional)" %}</label>
+          <input type="text" name="ubicacion" class="form-control" maxlength="100" placeholder="{% trans 'Ej. Terraza, Ventana' %}">
+        </div>
+
+        <div>
+          <label class="form-label">{% trans "Notas (opcional)" %}</label>
+          <textarea name="notas" class="form-control" rows="2" maxlength="300"></textarea>
+        </div>
+
+        <input type="hidden" name="sucursal_id" value="{{ sucursal.id }}">
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
+        <button type="submit" class="btn btn-primary">{% trans "Crear" %}</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Editar mesa -->
+<div class="modal fade" id="modalEditMesa" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="formEditMesa" class="modal-content">
+      {% csrf_token %}
+      <div class="modal-header">
+        <h5 class="modal-title">{% trans "Editar mesa" %}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans "Cerrar" %}"></button>
+      </div>
+
+      <div class="modal-body vstack gap-3">
+        <input type="hidden" name="mesa_id" id="editMesaId">
+        <input type="hidden" id="editMesaUrl">
+
+        <div>
+          <label class="form-label">{% trans "Número de mesa" %}</label>
+          <input type="number" name="numero" id="editNumero" class="form-control" required>
+        </div>
+
+        <div>
+          <label class="form-label">{% trans "Capacidad" %}</label>
+          <input type="number" name="capacidad" id="editCapacidad" class="form-control" min="1" required>
+        </div>
+
+        <div>
+          <label class="form-label">{% trans "Zona" %}</label>
+          <select class="form-select" name="zona" id="editZona">
+            <option value="interior">{% trans "Interior" %}</option>
+            <option value="terraza">{% trans "Terraza" %}</option>
+            <option value="exterior">{% trans "Exterior" %}</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">{% trans "Ubicación (opcional)" %}</label>
+          <input type="text" name="ubicacion" id="editUbicacion" class="form-control" maxlength="100">
+        </div>
+
+        <div>
+          <label class="form-label">{% trans "Notas (opcional)" %}</label>
+          <textarea name="notas" id="editNotas" class="form-control" rows="2" maxlength="300"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
+        <button type="submit" class="btn btn-primary">{% trans "Guardar cambios" %}</button>
+      </div>
+    </form>
+  </div>
+</div>

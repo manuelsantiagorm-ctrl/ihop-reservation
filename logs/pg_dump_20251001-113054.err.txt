@@ -1,0 +1,1 @@
+pg_dump: error: falló la conexión al servidor en «127.0.0.1», puerto 5432: FATAL:  no existe la base de datos «ihop»

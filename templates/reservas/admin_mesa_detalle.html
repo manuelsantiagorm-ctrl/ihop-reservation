@@ -1,22 +1,104 @@
 {% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Mesa" %} {{ mesa.numero|default:mesa.id }} | Admin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reservas/css/admin.css' %}">
+{% endblock %}
+
 {% block content %}
+<div class="container py-3">
+  <div class="breadcrumb-lite">
+    <a href="{% url 'reservas:admin_sucursales' %}">{% trans "Sucursales" %}</a> /
+    <a href="{% url 'reservas:admin_mapa_sucursal' mesa.sucursal.id %}">{{ mesa.sucursal.nombre }}</a> /
+    <span>{% trans "Mesa" %} {{ mesa.numero|default:mesa.id }}</span>
+  </div>
 
-<h2>Detalle de Mesa {{ mesa.numero }} (Sucursal: {{ mesa.sucursal.nombre }})</h2>
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <h1 class="page-title mb-0">{% trans "Mesa" %} {{ mesa.numero|default:mesa.id }}</h1>
+    <a class="btn btn-outline-secondary btn-round"
+       href="{% url 'reservas:admin_mapa_sucursal' mesa.sucursal.id %}">
+      {% trans "Volver al mapa" %}
+    </a>
+  </div>
 
-{% if reserva %}
-  <p><strong>Estado:</strong> {{ reserva.estado }}</p>
-  <p><strong>Cliente:</strong> {{ reserva.cliente.user.get_full_name }} ({{ reserva.cliente.user.email }})</p>
-  <p><strong>Fecha y hora:</strong> {{ reserva.fecha }}</p>
-  <p><strong>Capacidad de la mesa:</strong> {{ mesa.capacidad }}</p>
+  <div class="card-soft mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="info-kv"><b>{% trans "Sucursal" %}:</b> {{ mesa.sucursal.nombre }}</div>
+          <div class="info-kv"><b>{% trans "Capacidad" %}:</b> {{ mesa.capacidad }}</div>
+          <div class="info-kv"><b>{% trans "Ubicación" %}:</b> {{ mesa.ubicacion|default:_("General") }}</div>
+        </div>
+        <div class="col-md-8">
+          {% if reserva %}
+            <h5 class="mb-2">{% trans "Reserva" %}</h5>
+            <table class="table table-clean">
+              <tr><td><b>{% trans "Cliente" %}</b></td><td>{{ reserva.cliente.nombre }}</td></tr>
+              <tr><td><b>{% trans "Folio" %}</b></td><td>{{ reserva.folio }}</td></tr>
+              <tr>
+                <td><b>{% trans "Estado" %}</b></td>
+                <td>
+                  {{ reserva.get_estado_display }}
+                  {% if reserva.llego %}
+                    <span class="badge text-bg-success ms-2">{% trans "Llegó" %}</span>
+                  {% endif %}
+                  {% if reserva.liberada_en %}
+                    <span class="badge text-bg-secondary ms-1">
+                      {% trans "Liberada" %} {{ reserva.liberada_en|date:"H:i" }}
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <td><b>{% trans "Fecha / hora" %}</b></td>
+                <td>{{ reserva.fecha|date:"d/M/Y H:i" }}</td>
+              </tr>
+              <tr><td><b>{% trans "Personas" %}</b></td><td>{{ reserva.num_personas }}</td></tr>
+            </table>
 
-  <form action="{% url 'reservas:admin_confirmar_llegada' reserva.id %}" method="post">
-    {% csrf_token %}
-    <button type="submit">✅ Confirmar llegada</button>
-  </form>
-{% else %}
-  <p>⚠ No hay reservas activas o próximas para esta mesa.</p>
-{% endif %}
+            <div class="d-flex flex-wrap gap-2">
+              {# Confirmar llegada: solo dentro de la ventana de tolerancia #}
+              {% if puede_confirmar %}
+                <form method="post" action="{% url 'reservas:admin_confirmar_llegada' reserva.id %}">
+                  {% csrf_token %}
+                  <button class="btn btn-success btn-round">
+                    <i class="bi bi-check2-circle"></i> {% trans "Confirmar llegada" %}
+                  </button>
+                </form>
+              {% endif %}
 
-<a href="{% url 'reservas:admin_mapa_sucursal' mesa.sucursal.id %}">← Volver al mapa</a>
+              {# Finalizar: solo habilitado si ya hubo check-in #}
+              {% if puede_finalizar %}
+                <form method="post"
+                      action="{% url 'reservas:admin_finalizar_reserva' reserva.id %}"
+                      onsubmit="return confirm('{% trans '¿Estás seguro de dar por terminada esta reserva? La mesa quedará disponible inmediatamente.' %}')">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="mapa">
+                  <button class="btn btn-danger btn-round">
+                    <i class="bi bi-x-circle"></i> {% trans "Finalizar reserva" %}
+                  </button>
+                </form>
+              {% else %}
+                <button class="btn btn-danger btn-round" disabled
+                        title="{% trans 'Disponible después de confirmar la llegada.' %}">
+                  <i class="bi bi-x-circle"></i> {% trans "Finalizar reserva" %}
+                </button>
+              {% endif %}
 
+              <a class="btn btn-outline-primary btn-round"
+                 href="{% url 'reservas:admin_buscar_folio' %}?folio={{ reserva.folio }}">
+                {% trans "Acciones por folio" %}
+              </a>
+            </div>
+          {% else %}
+            <div class="text-muted">{% trans "No hay reserva activa / próxima para esta mesa." %}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

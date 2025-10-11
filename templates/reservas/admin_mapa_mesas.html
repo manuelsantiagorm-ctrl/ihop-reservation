@@ -1,20 +1,24 @@
 {% extends 'base.html' %}
 {% block content %}
-<h2>Mapa de mesas — {{ sucursal.nombre }}</h2>
+{% load i18n %}
+
+<h2>{% trans "Mapa de mesas" %} — {{ sucursal.nombre }}</h2>
 
 <p>
-  <strong>Leyenda:</strong>
-  <span style="display:inline-block;width:12px;height:12px;background:#16a34a;border-radius:2px;margin:0 4px;"></span> Disponible
-  <span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:2px;margin:0 8px 0 16px;"></span> Reservada
-  <span style="display:inline-block;width:12px;height:12px;background:#dc2626;border-radius:2px;margin:0 4px 0 16px;"></span> Ocupada
-  <span style="margin-left:16px;color:#666;">(ventana vigente = {{ total_minutos }} min)</span>
+  <strong>{% trans "Leyenda:" %}</strong>
+  <span style="display:inline-block;width:12px;height:12px;background:#16a34a;border-radius:2px;margin:0 4px;"></span> {% trans "Disponible" %}
+  <span style="display:inline-block;width:12px;height:12px;background:#f59e0b;border-radius:2px;margin:0 8px 0 16px;"></span> {% trans "Reservada" %}
+  <span style="display:inline-block;width:12px;height:12px;background:#dc2626;border-radius:2px;margin:0 4px 0 16px;"></span> {% trans "Ocupada" %}
+  <span style="margin-left:16px;color:#666;">
+    ({% trans "ventana vigente = " %} {{ total_minutos }} {% trans "min" %})
+  </span>
 </p>
 
 <p>
-  <strong>Totales:</strong>
-  Disponible: {{ totales.DISPONIBLE }} |
-  Reservada: {{ totales.RESERVADA }} |
-  Ocupada: {{ totales.OCUPADA }}
+  <strong>{% trans "Totales:" %}</strong>
+  {% trans "Disponible" %}: {{ totales.DISPONIBLE }} |
+  {% trans "Reservada" %}: {{ totales.RESERVADA }} |
+  {% trans "Ocupada" %}: {{ totales.OCUPADA }}
 </p>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
@@ -29,31 +33,38 @@
 
     <div style="border:1px solid #ddd;border-radius:10px;overflow:hidden;">
       <div style="background:{{ bg }};color:{{ fg }};padding:8px 12px;font-weight:600;">
-        {{ mesa.nombre }} — {{ estado }}
+        {% trans "Mesa" %} {{ mesa.nombre }} — 
+        {% if estado == 'DISPONIBLE' %}
+          {% trans "Disponible" %}
+        {% elif estado == 'RESERVADA' %}
+          {% trans "Reservada" %}
+        {% else %}
+          {% trans "Ocupada" %}
+        {% endif %}
       </div>
       <div style="padding:10px;font-size:14px;">
-        <div><strong>Capacidad:</strong> {{ mesa.capacidad }} pax</div>
+        <div><strong>{% trans "Capacidad:" %}</strong> {{ mesa.capacidad }} {% trans "pax" %}</div>
         {% if reserva %}
-          <div><strong>Reserva:</strong> {{ reserva.fecha|date:"H:i" }} — {{ reserva.get_estado_display }}</div>
-          <div><strong>Cliente:</strong> {{ reserva.cliente.nombre }}</div>
-          <div><strong>Personas:</strong> {{ reserva.num_personas }}</div>
+          <div><strong>{% trans "Reserva:" %}</strong> {{ reserva.fecha|date:"H:i" }} — {{ reserva.get_estado_display }}</div>
+          <div><strong>{% trans "Cliente:" %}</strong> {{ reserva.cliente.nombre }}</div>
+          <div><strong>{% trans "Personas:" %}</strong> {{ reserva.num_personas }}</div>
         {% else %}
-          <div style="color:#666;">Sin reserva vigente</div>
+          <div style="color:#666;">{% trans "Sin reserva vigente" %}</div>
         {% endif %}
         <div style="margin-top:8px;">
-          <a href="{% url 'reservas:ver_mesas' sucursal.id %}">Ver detalle</a>
+          <a href="{% url 'reservas:ver_mesas' sucursal.id %}">{% trans "Ver detalle" %}</a>
           {% if reserva %}
-            &nbsp;|&nbsp;<a href="{% url 'reservas:admin_reservas' %}">Reservas</a>
+            &nbsp;|&nbsp;<a href="{% url 'reservas:admin_reservas' %}">{% trans "Reservas" %}</a>
           {% endif %}
         </div>
       </div>
     </div>
   {% empty %}
-    <div>No hay mesas en esta sucursal.</div>
+    <div>{% trans "No hay mesas en esta sucursal." %}</div>
   {% endfor %}
 </div>
 
 <p style="margin-top:16px;">
-  <a href="{% url 'reservas:admin_sucursales' %}">← Volver a sucursales</a>
+  <a href="{% url 'reservas:admin_sucursales' %}">← {% trans "Volver a sucursales" %}</a>
 </p>
 {% endblock %}

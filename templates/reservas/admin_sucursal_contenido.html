@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ sucursal.nombre }} · {% trans "Editar contenido" %}{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">{{ sucursal.nombre }} — {% trans "Editar contenido" %}</h3>
+
+<form method="post" enctype="multipart/form-data" class="card p-3 p-md-4 shadow-sm border-0">
+  {% csrf_token %}
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="form-label">{% trans "Nombre" %}</label>
+      {{ form.nombre }}
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">{% trans "Código postal" %}</label>
+      {{ form.codigo_postal }}
+    </div>
+
+    <div class="col-12">
+      <label class="form-label">{% trans "Dirección" %}</label>
+      {{ form.direccion }}
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">{% trans "Cocina/Tipo" %}</label>
+      {{ form.cocina }}
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{% trans "Precio" %}</label>
+      {{ form.precio_nivel }}
+      <div class="form-text">{% trans "Usa $, $$, $$$ o $$$$" %}</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label">{% trans "Rating" %}</label>
+      {{ form.rating }}
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label">{% trans "Reviews" %}</label>
+      {{ form.reviews }}
+    </div>
+    <div class="col-md-3 form-check mt-4">
+      {{ form.recomendado }} <label class="form-check-label ms-1">{% trans "Recomendado" %}</label>
+    </div>
+    <div class="col-md-3 form-check mt-4">
+      {{ form.activo }} <label class="form-check-label ms-1">{% trans "Activo" %}</label>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label">{% trans "Portada (16:9 recomendado)" %}</label>
+      {{ form.portada }}
+      <label class="form-label mt-2">{% trans "Texto alternativo" %}</label>
+      {{ form.portada_alt }}
+    </div>
+    <div class="col-md-6">
+      <label class="form-label d-block">{% trans "Vista previa" %}</label>
+      {% if sucursal.portada %}
+        <img src="{{ sucursal.portada.url }}" class="img-fluid rounded" style="max-height:220px; object-fit:cover;">
+      {% else %}
+        <div class="text-muted">{% trans "Sin imagen de portada." %}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <hr class="my-4">
+
+  <h5 class="mb-3">{% trans "Galería de fotos" %}</h5>
+
+  {{ formset.management_form }}
+  <div class="row g-3">
+    {% for f in formset %}
+      <div class="col-md-6 col-lg-4">
+        <div class="border rounded p-3 h-100">
+          <div class="mb-2">
+            <label class="form-label">{% trans "Imagen" %}</label>
+            {{ f.imagen }}
+          </div>
+          <div class="mb-2">
+            <label class="form-label">{% trans "Alt" %}</label>
+            {{ f.alt }}
+          </div>
+          <div class="mb-2">
+            <label class="form-label">{% trans "Orden" %}</label>
+            {{ f.orden }}
+          </div>
+          <div class="form-check">
+            {% if f.DELETE %}
+              {{ f.DELETE }} <label class="form-check-label ms-1">{% trans "Eliminar" %}</label>
+            {% endif %}
+          </div>
+
+          {% if f.instance.pk and f.instance.imagen %}
+            <div class="mt-2">
+              <img src="{{ f.instance.imagen.url }}" class="img-fluid rounded" style="height:140px; width:100%; object-fit:cover;">
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="d-flex justify-content-end gap-2 mt-4">
+    <a class="btn btn-outline-secondary" href="{% url 'reservas:admin_sucursales' %}">{% trans "Volver" %}</a>
+    <button class="btn btn-primary">{% trans "Guardar cambios" %}</button>
+  </div>
+</form>
+{% endblock %}

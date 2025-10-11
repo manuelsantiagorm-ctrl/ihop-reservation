@@ -1,0 +1,110 @@
+/* Contenedor y tipografía base (hereda de tu base.css/Bootstrap) */
+.muted { color: #6b7280; }
+
+.crumb {
+  display: flex; gap: .5rem; font-size: .925rem; color: #6b7280;
+}
+.crumb a { color: inherit; text-decoration: none; }
+.crumb a:hover { text-decoration: underline; }
+
+/* Header */
+.form-header{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; margin-bottom:1rem;
+}
+.form-header .btn-soft{
+  border:1px solid #e5e7eb; background:#fff; padding:.5rem .75rem; border-radius:.6rem; text-decoration:none;
+}
+.form-header .btn-soft:hover{ background:#f9fafb; }
+
+/* Card/form */
+.form-card{
+  background:#fff; border:1px solid #eef2f7; border-radius:1rem;
+  padding:1.25rem; box-shadow:0 6px 24px rgba(15,23,42,.06);
+}
+
+/* Grid responsiva */
+.grid{
+  display:grid; grid-template-columns: repeat(12, 1fr); gap:1rem;
+}
+.field{ grid-column: span 4; display:flex; flex-direction:column; gap:.4rem; }
+.field-50{ grid-column: span 6; }
+.field-inline{ grid-column: span 12; }
+
+@media (max-width: 992px){
+  .field, .field-50 { grid-column: span 12; }
+}
+
+/* Inputs bonitos y consistentes */
+.input, .select, .textarea, .form-control{
+  display:block; width:100%;
+  border:1px solid #e5e7eb; border-radius:.65rem; padding:.55rem .7rem;
+  background:#fff; outline:none; transition:.15s border-color, .15s box-shadow;
+  font-size: .98rem;
+}
+.select { padding:.5rem .7rem; }
+.textarea { min-height: 88px; resize: vertical; }
+
+.input:focus, .select:focus, .textarea:focus{
+  border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+
+label{ font-weight:600; font-size:.95rem; }
+
+.checkbox{
+  display:flex; align-items:center; gap:.6rem; user-select:none;
+}
+.checkbox input[type="checkbox"]{
+  width:1.05rem; height:1.05rem;
+}
+
+/* Errores */
+.error{
+  color:#b91c1c; font-size:.9rem; margin-top: .1rem;
+}
+
+/* Footer acciones */
+.form-actions{
+  display:flex; gap:.75rem; justify-content:flex-end; align-items:center; margin-top:1rem;
+}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:.65rem 1rem; border-radius:.65rem; text-decoration:none;
+  border:1px solid transparent; cursor:pointer; font-weight:600;
+}
+.btn-primary{
+  background:#2563eb; color:#fff; border-color:#2563eb;
+}
+.btn-primary:hover{ background:#1d4ed8; border-color:#1d4ed8; }
+.btn-soft{
+  background:#fff; color:#111827; border-color:#e5e7eb;
+}
+.btn-soft:hover{ background:#f9fafb; }
+
+/* Tips */
+.tips{ margin-top:1rem; }
+.tip{
+  background:#f8fafc; border:1px dashed #e5e7eb; color:#475569;
+  padding:.75rem 1rem; border-radius:.65rem;
+}
+
+/* Aplica estilos bonitos sin depender de clases en los widgets */
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="tel"],
+select,
+textarea {
+  display:block; width:100%;
+  border:1px solid #e5e7eb; border-radius:.65rem; padding:.55rem .7rem;
+  background:#fff; outline:none; transition:.15s border-color, .15s box-shadow;
+  font-size:.98rem;
+}
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+select:focus,
+textarea:focus {
+  border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.15);
+}
+textarea { min-height: 88px; resize: vertical; }

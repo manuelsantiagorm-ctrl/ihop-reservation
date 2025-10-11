@@ -1,16 +1,17 @@
 {% extends 'base.html' %}
+{% load i18n %}
 
 {% block content %}
-<h2 class="text-xl font-bold mb-4">Panel de Mesas</h2>
+<h2 class="text-xl font-bold mb-4">{% trans "Panel de Mesas" %}</h2>
 
 <div class="mesa-tablero">
   {% for mesa in mesas %}
     <div class="mesa {{ mesa.estado }}">
-      <strong>Mesa {{ mesa.numero }}</strong><br>
-      Estado: {{ mesa.get_estado_display }}
+      <strong>{% blocktrans with n=mesa.numero %}Mesa {{ n }}{% endblocktrans %}</strong><br>
+      {% trans "Estado" %}: {{ mesa.get_estado_display }}
     </div>
   {% empty %}
-    <p>No hay mesas para mostrar.</p>
+    <p>{% trans "No hay mesas para mostrar." %}</p>
   {% endfor %}
 </div>
 

@@ -1,0 +1,82 @@
+/* Layout para que el footer se pegue abajo en páginas cortas */
+html, body { height: 100%; }
+body.layout {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+main.flex-fill { flex: 1; }
+
+/* ===== Footer estilo IHOP ===== */
+.ihop-footer {
+  background: #c53b32; /* rojo IHOP aproximado */
+  color: #fff;
+  margin-top: 2rem;
+}
+
+.ihop-footer a {
+  color: #fff;
+  text-decoration: none;
+}
+.ihop-footer a:hover,
+.ihop-footer a:focus {
+  text-decoration: underline;
+}
+
+.ihop-footer__menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2rem;
+  font-weight: 700;
+}
+
+.ihop-footer__social {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 1.25rem;
+  color: #fff;
+}
+.ihop-footer__icons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.75rem;
+}
+.ihop-footer__icons a {
+  display: inline-flex;
+  line-height: 1;
+  opacity: .95;
+}
+.ihop-footer__icons a:hover { opacity: 1; transform: translateY(-1px); }
+
+.ihop-footer__divider {
+  border: 0;
+  height: 1px;
+  background: rgba(255,255,255,.55);
+}
+
+.ihop-footer__legal {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1.5rem;
+}
+.ihop-footer__legal a {
+  color: rgba(255,255,255,.9);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Responsivo */
+@media (max-width: 767.98px) {
+  .ihop-footer__menu {
+    gap: 1rem 1.25rem;
+  }
+  .ihop-footer__icons { font-size: 1.5rem; }
+}

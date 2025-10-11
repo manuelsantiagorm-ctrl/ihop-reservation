@@ -1,0 +1,99 @@
+/* ============================================================
+   Carrusel de sucursales  —  Estilos generales
+   ============================================================ */
+
+/* Mantiene proporción 16:9 en las imágenes */
+.ratio-16x9 { aspect-ratio: 16/9; }
+
+/* Ajusta la imagen al contenedor sin deformarla */
+.object-fit-cover { object-fit: cover; }
+
+/* ------------------------------
+   Tarjeta individual del carrusel
+   ------------------------------ */
+.card-ot {
+  border: 1px solid #e6e9ee;
+  border-radius: 12px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background-color: #fff;
+}
+
+.card-ot:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.08);
+}
+
+/* ------------------------------
+   Contenedor del scroll horizontal
+   ------------------------------ */
+.strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 280px);
+  overflow-x: auto;
+  padding: 0.25rem;
+  scroll-behavior: smooth;
+  gap: 0.5rem;
+}
+
+.scroll-snap-x { scroll-snap-type: x mandatory; }
+.strip > * { scroll-snap-align: start; }
+
+/* ------------------------------
+   Botones del carrusel (prev/next)
+   ------------------------------ */
+.carousel-btn {
+  position: absolute;
+  top: 40%;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+}
+
+.carousel-btn:hover {
+  background-color: #0d6efd;
+  color: #fff;
+}
+
+.carousel-btn.prev { left: -10px; }
+.carousel-btn.next { right: -10px; }
+
+@media (max-width: 576px) {
+  .carousel-btn { display: none; }
+}
+
+/* ------------------------------
+   Imagen dentro de la tarjeta
+   ------------------------------ */
+#sucursales-strip .card-img-top img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+/* ============================================================
+   Colores azules para los horarios sugeridos
+   ============================================================ */
+
+/* Botón horario disponible (antes era rojo: btn-outline-danger) */
+.btn-outline-danger {
+  color: #0d6efd;
+  border-color: #0d6efd;
+}
+
+.btn-outline-danger:hover {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: #fff;
+}
+
+/* Botón deshabilitado “No times” */
+.btn-outline-secondary.disabled {
+  color: #6c757d;
+  border-color: #dee2e6;
+  background-color: #f8f9fa;
+}

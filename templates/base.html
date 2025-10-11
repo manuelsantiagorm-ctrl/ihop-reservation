@@ -1,75 +1,175 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="es">
+{% load i18n static %}
+<!doctype html>
+<html lang="{{ LANGUAGE_CODE|default:'es' }}">
 <head>
-  <meta charset="UTF-8" />
-  <title>{% block title %}IHOP Reservation{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  
-  <style>
-    :root{
-      --bg:#fafafa; --card:#ffffff; --text:#222; --muted:#666;
-      --primary:#1e88e5; --primary-weak:#e3f2fd;
-      --danger:#c62828; --success:#1b5e20; --warning:#e65100;
-      --border:#e5e7eb;
-    }
-    *{box-sizing:border-box}
-    body{margin:0; font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--text); background:var(--bg);}
-    .container{max-width:960px; margin:0 auto; padding:24px 16px;}
-    header{background:var(--card); border-bottom:1px solid var(--border);}
-    .brand{font-weight:700; font-size:18px; margin-right:16px}
-    nav a{color:var(--primary); text-decoration:none; margin-right:12px}
-    nav a:hover{text-decoration:underline}
-    .messages{margin:16px 0; padding:0; list-style:none}
-    .msg{padding:10px 12px; border:1px solid var(--border); border-left:4px solid var(--primary); background:#fff; border-radius:8px; margin-bottom:10px}
-    .msg.success{border-left-color:var(--success); background:#f1f8f4}
-    .msg.error{border-left-color:var(--danger); background:#fdecea}
-    .msg.warning{border-left-color:var(--warning); background:#fff7e6}
-    h1{margin:8px 0 16px}
-    .section-title{color:var(--success); margin-top:12px}
-    .card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin:12px 0}
-    .muted{color:var(--muted)}
-    .btn{display:inline-block; padding:8px 12px; border-radius:8px; text-decoration:none; border:1px solid var(--border); background:var(--card)}
-    .btn-primary{background:var(--primary); color:#fff; border-color:var(--primary)}
-    .spacer{height:8px}
-    footer{margin-top:24px; padding-top:16px; color:var(--muted); border-top:1px solid var(--border); font-size:14px}
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{% trans "Reservas" %}{% endblock %}</title>
 
-  {% block extra_head %}{% endblock %}
+  {# ===== Bootstrap & Icons (CDN) ===== #}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+  {# ===== CSS global del sistema ===== #}
+  <link rel="stylesheet" href="{% static 'reservas/css/core.css' %}">
+  <link rel="stylesheet" href="{% static 'reservas/css/auth.css' %}">
+  <link rel="stylesheet" href="{% static 'reservas/css/carrusel_sucursales.css' %}">
+  <link rel="stylesheet" href="{% static 'reservas/css/footer.css' %}">
+  <link rel="stylesheet" href="{% static 'reservas/css/header.css' %}"> {# estilos del header/nav #}
+
+  {# ===== CSS específico por vista (Home, etc.) ===== #}
+  {% block extra_css %}{% endblock %}
 </head>
-<body>
 
-  <header>
-    <div class="container" style="display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
-      <div class="brand">IHOP Reservation</div>
-      <nav style="flex:1 1 auto;">
-        <a href="{% url 'reservas:home' %}">Inicio</a>
-        <a href="{% url 'reservas:mis_reservas' %}">Mis reservaciones</a>
-        <a href="{% url 'reservas:seleccionar_sucursal' %}">Reservar</a>
-        {% if request.user.is_staff %}
-          <a href="{% url 'reservas:admin_reservas' %}">Admin: Reservas</a>
-        {% endif %}
-      </nav>
-      <div>
-        <a class="btn" href="{% url 'logout' %}">Salir</a>
+<body class="bg-light layout">
+  {# ===== Navbar ===== #}
+  <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm navbar-ihop">
+    <div class="container">
+      <a class="navbar-brand fw-bold me-3 text-primary" href="{% url 'reservas:home' %}">{% trans "Reservas" %}</a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+              aria-controls="mainNav" aria-expanded="false" aria-label="{% trans 'Toggle navigation' %}">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link {% block nav_home %}{% endblock %}" href="{% url 'reservas:home' %}">{% trans "Home" %}</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% block nav_bookings %}{% endblock %}" href="{% url 'reservas:mis_reservas' %}">{% trans "My bookings" %}</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% block nav_book %}{% endblock %}" href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Book" %}</a>
+          </li>
+
+          {# ===== Menú Staff ===== #}
+          {% if user.is_staff %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="staffMenu" role="button" data-bs-toggle="dropdown">
+              {% trans "Staff" %}
+            </a>
+            <ul class="dropdown-menu">
+              <li><a class="dropdown-item" href="{% url 'reservas:admin_sucursales' %}">{% trans "Locations" %}</a></li>
+
+              {% url 'reservas:admin_buscar_folio' as admin_buscar_folio_url %}
+              {% if admin_buscar_folio_url %}
+                <li><a class="dropdown-item" href="{{ admin_buscar_folio_url }}">{% trans "Search folio" %}</a></li>
+              {% endif %}
+
+              {% url 'reservas:admin_dashboard' as admin_dashboard_url %}
+              {% if admin_dashboard_url %}
+                <li><a class="dropdown-item" href="{{ admin_dashboard_url }}">Dashboard</a></li>
+              {% endif %}
+
+              {% url 'reservas:admin_walkin_reserva' as admin_walkin_url %}
+              {% if admin_walkin_url %}
+                <li><a class="dropdown-item" href="{{ admin_walkin_url }}">{% trans "New Walk-in" %}</a></li>
+              {% endif %}
+            </ul>
+          </li>
+          {% endif %}
+
+          {# ===== Dueño de cadena / ChainOwner ===== #}
+          {% if user.is_authenticated and user.is_staff %}
+            {% if user.is_superuser or perms.reservas.manage_branches %}
+              {% url 'reservas:chainadmin_sucursales' as url_chain_sucursales %}
+              {% url 'reservas:chainadmin_admins' as url_chain_admins %}
+              {% if url_chain_sucursales %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_chain_sucursales }}">Sucursales</a></li>
+              {% endif %}
+              {% if url_chain_admins %}
+                <li class="nav-item"><a class="nav-link" href="{{ url_chain_admins }}">Admins de sucursal</a></li>
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        </ul>
+
+        {# ===== Lado derecho: idioma + sesión ===== #}
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <form action="{% url 'set_language' %}" method="post" class="d-none d-lg-inline">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <select name="language" onchange="this.form.submit()" class="form-select form-select-sm lang-select">
+              {% get_current_language as LANGUAGE_CODE %}
+              {% get_available_languages as LANGUAGES %}
+              {% for code, name in LANGUAGES %}
+                <option value="{{ code }}" {% if code == LANGUAGE_CODE %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </form>
+
+          {% if user.is_authenticated %}
+            <span class="navbar-text small text-muted d-none d-md-inline">
+              {% blocktrans with name=user.get_short_name|default:user.email|default:user.username %}Hi, {{ name }}{% endblocktrans %}
+            </span>
+            <form method="post" action="{% url 'account_logout' %}" class="m-0">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-secondary btn-sm">{% trans "Sign out" %}</button>
+            </form>
+          {% else %}
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'account_login' %}">{% trans "Sign in" %}</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'account_signup' %}">{% trans "Sign up" %}</a>
+          {% endif %}
+        </div>
+
+        {# Selector de idioma (mobile) #}
+        <div class="d-lg-none w-100 my-2">
+          <form action="{% url 'set_language' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <select name="language" onchange="this.form.submit()" class="form-select form-select-sm">
+              {% get_current_language as LANGUAGE_CODE %}
+              {% get_available_languages as LANGUAGES %}
+              {% for code, name in LANGUAGES %}
+                <option value="{{ code }}" {% if code == LANGUAGE_CODE %}selected{% endif %}>{{ name }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
       </div>
     </div>
-  </header>
+  </nav>
 
-  <main class="container">
-    {% if messages %}
-      <ul class="messages">
-        {% for message in messages %}
-          <li class="msg {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
+  {# ===== Mensajes del sistema ===== #}
+  {% if messages %}
+  <div class="container mt-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+        {{ message|safe }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% trans 'Close' %}"></button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 
+  {# ===== Contenido principal ===== #}
+  <main class="container py-4 flex-fill">
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="container">
-    &copy; {{ now|date:"Y" }} IHOP — Sistema de reservaciones
-  </footer>
+  {# ===== Footer global ===== #}
+  {% block footer %}
+    {% include "reservas/partials/footer_brand.html" %}
+  {% endblock %}
+
+  {# ===== JS: Bootstrap + global ===== #}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{% static 'reservas/js/main.js' %}"></script>
+  <script src="{% static 'reservas/js/carrusel_sucursales.js' %}"></script>
+
+  {# ===== Google Maps (una sola vez) ===== #}
+  {% if GOOGLE_MAPS_API_KEY %}
+    <script>
+      window.GOOGLE_MAPS_API_KEY = "{{ GOOGLE_MAPS_API_KEY }}";
+    </script>
+    <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&loading=async">
+    </script>
+  {% endif %}
+
+  {# ===== JS adicional por página ===== #}
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

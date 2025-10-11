@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load static i18n %}
+
+{% block title %}{% trans "Editar mesa" %} · {{ sucursal.nombre }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reservas/css/admin_mesa_form.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <nav class="crumb mb-3">
+    <a href="{% url 'reservas:admin_sucursales' %}">{% trans "Sucursales" %}</a>
+    <span>/</span>
+    <a href="{% url 'reservas:admin_mapa_sucursal' sucursal.id %}">{{ sucursal.nombre }}</a>
+    <span>/</span>
+    <span class="muted">{% trans "Editar mesa" %} #{{ mesa.numero|default:mesa.id }}</span>
+  </nav>
+
+  <header class="form-header">
+    <div>
+      <h1 class="h3 m-0">{% trans "Editar mesa" %}</h1>
+      <p class="muted m-0">{% trans "Ajusta la información de la mesa. Los cambios se reflejan de inmediato en el mapa." %}</p>
+    </div>
+    <a class="btn btn-soft" href="{% url 'reservas:admin_mapa_sucursal' sucursal.id %}">
+      ← {% trans "Volver al mapa" %}
+    </a>
+  </header>
+
+  <form method="post" class="card form-card" id="mesaEditForm" novalidate>
+    {% csrf_token %}
+
+    <section class="grid">
+      <div class="field">
+        <label for="{{ form.numero.id_for_label }}">{% trans "Número" %}</label>
+        {{ form.numero }}
+        {% if form.numero.errors %}<div class="error">{{ form.numero.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.capacidad.id_for_label }}">{% trans "Capacidad (pax)" %}</label>
+        {{ form.capacidad }}
+        {% if form.capacidad.errors %}<div class="error">{{ form.capacidad.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="field">
+        <label for="{{ form.zona.id_for_label }}">{% trans "Zona" %}</label>
+        {{ form.zona }}
+        {% if form.zona.errors %}<div class="error">{{ form.zona.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="field field-50">
+        <label for="{{ form.ubicacion.id_for_label }}">{% trans "Ubicación (texto opcional)" %}</label>
+        {{ form.ubicacion }}
+        {% if form.ubicacion.errors %}<div class="error">{{ form.ubicacion.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="field field-50">
+        <label for="{{ form.notas.id_for_label }}">{% trans "Notas" %}</label>
+        {{ form.notas }}
+        {% if form.notas.errors %}<div class="error">{{ form.notas.errors.0 }}</div>{% endif %}
+      </div>
+
+      <div class="field field-inline">
+        <label class="checkbox">
+          {{ form.bloqueada }}
+          <span>{% trans "Mesa bloqueada temporalmente" %}</span>
+        </label>
+      </div>
+    </section>
+
+    <footer class="form-actions">
+      <a class="btn btn-soft" href="{% url 'reservas:admin_mapa_sucursal' sucursal.id %}">
+        {% trans "Cancelar" %}
+      </a>
+      <button type="submit" class="btn btn-primary" id="saveBtn">
+        {% trans "Guardar cambios" %}
+      </button>
+    </footer>
+  </form>
+
+  <aside class="tips">
+    <div class="tip">
+      <strong>{% trans "Tip:" %}</strong>
+      {% trans "Usa el mapa para arrastrar la mesa y guardar su posición. Aquí solo editas la ficha técnica." %}
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'reservas/js/admin_mesa_form.js' %}"></script>
+{% endblock %}

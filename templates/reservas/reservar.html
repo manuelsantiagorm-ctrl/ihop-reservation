@@ -1,41 +1,212 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Reservar" %} | {% blocktrans with n=mesa.numero|default:mesa.id %}Mesa {{ n }}{% endblocktrans %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reservas/css/reservar.css' %}">
+{% endblock %}
 
 {% block content %}
-<h2>Reservar mesa</h2>
+<div class="container py-4 reservar">
 
-{% if messages %}
-  {% for message in messages %}
-    <p style="color: {% if message.tags == 'error' %}red{% else %}green{% endif %};">
-      {{ message }}
-    </p>
-  {% endfor %}
-{% endif %}
+  <nav class="breadcrumb-lite mb-3">
+  <a href="{% url 'reservas:home' %}">{% trans "Inicio" %}</a> /
+  <a href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Sucursales" %}</a> /
+  {% if request.user.is_staff %}
+    <a href="{% url 'reservas:admin_mesas_disponibles' mesa.sucursal.id %}">{{ mesa.sucursal.nombre }}</a> /
+  {% else %}
+    <a href="{% url 'reservas:sucursal_detalle' mesa.sucursal.slug %}">{{ mesa.sucursal.nombre }}</a> /
+  {% endif %}
+  <span>{% trans "Reservar" %}</span>
+</nav>
 
-<p><strong>Mesa:</strong> {{ mesa.numero }} ({{ mesa.capacidad }} pax)</p>
-<p><strong>Sucursal:</strong> {{ mesa.sucursal.nombre }}</p>
 
-<form method="post">
-  {% csrf_token %}
+  <header class="page-head">
+    <div>
+      <h1>{% trans "Reservar mesa" %}</h1>
+      <p class="lead">{% trans "Elige un horario y confirma tu reservación." %}</p>
+    </div>
+    <span class="pill meta">
+      {% blocktrans with n=mesa.numero|default:mesa.id c=mesa.capacidad %}
+        Mesa {{ n }} • {{ c }} pax
+      {% endblocktrans %}
+    </span>
+  </header>
 
-  <label for="id_fecha">Fecha y hora:</label>
-  {{ form.fecha }}
+  <section class="card reservation-card">
+    <div class="card-body">
+      <div class="row g-4 align-items-end">
+        <div class="col-12 col-lg">
+          <div class="label-muted">{% trans "Sucursal" %}</div>
+          <div class="value-strong">{{ mesa.sucursal.nombre }}</div>
+        </div>
 
-  <label for="id_num_personas">Asistentes:</label>
-  {{ form.num_personas }}
+        <div class="col-12 col-lg">
+          <form method="post" id="reservaForm" class="row g-3">
+            {% csrf_token %}
+            <div class="col-md-7">
+              <label class="form-label">{% trans "Fecha" %}</label>
+              {{ form.fecha }}
+              <div class="form-text">{% trans "Se completa al elegir un horario." %}</div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">{% trans "Num. personas" %}</label>
+              {{ form.num_personas }}
+            </div>
+            <div class="col-md-2 d-grid">
+              <button class="btn btn-primary btn-lg" id="btnConfirmar" disabled>
+                {% trans "Confirmar" %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  {# Errores por campo #}
-  {% for field in form %}
-    {% for error in field.errors %}
-      <p style="color:red;">⚠️ {{ field.label }}: {{ error }}</p>
-    {% endfor %}
-  {% endfor %}
+  <section class="slots">
+    <div class="slots-head">
+      <div class="left">
+        <h5>{% trans "Horarios disponibles" %}</h5>
+        <input type="date" class="form-control form-control-sm" id="inputFecha"
+               value="{{ fecha_listado|date:'Y-m-d' }}">
+        <button class="btn btn-outline-primary btn-sm" id="btnCargar">
+          <i class="bi bi-arrow-clockwise me-1"></i> {% trans "Actualizar" %}
+        </button>
+      </div>
+      <div id="slotsHint" class="hint"></div>
+    </div>
 
-  {# Errores generales #}
-  {% for error in form.non_field_errors %}
-    <p style="color:red;">⚠️ {{ error }}</p>
-  {% endfor %}
+    <div id="slotsLoader" class="slots-loader d-none">
+      <span class="spinner-border spinner-border-sm me-2"></span> {% trans "Cargando horarios…" %}
+    </div>
 
-  <button type="submit">Confirmar reservación</button>
-  <a href="{% url 'reservas:home' %}">Volver al inicio</a>
-</form>
+    <div id="slotsWrap" class="slot-grid">
+      <div class="text-muted">{% trans "Cargando horarios…" %}</div>
+    </div>
+  </section>
+
+  <hr class="my-4">
+  <a href="{% url 'reservas:home' %}" class="link-primary">← {% trans "Volver al inicio" %}</a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+  {# Catálogo JS de django para usar gettext/ngettext en el script #}
+  <script src="{% url 'javascript-catalog' %}"></script>
+
+  <script>
+    // —— Elementos base
+    const slotsWrap   = document.getElementById("slotsWrap");
+    const fechaInput  = document.getElementById("inputFecha");
+    const btnCargar   = document.getElementById("btnCargar");
+    const slotsHint   = document.getElementById("slotsHint");
+    const slotsLoader = document.getElementById("slotsLoader");
+    const campoFecha  = document.getElementById("id_fecha");      // input datetime-local del form
+    const btnConfirm  = document.getElementById("btnConfirmar");
+
+    // Endpoint de disponibilidad
+    window.urlDisponibilidad = window.urlDisponibilidad || "{% url 'reservas:disponibilidad_mesa' mesa.id %}";
+
+    // Lee parámetros de la URL (?fecha=YYYY-MM-DD&hora=HH:MM)
+    const qs = new URLSearchParams(window.location.search);
+    const qsFecha = qs.get("fecha");
+    const qsHora  = qs.get("hora");
+
+    if (qsFecha) { try { fechaInput.value = qsFecha; } catch {} }
+
+    // Helpers UI
+    const setLoading = (on) => slotsLoader.classList.toggle("d-none", !on);
+    const enableConfirm = (on) => (btnConfirm.disabled = !on);
+
+    // Traducciones para JS usando djangojs
+    const _  = gettext;
+    const n_ = ngettext;
+
+    function pintar(slots, fechaISO){
+      slotsWrap.innerHTML = "";
+      enableConfirm(false);
+
+      if (!slots || !slots.length){
+        // No hay horarios
+        const empty = document.createElement('div');
+        empty.className = 'text-muted';
+        empty.textContent = _("No hay horarios disponibles.");
+        slotsWrap.appendChild(empty);
+        slotsHint.textContent = "";
+        if (campoFecha) campoFecha.value = "";
+        return;
+      }
+
+      const frag = document.createDocumentFragment();
+      let autoSelected = false;
+
+      slots.forEach(h => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "slot-pill";
+        chip.textContent = h;
+
+        chip.onclick = () => {
+          document.querySelectorAll(".slot-pill.active").forEach(el => el.classList.remove("active"));
+          chip.classList.add("active");
+          if (campoFecha) {
+            // El widget datetime-local espera 'YYYY-MM-DDTHH:MM'
+            campoFecha.value = `${fechaISO}T${h}`;
+          }
+          enableConfirm(true);
+        };
+
+        // Autoselección: hora del querystring si existe; si no, el primer slot
+        if (!autoSelected && ((qsHora && h === qsHora) || (!qsHora && frag.childNodes.length === 0))) {
+          chip.dataset.autoclick = "1";
+          autoSelected = true;
+        }
+
+        frag.appendChild(chip);
+      });
+
+      slotsWrap.appendChild(frag);
+
+      // Hint: "%(n)s horario/horarios para el %(date)s"
+      const hint = n_("%(n)s horario para el %(date)s", "%(n)s horarios para el %(date)s", slots.length)
+                    .replace("%(n)s", slots.length)
+                    .replace("%(date)s", fechaISO);
+      slotsHint.textContent = hint;
+
+      // Ejecuta el autoclick del chip seleccionado
+      const auto = slotsWrap.querySelector('.slot-pill[data-autoclick="1"]') || slotsWrap.querySelector('.slot-pill');
+      if (auto) setTimeout(() => auto.click(), 0);
+    }
+
+    function cargar(){
+      if (!fechaInput.value) return;
+      setLoading(true);
+      slotsWrap.innerHTML = "";
+      enableConfirm(false);
+
+      fetch(`${window.urlDisponibilidad}?fecha=${encodeURIComponent(fechaInput.value)}`, {
+        headers: {"X-Requested-With":"XMLHttpRequest"}
+      })
+        .then(r => r.ok ? r.json() : Promise.reject(r))
+        .then(d => pintar(d.slots || [], d.fecha))
+        .catch(() => {
+          const err = document.createElement('div');
+          err.className = 'text-danger';
+          err.textContent = _("Error al cargar los horarios.");
+          slotsWrap.innerHTML = "";
+          slotsWrap.appendChild(err);
+          slotsHint.textContent = "";
+        })
+        .finally(() => setLoading(false));
+    }
+
+    btnCargar.addEventListener("click", cargar);
+    fechaInput.addEventListener("change", cargar);
+
+    // Carga inicial
+    cargar();
+  </script>
 {% endblock %}

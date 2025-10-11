@@ -1,51 +1,77 @@
 {% extends 'base.html' %}
-{% block title %}Mis Reservaciones · IHOP{% endblock %}
+{% load i18n %}
+{% load reservas_time %}
+
+
+{% block title %}{% trans "Mis Reservaciones" %} · IHOP{% endblock %}
 
 {% block content %}
-  <h1>Mis Reservaciones</h1>
 
-  {% if reserva_activa %}
-    <h2 class="section-title">Reservación activa</h2>
-    <div class="card">
-      <ul>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2 class="mb-0">{% trans "Mis reservas" %}</h2>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary btn-sm" href="{% url 'reservas:perfil' %}">{% trans "Perfil" %}</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Nueva reserva" %}</a>
+  </div>
+</div>
+
+{% if reserva_activa %}
+  <h2 class="section-title">{% trans "Reservación activa" %}</h2>
+  <div class="card">
+    <ul>
+      <li>
+        {# Mostrar en hora local de la sucursal (fallback a fecha si no hay inicio_utc) #}
+        {% if reserva_activa.inicio_utc %}
+          {{ reserva_activa.inicio_utc|as_local:reserva_activa.mesa.sucursal|date:"d/m/Y H:i" }}
+        {% else %}
+          {{ reserva_activa.fecha|date:"d/m/Y H:i" }}
+        {% endif %}
+        —
+        {% trans "Mesa" %} {{ reserva_activa.mesa.numero }} - {{ reserva_activa.mesa.sucursal.nombre }} ({{ reserva_activa.mesa.sucursal.slug }})
+        — {{ reserva_activa.num_personas }}
+        {% blocktrans count n=reserva_activa.num_personas %}persona{% plural %}personas{% endblocktrans %}
+        — <em class="muted">
+            {% if reserva_activa.estado == "CONF" %}{% trans "Confirmada" %}
+            {% elif reserva_activa.estado == "PEND" %}{% trans "Pendiente" %}
+            {% else %}{{ reserva_activa.get_estado_display }}{% endif %}
+          </em>
+      </li>
+    </ul>
+  </div>
+{% endif %}
+
+<h2 class="section-title">{% trans "Reservaciones pasadas" %}</h2>
+{% if reservas_pasadas %}
+  <div class="card">
+    <ul>
+      {% for r in reservas_pasadas %}
         <li>
-          {{ reserva_activa.fecha|date:"F j, Y g:i a" }} —
-          Mesa {{ reserva_activa.mesa.numero }} - {{ reserva_activa.mesa.sucursal.nombre }} ({{ reserva_activa.mesa.sucursal.slug }})
-          — {{ reserva_activa.num_personas }} persona{{ reserva_activa.num_personas|pluralize:"s" }}
+          {# Igual: hora local de la sucursal para cada reserva pasada #}
+          {% if r.inicio_utc %}
+            {{ r.inicio_utc|as_local:r.mesa.sucursal|date:"d/m/Y H:i" }}
+          {% else %}
+            {{ r.fecha|date:"d/m/Y H:i" }}
+          {% endif %}
+          — {% trans "Mesa" %} {{ r.mesa.numero }} - {{ r.mesa.sucursal.nombre }}
+          — {{ r.num_personas }}
+          {% blocktrans count n=r.num_personas %}persona{% plural %}personas{% endblocktrans %}
           — <em class="muted">
-              {% if reserva_activa.estado == "CONF" %}Confirmada{% elif reserva_activa.estado == "PEND" %}Pendiente{% else %}{{ reserva_activa.get_estado_display }}{% endif %}
+              {% if r.estado == "CANC" %}{% trans "Cancelada" %}
+              {% elif r.estado == "CONF" and r.fecha < ahora %}{% trans "Finalizada" %}
+              {% else %}{{ r.get_estado_display }}{% endif %}
             </em>
         </li>
-      </ul>
+      {% endfor %}
+    </ul>
+    <p class="muted" style="margin:8px 0 0;">{% trans "Mostrando tus últimas 3 reservaciones." %}</p>
+  </div>
+{% else %}
+  <div class="card">
+    <p class="muted">{% trans "Aún no tienes reservaciones pasadas." %}</p>
+  </div>
+{% endif %}
 
-      <div class="spacer"></div>
-      <!-- Si decides permitir cancelación del cliente, deja este botón; si no, elimínalo -->
-      {# <a class="btn" href="{% url 'reservas:cancelar_reserva' reserva_activa.id %}">Cancelar reservación</a> #}
-    </div>
-  {% endif %}
+<div class="spacer"></div>
+<a class="btn btn-primary" href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Reservar otra mesa" %}</a>
 
-  <h2 class="section-title">Reservaciones pasadas</h2>
-  {% if reservas_pasadas %}
-    <div class="card">
-      <ul>
-        {% for r in reservas_pasadas %}
-          <li>
-            {{ r.fecha|date:"F j, Y g:i a" }} — Mesa {{ r.mesa.numero }} - {{ r.mesa.sucursal.nombre }}
-            — {{ r.num_personas }} persona{{ r.num_personas|pluralize:"s" }}
-            — <em class="muted">
-                {% if r.estado == "CANC" %}Cancelada{% elif r.estado == "CONF" and r.fecha < now %}Finalizada{% else %}{{ r.get_estado_display }}{% endif %}
-              </em>
-          </li>
-        {% endfor %}
-      </ul>
-      <p class="muted" style="margin:8px 0 0;">Mostrando tus últimas 3 reservaciones.</p>
-    </div>
-  {% else %}
-    <div class="card">
-      <p class="muted">Aún no tienes reservaciones pasadas.</p>
-    </div>
-  {% endif %}
-
-  <div class="spacer"></div>
-  <a class="btn btn-primary" href="{% url 'reservas:seleccionar_sucursal' %}">Reservar otra mesa</a>
 {% endblock %}

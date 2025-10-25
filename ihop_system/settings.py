@@ -9,7 +9,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-
 # =========================
 # BASE
 # =========================
@@ -30,9 +29,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_countries",
 
     # Tu app principal
-    "reservas.apps.ReservasConfig",   # ✅ Correcto — solo esta
+    "reservas.apps.ReservasConfig",
 
     # Templates helpers
     "widget_tweaks",
@@ -50,6 +50,9 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
 
+    # Nuestra app de cuentas (OTP)
+    "accounts.apps.AccountsConfig",
+
     # Seguridad
     "csp",
     "axes",
@@ -60,34 +63,46 @@ INSTALLED_APPS = [
     "django_otp.plugins.otp_totp",
     "two_factor",
 ]
-
 SITE_ID = 1
 
 # =========================
 # MIDDLEWARE
-# (LocaleMiddleware debe ir después de Session y antes de Common)
 # =========================
 MIDDLEWARE = [
+    # Seguridad y sesión
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+
+    # Autenticación base
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "axes.middleware.AxesMiddleware",  # solo una vez (protege contra intentos)
     "allauth.account.middleware.AccountMiddleware",
 
-    # --- OTP y seguridad extra ---
-    "django_otp.middleware.OTPMiddleware",                    # <- DESPUÉS de Authentication
+    # OTP / 2FA (después de Authentication)
+    "django_otp.middleware.OTPMiddleware",
     "reservas.middleware.StaffOTPRequiredMiddleware",
+
+    # Cache headers solo en páginas de auth
     "reservas.middleware.NoCacheForAuthPagesMiddleware",
 
-    # Estos dos se desactivan automáticamente si DEBUG=True (abajo)
-    "axes.middleware.AxesMiddleware",
+    # Seguridad adicional
     "csp.middleware.CSPMiddleware",
 
+    # Mensajes y protección de frames
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+
+    # 🔁 Redirección: evita registro por Allauth (envía a OTP)
+    "accounts.middleware.RedirectSignupMiddleware",
 ]
+
+# Axes (un solo bloque)
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 1  # hora(s)
+AXES_LOCKOUT_CALLABLE = None
 
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
@@ -103,13 +118,19 @@ ROOT_URLCONF = "ihop_system.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "templates"],  # carpeta global de plantillas
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
+                # Django
+                "django.template.context_processors.debug",
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                # personalizados
+                "reservas.context_processors.countries_context",
+                "reservas.context_processors.google_maps",
+                "reservas.context_processors.social_flags",
             ],
         },
     },
@@ -171,25 +192,20 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # =========================
-# LOGIN / LOGOUT
-# (forzamos destino /admin/ para evitar loop en 2FA)
+# LOGIN / LOGOUT (coherente con /auth/)
 # =========================
-# =========================
-# LOGIN / LOGOUT (redirige a tu panel)
-# =========================
-LOGIN_URL = "/accounts/login/"
-LOGIN_REDIRECT_URL = "/staff/dashboard/"
-LOGOUT_REDIRECT_URL = "/accounts/login/"
+LOGIN_URL = "/auth/login/"
+LOGIN_REDIRECT_URL = "/staff/sucursales/"
+LOGOUT_REDIRECT_URL = "/auth/login/"
 
 # Allauth mapea a lo anterior
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True
 ACCOUNT_LOGIN_REDIRECT_URL = LOGIN_REDIRECT_URL
 ACCOUNT_LOGOUT_REDIRECT_URL = LOGOUT_REDIRECT_URL
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http" if DEBUG else "https"
 
 # Two-Factor usa el mismo destino post-login
 TWO_FACTOR_LOGIN_REDIRECT_URL = LOGIN_REDIRECT_URL
-
-
 
 # =========================
 # MENSAJES
@@ -203,25 +219,43 @@ MESSAGE_TAGS = {
 }
 
 # =========================
-# ALLAUTH
+# ALLAUTH (formato nuevo)
 # =========================
-ACCOUNT_LOGIN_METHODS = {"email"}  # tu ajuste
+ACCOUNT_LOGIN_METHODS = {"email"}
 ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
-ACCOUNT_EMAIL_VERIFICATION = "optional"
+
+# Email verification de allauth (staff/social). Público usa OTP.
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+
+# Social
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    }
+}
 
 # =========================
 # TWO-FACTOR / OTP
 # =========================
-TWO_FACTOR_LOGIN_REDIRECT_URL = LOGIN_REDIRECT_URL
 TWO_FACTOR_PATCH_ADMIN = True  # protege /admin con 2FA
-# Recordatorio opcional de dispositivo (una semana):
-TWO_FACTOR_REMEMBER_COOKIE_AGE = 60 * 60 * 24 * 7
+TWO_FACTOR_REMEMBER_COOKIE_AGE = 60 * 60 * 24 * 7  # recordar 1 semana
 
 # =========================
 # EMAIL
 # =========================
 if DEBUG:
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = "smtp.gmail.com"
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = "manuelsantiagorm@gmail.com"
+    EMAIL_HOST_PASSWORD = "uhowphvpxtibygqm"  # ← sin espacios, y entre comillas
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
 else:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = "smtp.gmail.com"
@@ -229,8 +263,14 @@ else:
     EMAIL_USE_TLS = True
     EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
     EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-    DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
+    DEFAULT_FROM_EMAIL = EMAIL_HOST_USER  # usa el mismo remitente real
     SERVER_EMAIL = DEFAULT_FROM_EMAIL
+
+# Seguridad OTP (para nuestro flujo de clientes)
+EMAIL_OTP_EXP_MINUTES = 15
+EMAIL_OTP_MAX_ATTEMPTS = 5
+EMAIL_OTP_RESEND_COOLDOWN_SECONDS = 60
+EMAIL_OTP_MAX_PER_HOUR_PER_EMAIL = 5
 
 # =========================
 # REGLAS DE RESERVAS
@@ -249,24 +289,22 @@ HORARIO_APERTURA = 8
 HORARIO_CIERRE = 22
 
 # ---- Reserva / asignación automática ----
-BIG_CAP = 8          # mesa grande desde 8 pax
-PROTECCION_BIG = 90  # min de protección para mesas grandes
-WASTE_MAX = 3        # desperdicio máx durante protección
-CAP_MAX = 12         # capacidad máxima de la cadena
+BIG_CAP = 8
+PROTECCION_BIG = 90
+WASTE_MAX = 3
+CAP_MAX = 12
 
 # =========================
 # SEGURIDAD
 # =========================
 SESSION_COOKIE_SAMESITE = "Lax"
 
-# En PROD (DEBUG=False) forzamos HTTPS/HSTS; en DEV (DEBUG=True) lo desactivamos
 SECURE_SSL_REDIRECT = not DEBUG
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 
 if DEBUG:
-    # HSTS desactivado en DEV para evitar que el navegador fuerce https://
     SECURE_HSTS_SECONDS = 0
     SECURE_HSTS_INCLUDE_SUBDOMAINS = False
     SECURE_HSTS_PRELOAD = False
@@ -286,15 +324,10 @@ _CSP_DIRECTIVES = {
     "style-src": ("'self'", "https://cdn.jsdelivr.net", "https://fonts.googleapis.com", "'unsafe-inline'"),
     "img-src": ("'self'", "data:", "https://maps.gstatic.com", "https://maps.googleapis.com"),
 }
-# En DEV: report-only; en PROD: bloqueo
 if DEBUG:
     CONTENT_SECURITY_POLICY_REPORT_ONLY = {"DIRECTIVES": _CSP_DIRECTIVES}
 else:
     CONTENT_SECURITY_POLICY = {"DIRECTIVES": _CSP_DIRECTIVES}
-
-# --- Axes (anti-bruteforce) ---
-AXES_FAILURE_LIMIT = 5
-AXES_COOLOFF_TIME = 1  # horas
 
 # =========================
 # Sentry
@@ -333,23 +366,27 @@ else:
 # AJUSTES DINÁMICOS PARA DEV
 # =========================
 if DEBUG:
-    # Quitamos middlewares pesados en local para evitar lentitud
+    # En local, desactiva SSL & CSP/AXES si estorban (puedes comentar si no lo necesitas)
+    # OJO: Axes ya lo estás usando; si quieres mantenerlo en dev, quita "axes.middleware.AxesMiddleware" de este filtro.
     MIDDLEWARE = [
         m for m in MIDDLEWARE
-        if m not in ("axes.middleware.AxesMiddleware", "csp.middleware.CSPMiddleware")
+        if m not in ( "csp.middleware.CSPMiddleware", )
     ]
-    # En DEV evita bucles http/https
     SECURE_SSL_REDIRECT = False
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
 
-
-
+# =========================
+# GOOGLE MAPS
+# =========================
 GOOGLE_MAPS_API_KEY = os.getenv("GOOGLE_MAPS_API_KEY", "")
 
+# =========================
+# ADAPTER (cierra signup de allauth; clientes usan OTP)
+# =========================
+ACCOUNT_ADAPTER = "ihop_system.adapters.CustomAccountAdapter"
 
 
-TEMPLATES[0]["OPTIONS"]["context_processors"] += [
-    "reservas.context_processors.google_maps",
-
-]
+# Mantenemos 'mandatory' para que (si algún día usas Allauth con público)
+# exija verificación a usuarios NO staff.
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"

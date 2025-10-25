@@ -1,0 +1,13 @@
+[
+  {"model": "reservas.pais", "pk": 1, "fields": {"nombre": "México", "iso2": "MX"}},
+  {"model": "reservas.pais", "pk": 2, "fields": {"nombre": "Estados Unidos", "iso2": "US"}},
+  {"model": "reservas.pais", "pk": 3, "fields": {"nombre": "Canadá", "iso2": "CA"}},
+  {"model": "reservas.pais", "pk": 4, "fields": {"nombre": "Arabia Saudita", "iso2": "SA"}},
+  {"model": "reservas.pais", "pk": 5, "fields": {"nombre": "Kuwait", "iso2": "KW"}},
+  {"model": "reservas.pais", "pk": 6, "fields": {"nombre": "Emiratos Árabes Unidos", "iso2": "AE"}},
+  {"model": "reservas.pais", "pk": 7, "fields": {"nombre": "Guatemala", "iso2": "GT"}},
+  {"model": "reservas.pais", "pk": 8, "fields": {"nombre": "Filipinas", "iso2": "PH"}},
+  {"model": "reservas.pais", "pk": 9, "fields": {"nombre": "Catar", "iso2": "QA"}},
+  {"model": "reservas.pais", "pk": 10, "fields": {"nombre": "Baréin", "iso2": "BH"}},
+  {"model": "reservas.pais", "pk": 11, "fields": {"nombre": "Ecuador", "iso2": "EC"}}
+]

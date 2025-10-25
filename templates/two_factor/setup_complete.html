@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Autenticación en dos pasos" %}{% endblock %}
+
+{% block content %}
+  <div class="container" style="max-width: 720px; margin: 2rem auto;">
+    <h1 class="h3 mb-3">{% trans "¡Listo! Autenticación de dos factores activada" %}</h1>
+    <p class="mb-4">
+      {% blocktrans %}Tu dispositivo TOTP quedó configurado correctamente.{% endblocktrans %}
+    </p>
+   <a class="btn btn-primary" href="/staff/sucursales/">
+  Ir al panel
+</a>
+  </div>
+{% endblock %}

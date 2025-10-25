@@ -5,7 +5,10 @@ from django.contrib.auth.models import Group
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse
 from django.views import View
+from .utils_auth import user_allowed_countries
+from .models import CountryAdminScope  # ⬅️ ESTE ES EL QUE FALTA
 
+from collections import defaultdict, OrderedDict
 from .mixins import ChainOwnerRequiredMixin
 from .models import PerfilAdmin, Sucursal, ChainOwnerPaisRole
 from .forms_chainadmin_admins import (
@@ -45,42 +48,35 @@ def _user_allowed_paises_ids(user):
 
 
 class ChainAdminAdminsListView(ChainOwnerRequiredMixin, View):
+    """
+    Lista de Branch Admins, filtrada por los países permitidos del usuario.
+    (Antes mostraba admins de otros países y, además, podía auto-crear perfiles con Sucursal.first()).
+    """
     template_name = "reservas/chainadmin/admins_list.html"
 
     def get(self, request):
-        admins = _branchadmin_qs()
-        # Traer perfiles en lote
-        perfiles = {
-            p.user_id: p
-            for p in PerfilAdmin.objects.select_related("sucursal_asignada", "sucursal_asignada__pais").all()
-        }
-
         allowed_paises = _user_allowed_paises_ids(request.user)
 
-        data = []
-        for u in admins:
-            pa = perfiles.get(u.id)
-            sucursal = getattr(pa, "sucursal_asignada", None)
-
-            # Filtro por país: si no es superuser y tiene alcance por país,
-            # solo mostrar admins cuya sucursal_asignada pertenezca a esos países.
-            if allowed_paises is not None:
-                # Si no hay sucursal asignada o el país no está permitido, se oculta
-                if not sucursal or not sucursal.pais_id or sucursal.pais_id not in allowed_paises:
-                    continue
-
-            data.append(
-                {
-                    "id": u.id,
-                    "username": u.username,
-                    "email": u.email,
-                    "is_active": u.is_active,
-                    "sucursal": getattr(sucursal, "nombre", None),
-                    "perfil_activo": getattr(pa, "activo", None),
-                }
+        admins = (
+            User.objects
+            .filter(groups__name="BranchAdmin", is_staff=True)
+            .select_related(
+                "perfiladmin",
+                "perfiladmin__sucursal_asignada",
+                "perfiladmin__sucursal_asignada__pais",
             )
+            .order_by("username")
+            .distinct()
+        )
 
-        return render(request, self.template_name, {"admins": data})
+        # 🔒 Filtro de país en servidor (si NO es superuser)
+        if allowed_paises is not None:
+            admins = admins.filter(perfiladmin__sucursal_asignada__pais_id__in=allowed_paises)
+
+        # ❌ Importante: NO auto-crear perfiles aquí (esto causaba ver CDMX en otros países).
+        # La creación/ajuste de PerfilAdmin debe ocurrir en Create/Update con validación por país.
+
+        return render(request, self.template_name, {"admins": admins})
 
 
 class ChainAdminAdminsCreateView(ChainOwnerRequiredMixin, View):
@@ -88,7 +84,7 @@ class ChainAdminAdminsCreateView(ChainOwnerRequiredMixin, View):
 
     def get(self, request):
         form = BranchAdminCreateForm()
-        # Intentar limitar choices de sucursal según país (si el form tiene ese campo)
+        # Limitar choices de sucursal según país (si el form tiene ese campo)
         allowed_paises = _user_allowed_paises_ids(request.user)
         if not request.user.is_superuser and hasattr(form, "fields") and "sucursal_asignada" in form.fields:
             form.fields["sucursal_asignada"].queryset = Sucursal.objects.filter(
@@ -187,8 +183,7 @@ class ChainAdminAdminsToggleActiveView(ChainOwnerRequiredMixin, View):
     def post(self, request, user_id):
         user = get_object_or_404(User, pk=user_id)
 
-        # Si el que intenta togglear es ChainOwner País, solo puede togglear
-        # admins cuya sucursal_asignada pertenezca a sus países permitidos.
+        # Solo puede togglear admins dentro de sus países
         allowed_paises = _user_allowed_paises_ids(request.user)
         if allowed_paises is not None:  # no es superuser
             try:
@@ -211,3 +206,119 @@ class ChainAdminAdminsToggleActiveView(ChainOwnerRequiredMixin, View):
             pass
         messages.success(request, f"Estado de '{user.username}' cambiado a {'activo' if user.is_active else 'inactivo'}.")
         return redirect(reverse("reservas:chainadmin_admins"))
+
+
+
+# === NUEVO: Lista global agrupada por país ===
+from collections import defaultdict, OrderedDict
+
+class ChainAdminAdminsAllView(ChainOwnerRequiredMixin, View):
+    """
+    Muestra TODOS los Branch Admins agrupados por país.
+    - Si es superuser: ve todos los países.
+    - Si es ChainOwner de países: ve solo los suyos.
+    """
+    template_name = "reservas/chainadmin/admins_all.html"
+
+    def get(self, request):
+        allowed_paises = _user_allowed_paises_ids(request.user)  # None => superuser (sin filtro)
+
+        qs = (
+            User.objects
+            .filter(groups__name="BranchAdmin", is_staff=True)
+            .select_related("perfiladmin", "perfiladmin__sucursal_asignada", "perfiladmin__sucursal_asignada__pais")
+            .order_by("username")
+            .distinct()
+        )
+        if allowed_paises is not None:
+            qs = qs.filter(perfiladmin__sucursal_asignada__pais_id__in=allowed_paises)
+
+        # Agrupar por país
+        grouped = defaultdict(list)
+        for u in qs:
+            pais = getattr(getattr(getattr(u, "perfiladmin", None), "sucursal_asignada", None), "pais", None)
+            pais_nombre = getattr(pais, "nombre", "— Sin país —")
+            grouped[pais_nombre].append(u)
+
+        # Orden alfabético por país
+        grouped_ordered = OrderedDict(sorted(grouped.items(), key=lambda x: x[0].lower()))
+
+        return render(request, self.template_name, {
+            "grouped": grouped_ordered,
+        })
+
+
+# === NUEVO: Detalle de un admin + admins del mismo país ===
+class ChainAdminAdminDetailView(ChainOwnerRequiredMixin, View):
+    template_name = "reservas/chainadmin/admin_detail.html"
+
+    def get(self, request, user_id):
+        u = get_object_or_404(
+            User.objects.select_related(
+                "perfiladmin",
+                "perfiladmin__sucursal_asignada",
+                "perfiladmin__sucursal_asignada__pais",
+            ),
+            pk=user_id, groups__name="BranchAdmin", is_staff=True
+        )
+
+        # Candado de país (si no es superuser)
+        allowed_paises = _user_allowed_paises_ids(request.user)
+        pais_id = getattr(getattr(getattr(u, "perfiladmin", None), "sucursal_asignada", None), "pais_id", None)
+        if allowed_paises is not None and pais_id not in allowed_paises:
+            messages.error(request, "No puedes ver administradores de otro país.")
+            return redirect(reverse("reservas:chainadmin_admins"))
+
+        # Peers del mismo país (excluyendo al actual)
+        peers = User.objects.filter(
+            groups__name="BranchAdmin", is_staff=True,
+            perfiladmin__sucursal_asignada__pais_id=pais_id
+        ).exclude(pk=u.pk).select_related(
+            "perfiladmin", "perfiladmin__sucursal_asignada"
+        ).order_by("username").distinct()
+
+        return render(request, self.template_name, {
+            "admin_obj": u,
+            "peers": peers,
+        })
+
+
+
+
+# === NUEVO: Referentes (Admins de país) agrupados por país ===
+
+class CountryAdminsAllView(View):
+    template_name = "reservas/chainadmin/country_admins_all.html"
+
+    def get(self, request):
+        allowed = user_allowed_countries(request.user)  # QS de Pais
+
+        scope_qs = (
+            CountryAdminScope.objects
+            .select_related("user", "pais")
+            .order_by("pais__nombre", "user__username")
+        )
+        if not request.user.is_superuser:
+            scope_qs = scope_qs.filter(pais__in=allowed)
+
+        grouped = defaultdict(list)
+        for r in scope_qs:
+            grouped[r.pais.nombre].append(r.user)
+
+        grouped = OrderedDict(sorted(grouped.items(), key=lambda kv: kv[0].lower()))
+        return render(request, self.template_name, {"grouped": grouped})
+
+
+User = get_user_model()
+
+class CountryAdminDetailView(View):
+    template_name = "reservas/chainadmin/country_admin_detail.html"
+
+    def get(self, request, user_id):
+        u = get_object_or_404(User, pk=user_id)
+        allowed = user_allowed_countries(request.user)
+        scope_qs = CountryAdminScope.objects.select_related("pais").filter(user=u)
+        if not request.user.is_superuser:
+            scope_qs = scope_qs.filter(pais__in=allowed)
+        paises = [s.pais for s in scope_qs]
+        return render(request, self.template_name, {"admin_user": u, "paises": paises})

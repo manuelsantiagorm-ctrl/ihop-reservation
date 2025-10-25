@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Referentes (admins de país)" %}{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width:1100px;">
+  <h1 class="h4 mb-3">{% trans "Referentes — admins de país" %}</h1>
+
+  <!-- Pestañas de navegación superior -->
+  <ul class="nav nav-pills mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'reservas:chainadmin_sucursales' %}">
+        {% trans "Sucursales" %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'reservas:chainadmin_admins' %}">
+        {% trans "Admins sucursal" %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" aria-current="page" href="{% url 'reservas:chainadmin_country_admins_all' %}">
+        {% trans "Referentes (por país)" %}
+      </a>
+    </li>
+  </ul>
+
+  {% if tabs %}
+    <!-- Tabs por país -->
+    <ul class="nav nav-tabs mb-3" role="tablist">
+      {% for t in tabs %}
+        <li class="nav-item" role="presentation">
+          <button class="nav-link {% if forloop.first %}active{% endif %}"
+                  data-bs-toggle="tab" data-bs-target="#tab-{{ forloop.counter }}"
+                  type="button" role="tab">
+            {{ t.pais.nombre }} <span class="badge bg-secondary">{{ t.users|length }}</span>
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+
+    <div class="tab-content">
+      {% for t in tabs %}
+        <div class="tab-pane fade {% if forloop.first %}show active{% endif %}" id="tab-{{ forloop.counter }}" role="tabpanel">
+
+          <!-- Tabla de referentes del país -->
+          <div class="card shadow-sm border-0 mb-3">
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>{% trans "Usuario" %}</th>
+                      <th>{% trans "Correo" %}</th>
+                      <th style="width: 90px;">{% trans "Acciones" %}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for u in t.users %}
+                    <tr>
+                      <td>{{ u.username }}</td>
+                      <td>{{ u.email }}</td>
+                      <td>
+                        {# Activa esto si implementas la vista de detalle #}
+                        {# <a class="text-decoration-none" href="{% url 'reservas:chainadmin_country_admin_detail' u.id %}"><i class="bi bi-eye"></i></a> #}
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr><td colspan="3" class="text-muted">{% trans "Sin referentes." %}</td></tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- KPIs del país -->
+          <div class="row g-3">
+            <div class="col-12 col-md-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div class="text-muted small">{% trans "Sucursales" %}</div>
+                      <div class="fs-4 fw-bold">{{ t.kpis.sucursales }}</div>
+                    </div>
+                    <i class="bi bi-shop fs-3 text-muted"></i>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-light text-dark">{{ t.pais.nombre }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div class="text-muted small">{% trans "Admins de sucursal" %}</div>
+                      <div class="fs-4 fw-bold">{{ t.kpis.branch_admins }}</div>
+                    </div>
+                    <i class="bi bi-person-gear fs-3 text-muted"></i>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-light text-dark">{{ t.pais.nombre }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {% if t.kpis.reservas is not None %}
+            <div class="col-12 col-md-4">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                      <div class="text-muted small">{% trans "Reservas (total)" %}</div>
+                      <div class="fs-4 fw-bold">{{ t.kpis.reservas }}</div>
+                    </div>
+                    <i class="bi bi-calendar-check fs-3 text-muted"></i>
+                  </div>
+                  <div class="mt-2">
+                    <span class="badge bg-light text-dark">{{ t.pais.nombre }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+      <i class="bi bi-info-circle me-2"></i>
+      <div>{% trans "No hay referentes asignados en tus países." %}</div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

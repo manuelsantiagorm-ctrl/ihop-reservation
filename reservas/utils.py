@@ -1,21 +1,22 @@
 # reservas/utils.py
-from datetime import timedelta
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:  # Solo para type hints; no se ejecuta en runtime
+    from .models import Reserva, PerfilAdmin, Mesa  # noqa: F401
+
+import secrets
+from datetime import datetime, time, timedelta
+
 from django.conf import settings
 from django.utils import timezone
-from django.db import transaction
+from django.db import transaction  # si lo usas en otros helpers
 from django.db.models import Q
-
-from django.core.mail import send_mail
-
+from django.core.mail import send_mail  # si lo usas en notificaciones
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 
-from .models import Reserva, PerfilAdmin, Mesa
 
-from datetime import datetime, time
-from django.utils import timezone
-from django.conf import settings
-from .models import Reserva
 # ---------------------------
 # Reglas de vigencia/bloqueo
 # ---------------------------
@@ -53,6 +54,7 @@ def _purge_expired_holds() -> int:
     CANCELA ÚNICAMENTE “holds” (estado = 'HOLD') más antiguos de 10 minutos.
     No toca reservas PEND, que se manejan con _auto_cancel_por_tolerancia.
     """
+    from .models import Reserva  # import local evita ciclos
     cutoff = timezone.now() - timedelta(minutes=10)
     qs = Reserva.objects.filter(estado='HOLD', creado__lt=cutoff)
     return qs.update(estado='CANC')
@@ -68,9 +70,10 @@ def _puede_ver_sucursal(user, sucursal) -> bool:
         return True
     if user.is_staff:
         try:
+            from .models import PerfilAdmin  # import local evita ciclos
             perfil = PerfilAdmin.objects.get(user=user)
             return perfil.sucursal_asignada_id == sucursal.id
-        except PerfilAdmin.DoesNotExist:
+        except Exception:
             return False
     return False
 
@@ -78,7 +81,7 @@ def _puede_ver_sucursal(user, sucursal) -> bool:
 # ---------------------------
 # Disponibilidad / Choques
 # ---------------------------
-def conflicto_y_disponible(mesa: Mesa, fecha):
+def conflicto_y_disponible(mesa, fecha):
     """
     Devuelve (hay_conflicto: bool, proxima_hora_disponible: datetime)
 
@@ -86,6 +89,8 @@ def conflicto_y_disponible(mesa: Mesa, fecha):
     y, si hay choque, regresa como 'próxima disponible' el mayor fin de
     todas ellas (no la primera), para que el mensaje sea correcto.
     """
+    from .models import Reserva  # import local evita ciclos
+
     dur_min = int(getattr(settings, 'RESERVA_TOTAL_MINUTOS', 70))
     dur = timedelta(minutes=dur_min)
 
@@ -116,13 +121,13 @@ def conflicto_y_disponible(mesa: Mesa, fecha):
 # ---------------------------
 # Auto-cancelación por tolerancia
 # ---------------------------
-
 def _email_de_reserva(r):
     return (getattr(r.cliente, "email", "") or getattr(r, "email_contacto", "")).strip()
 
 
-
-
+# ---------------------------
+# Slots y búsqueda de huecos
+# ---------------------------
 def _local_date_range(dt_date):
     """
     Devuelve el rango [inicio_dia_local, fin_dia_local) timezone-aware
@@ -130,19 +135,23 @@ def _local_date_range(dt_date):
     """
     tz = timezone.get_current_timezone()
     start_naive = datetime(dt_date.year, dt_date.month, dt_date.day, 0, 0, 0)
-    end_naive   = start_naive + timedelta(days=1)
+    end_naive = start_naive + timedelta(days=1)
     return timezone.make_aware(start_naive, tz), timezone.make_aware(end_naive, tz)
 
+
 def _overlap(a_start, a_end, b_start, b_end) -> bool:
+    """True si [a) y [b) se traslapan."""
     return a_start < b_end and b_start < a_end
+
 
 def _bloques_ocupados_mesa(mesa, dt_date):
     """
     Devuelve intervalos ocupados [(ini, fin), ...] para esa mesa en esa fecha (local),
     considerando reservas PEND/CONF. Todos timezone-aware.
     """
+    from .models import Reserva  # import local evita ciclos
+
     start_day, end_day = _local_date_range(dt_date)
-    # Trae reservas de ese día
     qs = (Reserva.objects
           .filter(mesa=mesa, estado__in=['PEND', 'CONF'],
                   fecha__gte=start_day, fecha__lt=end_day)
@@ -156,9 +165,7 @@ def _bloques_ocupados_mesa(mesa, dt_date):
         bloques.append((ini, fin))
     return bloques
 
-def _overlap(a_start, a_end, b_start, b_end) -> bool:
-    """True si [a) y [b) se traslapan."""
-    return a_start < b_end and b_start < a_end
+
 def _ceil_to_step(dt: datetime, step_min: int) -> datetime:
     """Redondea dt hacia ARRIBA al siguiente múltiplo de step_min."""
     dt = dt.replace(second=0, microsecond=0)
@@ -168,7 +175,8 @@ def _ceil_to_step(dt: datetime, step_min: int) -> datetime:
         dt += timedelta(minutes=(step_min - resto))
     return dt
 
-def _slots_disponibles(mesa: Mesa, fecha_d):
+
+def _slots_disponibles(mesa, fecha_d):
     """
     Genera datetimes (aware) de inicio posibles para 'fecha_d' en la mesa dada.
     Filtra:
@@ -176,21 +184,22 @@ def _slots_disponibles(mesa: Mesa, fecha_d):
       - en el pasado (si fecha_d es hoy, con buffer y redondeo)
       - solapes con PEND/CONF
     """
+    from .models import Reserva  # import local evita ciclos
+
     tz = timezone.get_current_timezone()
     dur_min = int(getattr(settings, "RESERVA_TOTAL_MINUTOS", 70))
-    paso_min = int(getattr(settings, "RESERVA_PASO_MINUTOS", 15))  # si no lo tienes en settings, queda en 15
+    paso_min = int(getattr(settings, "RESERVA_PASO_MINUTOS", 15))
     buffer_min = int(getattr(settings, "RESERVA_BUFFER_MINUTOS", 10))
 
-    # Horario del local (puedes tenerlos en settings)
+    # Horario del local
     apertura_h = int(getattr(settings, "HORARIO_APERTURA", 8))
-    cierre_h   = int(getattr(settings, "HORARIO_CIERRE", 22))
+    cierre_h = int(getattr(settings, "HORARIO_CIERRE", 22))
 
     inicio_jornada = timezone.make_aware(datetime.combine(fecha_d, time(apertura_h, 0)), tz)
-    fin_jornada    = timezone.make_aware(datetime.combine(fecha_d, time(cierre_h,   0)), tz)
+    fin_jornada = timezone.make_aware(datetime.combine(fecha_d, time(cierre_h, 0)), tz)
 
     # No podemos arrancar una reserva que termine después de cerrar
     fin_slot_max_inicio = fin_jornada - timedelta(minutes=dur_min)
-
     if inicio_jornada > fin_slot_max_inicio:
         return []  # no caben reservas ese día
 
@@ -211,16 +220,14 @@ def _slots_disponibles(mesa: Mesa, fecha_d):
         slot_fin = cursor + dur_td
 
         # ¿Se solapa con alguna reserva existente?
-        # Primero las que empiezan antes de que termine este slot
         qs = Reserva.objects.filter(
             mesa=mesa,
             estado__in=["PEND", "CONF"],
-            fecha__lt=slot_fin,          # comienzan antes de que termine este slot
+            fecha__lt=slot_fin,  # comienzan antes de que termine este slot
         ).order_by("fecha")
 
         solapa = False
         for r in qs:
-            # Si esa reserva todavía sigue cuando inicia este slot => choque
             if (r.fecha + dur_td) > cursor:
                 solapa = True
                 break
@@ -232,11 +239,13 @@ def _slots_disponibles(mesa: Mesa, fecha_d):
 
     return slots
 
+
 def _esta_en_horas_pico(dt_local):
     for h_ini, h_fin in getattr(settings, "HORAS_PICO", []):
         if h_ini <= dt_local.hour < h_fin:
             return True
     return False
+
 
 def anticipacion_minima_para(dt_local):
     """
@@ -248,21 +257,21 @@ def anticipacion_minima_para(dt_local):
     return pico if _esta_en_horas_pico(dt_local) else base
 
 
-
 def _auto_cancel_por_tolerancia(minutos: int = 6) -> int:
     """
     Cancela reservas PEND cuya hora programada + tolerancia ya pasó.
     Evita select_for_update para poder invocarse desde cualquier vista.
     """
+    from .models import Reserva  # import local evita ciclos
+
     ahora = timezone.now()
     limite = ahora - timezone.timedelta(minutes=minutos)
-    # No usamos select_for_update aquí (no es necesario para un simple update).
-    # Si varias instancias lo corren a la vez, el update es idempotente.
     return (
         Reserva.objects
         .filter(estado="PEND", fecha__lte=limite)
         .update(estado="CANC")
     )
+
 
 def generar_folio(reserva) -> str:
     """
@@ -284,16 +293,24 @@ def _is_peak(dt):
         return True
     return False
 
+
 def booking_total_minutes(dt, party=2):
     """
     Minutos de ocupación de mesa (orden, comer, pago, limpieza).
-    90 min normal, 105 min pico; +15 min si grupo ≥ 5.
+    90 min normal, 105 min pico; +15 min si grupo ≥ 5 (ajustable por settings).
+    Requiere en settings:
+      RESERVA_DURACION_MIN_NORM
+      RESERVA_DURACION_MIN_PICO
     """
-    base = settings.RESERVA_DURACION_MIN_PICO if _is_peak(dt) else settings.RESERVA_DURACION_MIN_NORM
+    base = getattr(
+        settings,
+        "RESERVA_DURACION_MIN_PICO" if _is_peak(dt) else "RESERVA_DURACION_MIN_NORM",
+        90 if not _is_peak(dt) else 105,
+    )
+    base = int(base)
     if int(party or 2) >= 5:
         base += 15
-    return int(base)
-
+    return base
 
 
 def _aware_or_now(dt):
@@ -305,39 +322,13 @@ def _aware_or_now(dt):
         return timezone.make_aware(dt, timezone.get_current_timezone())
     return dt
 
-def _is_peak(dt):
-    """
-    Devuelve True si el datetime cae en horario pico.
-    Acepta dt=None sin romper (usa 'ahora').
-    Ajusta la regla de pico a tu negocio si es distinta.
-    """
-    dt = _aware_or_now(dt)
-    # Ejemplo de regla: viernes-domingo 18:00–22:00
-    wd = dt.weekday()  # 0=lunes ... 6=domingo
-    is_weekend = wd in (4, 5, 6)  # vie/sáb/dom
-    hour = dt.hour
-    in_evening = 18 <= hour < 22
-    return is_weekend and in_evening
-
-
-
-def booking_total_minutes(inicio_dt, party: int) -> int:
-    """
-    Duración dinámica sugerida según tamaño de grupo.
-    Ajusta a tu operación real si lo deseas.
-    """
-    party = int(party or 2)
-    if party <= 4:
-        return 70   # 60-75 típico
-    if party <= 7:
-        return 90
-    return 120      # grupos grandes (8-12)
 
 def _en_ventana_proteccion(inicio_dt) -> bool:
     """¿Aún estamos antes del release de mesas grandes?"""
     prot = int(getattr(settings, "PROTECCION_BIG", 90))
     ahora = timezone.localtime()
     return ahora < (inicio_dt - timedelta(minutes=prot))
+
 
 def mesa_elegible_para_party(mesa, party: int, inicio_dt) -> bool:
     """
@@ -364,13 +355,13 @@ def mesa_elegible_para_party(mesa, party: int, inicio_dt) -> bool:
     waste = cap - party
     return waste <= waste_max
 
+
 def checa_choque_reserva_o_bloqueo(mesa, inicio_dt, fin_dt, party: int, exclude_reserva_id=None):
     """
     True si EXISTE conflicto (reserva o bloqueo).
     Ahora permite excluir una reserva (útil al moverla de mesa).
     """
-    from .models import Reserva, BloqueoMesa
-    from django.db.models import Q
+    from .models import Reserva, BloqueoMesa  # import local evita ciclos
 
     res_qs = (Reserva.objects
               .filter(mesa=mesa, estado__in=["PEND", "CONF"])
@@ -396,8 +387,8 @@ def asignar_mesa_automatica(sucursal, inicio_dt, party: int):
     Devuelve una mesa “mínima suficiente” respetando protección/waste,
     sin choques. None si no hay.
     """
-    from .models import Mesa
-    from django.db.models import Q
+    from .models import Mesa  # import local evita ciclos
+
     party = int(party or 2)
     dur_min = booking_total_minutes(inicio_dt, party)
     fin_dt = inicio_dt + timedelta(minutes=dur_min)
@@ -426,9 +417,7 @@ def mesas_disponibles_para_reserva(reserva, forzar: bool = False):
       2) menor capacidad
     Respeta protección/waste salvo que 'forzar' sea True.
     """
-    from .models import Mesa
-    from django.db.models import Q
-    from django.conf import settings
+    from .models import Mesa  # import local evita ciclos
 
     party = int(getattr(reserva, "num_personas", 2) or 2)
     inicio = reserva.fecha
@@ -461,6 +450,7 @@ def mesas_disponibles_para_reserva(reserva, forzar: bool = False):
     cands.sort(key=lambda t: (t[0], t[1]))  # menor waste, luego menor capacidad
     return [m for _, __, m in cands]
 
+
 def mover_reserva(reserva, nueva_mesa, forzar: bool = False):
     """
     Intenta mover la reserva a 'nueva_mesa'.
@@ -486,14 +476,9 @@ def mover_reserva(reserva, nueva_mesa, forzar: bool = False):
     return True, "Reserva reasignada correctamente."
 
 
-
-
-
-
-
-# reservas/utils.py
-
-
+# ---------------------------
+# Visibilidad por sucursal
+# ---------------------------
 def is_chain_owner(user) -> bool:
     """Dueño de cadena: ve TODO."""
     return bool(
@@ -501,6 +486,7 @@ def is_chain_owner(user) -> bool:
             user.is_superuser or user.has_perm("reservas.manage_branches")
         )
     )
+
 
 def sucursales_visibles_qs(user, Sucursal):
     """
@@ -514,6 +500,7 @@ def sucursales_visibles_qs(user, Sucursal):
     if is_chain_owner(user):
         return Sucursal.objects.all()
     return Sucursal.objects.filter(administradores=user).distinct()
+
 
 def get_visible_object_or_404(user, model, **lookup):
     """

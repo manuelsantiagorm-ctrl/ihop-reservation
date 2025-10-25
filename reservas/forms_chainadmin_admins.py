@@ -3,6 +3,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
+from django.db import transaction
 
 from .models import PerfilAdmin, Sucursal
 
@@ -14,7 +15,8 @@ class BranchAdminCreateForm(forms.Form):
     email = forms.EmailField(label="Email")
     password1 = forms.CharField(widget=forms.PasswordInput, label="Contraseña")
     password2 = forms.CharField(widget=forms.PasswordInput, label="Confirmar contraseña")
-    sucursal = forms.ModelChoiceField(queryset=Sucursal.objects.all(), label="Sucursal")
+    # Nota: el campo del modelo es sucursal_asignada
+    sucursal_asignada = forms.ModelChoiceField(queryset=Sucursal.objects.all(), label="Sucursal")
     activo = forms.BooleanField(required=False, initial=True, label="Activo")
 
     def clean_username(self):
@@ -29,6 +31,7 @@ class BranchAdminCreateForm(forms.Form):
             raise ValidationError("Las contraseñas no coinciden.")
         return cd
 
+    @transaction.atomic
     def save(self):
         cd = self.cleaned_data
         user = User.objects.create_user(
@@ -37,19 +40,18 @@ class BranchAdminCreateForm(forms.Form):
             password=cd["password1"],
         )
         user.is_staff = True
-        user.is_active = cd.get("activo", True)
+        user.is_active = cd.get("activo", True)  # activo → User.is_active
         user.save()
 
-        # grupo BranchAdmin
+        # Asegurar grupo BranchAdmin
         group, _ = Group.objects.get_or_create(name="BranchAdmin")
         user.groups.add(group)
 
-        # perfil admin
+        # PerfilAdmin: usar el nombre real del campo sucursal_asignada
         PerfilAdmin.objects.update_or_create(
             user=user,
             defaults={
-                "sucursal": cd["sucursal"],
-                "activo": cd.get("activo", True),
+                "sucursal_asignada": cd["sucursal_asignada"],
             },
         )
         return user
@@ -57,7 +59,7 @@ class BranchAdminCreateForm(forms.Form):
 
 class BranchAdminUpdateForm(forms.Form):
     email = forms.EmailField(label="Email")
-    sucursal = forms.ModelChoiceField(queryset=Sucursal.objects.all(), label="Sucursal")
+    sucursal_asignada = forms.ModelChoiceField(queryset=Sucursal.objects.all(), label="Sucursal")
     activo = forms.BooleanField(required=False, label="Activo")
 
     def __init__(self, *args, **kwargs):
@@ -66,13 +68,14 @@ class BranchAdminUpdateForm(forms.Form):
 
         # valores iniciales
         self.fields["email"].initial = self.user_instance.email
+        self.fields["activo"].initial = self.user_instance.is_active
         try:
             pa = PerfilAdmin.objects.get(user=self.user_instance)
-            self.fields["sucursal"].initial = pa.sucursal
-            self.fields["activo"].initial = pa.activo and self.user_instance.is_active
+            self.fields["sucursal_asignada"].initial = pa.sucursal_asignada
         except PerfilAdmin.DoesNotExist:
             pass
 
+    @transaction.atomic
     def save(self):
         cd = self.cleaned_data
         u = self.user_instance
@@ -84,10 +87,10 @@ class BranchAdminUpdateForm(forms.Form):
         PerfilAdmin.objects.update_or_create(
             user=u,
             defaults={
-                "sucursal": cd["sucursal"],
-                "activo": cd.get("activo", True),
+                "sucursal_asignada": cd["sucursal_asignada"],
             },
         )
+
         # asegurar grupo
         group, _ = Group.objects.get_or_create(name="BranchAdmin")
         u.groups.add(group)

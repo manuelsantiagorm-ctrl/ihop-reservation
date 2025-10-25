@@ -1,9 +1,20 @@
 # reservas/models.py
+from __future__ import annotations
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 from zoneinfo import ZoneInfo  # <- NUEVO
+from django.db.models import Q
+from django.apps import apps
+from django.db import models
+from django.utils.timezone import is_naive
 
+
+
+
+# Helpers/QuerySet (ajusta los imports si en tu proyecto están en otro módulo)
+from .utils import  booking_total_minutes
+from .querysets import ReservaQuerySet
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
@@ -13,6 +24,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.text import slugify
+from django_countries.fields import CountryField
 
 # ==============================================================
 # Utilidades generales
@@ -71,21 +83,52 @@ class ChainOwnerPaisRole(models.Model):
 # ==============================================================
 
 class SucursalQuerySet(models.QuerySet):
-    def visibles_para(self, user):
-        """
-        - Dueño de cadena (superuser o permiso reservas.manage_branches) -> todas.
-        - Staff con perfil asignado -> su sucursal asignada.
-        - Staff administrador (M2M) -> sus sucursales.
-        - Público/no autenticado -> vacío.
-        """
+    def for_user(self, user):
         if not getattr(user, "is_authenticated", False):
             return self.none()
+
+        # Superuser o permiso global => todas
         if getattr(user, "is_superuser", False) or user.has_perm("reservas.manage_branches"):
             return self
+
+        filtros = Q(pk__in=[])
+        pais_ids = set()
+
+        # 1) Países por perfiladmin.paises
         perfil = getattr(user, "perfiladmin", None)
-        if perfil and perfil.sucursal_asignada_id:
-            return self.filter(pk=perfil.sucursal_asignada_id)
-        return self.filter(administradores=user).distinct()
+        if perfil and hasattr(perfil, "paises"):
+            pais_ids.update(perfil.paises.values_list("id", flat=True))
+
+        # 2) Países por CountryAdminScope (sin import circular y tolerante a activo/is_active)
+        scope_model = apps.get_model("reservas", "CountryAdminScope")
+        if scope_model is not None:
+            scope_qs = scope_model.objects.filter(user=user)
+            scope_fields = {f.name for f in scope_model._meta.get_fields()}
+            if "activo" in scope_fields:
+                scope_qs = scope_qs.filter(activo=True)
+            elif "is_active" in scope_fields:
+                scope_qs = scope_qs.filter(is_active=True)
+            # si no hay campo de activo, no filtramos por estado
+            pais_ids.update(scope_qs.values_list("pais_id", flat=True))
+
+        if pais_ids:
+            filtros |= Q(pais_id__in=pais_ids)
+
+        # 3) Sucursal asignada directamente
+        suc_id = getattr(perfil, "sucursal_asignada_id", None) if perfil else None
+        if suc_id:
+            filtros |= Q(pk=suc_id)
+
+        # 4) Administradores M2M
+        filtros |= Q(administradores=user)
+
+        return self.filter(filtros).distinct()
+
+    def visibles_para(self, user):
+        return self.for_user(user)
+
+
+
 
 class OwnedBySucursalQuerySet(models.QuerySet):
     """Para modelos con FK directo 'sucursal' (Mesa, BloqueoMesa, Menú, Review)."""
@@ -131,9 +174,9 @@ except Exception:
 
 # ==============================================================
 # MODELOS
-# ==============================================================
-
+# ==================================
 class Sucursal(models.Model):
+    objects = SucursalQuerySet.as_manager()   # ← IMPORTANTE
     nombre = models.CharField(max_length=255, unique=True)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     direccion = models.CharField(max_length=255, blank=True)
@@ -141,6 +184,8 @@ class Sucursal(models.Model):
     portada = models.ImageField(upload_to="sucursales/portadas/", blank=True, null=True)
     portada_alt = models.CharField(max_length=120, blank=True)
     cocina = models.CharField(max_length=80, blank=True)
+    # ✅ NUEVO
+    email_contacto = models.EmailField(max_length=120, blank=True, null=True)
 
     # Geo (para mapa y store-locator)
     lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -148,8 +193,12 @@ class Sucursal(models.Model):
     place_id = models.CharField(max_length=255, null=True, blank=True)
 
     # Plano de recepción por porcentaje 0..100
-    recepcion_x = models.PositiveSmallIntegerField(default=3, help_text="Porcentaje X 0..100 para la recepción")
-    recepcion_y = models.PositiveSmallIntegerField(default=3, help_text="Porcentaje Y 0..100 para la recepción")
+    recepcion_x = models.PositiveSmallIntegerField(
+        default=3, help_text="Porcentaje X 0..100 para la recepción"
+    )
+    recepcion_y = models.PositiveSmallIntegerField(
+        default=3, help_text="Porcentaje Y 0..100 para la recepción"
+    )
 
     # Ficha pública
     PRECIO_CHOICES = [(1, "$"), (2, "$$"), (3, "$$$")]
@@ -165,9 +214,9 @@ class Sucursal(models.Model):
         related_name="sucursales_que_administra",
     )
 
-    # -------- NUEVO: Multi-país + Timezone por sucursal --------
+    # Multi-país + Timezone por sucursal
     pais = models.ForeignKey(
-        Pais, null=True, blank=True, on_delete=models.PROTECT, related_name="sucursales"
+        "Pais", null=True, blank=True, on_delete=models.PROTECT, related_name="sucursales"
     )
     timezone = models.CharField(
         max_length=64, null=True, blank=True, help_text="IANA TZ (ej. America/Mexico_City)"
@@ -191,13 +240,11 @@ class Sucursal(models.Model):
     def __str__(self):
         return self.nombre
 
-    # Helper para obtener ZoneInfo desde su timezone (con fallback)
     def tz(self):
         try:
             return ZoneInfo(self.timezone) if self.timezone else ZoneInfo("UTC")
         except Exception:
             return ZoneInfo("UTC")
-
 
 class SucursalFoto(models.Model):
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, related_name="fotos")
@@ -417,7 +464,10 @@ def sucursal_autoslug(sender, instance: "Sucursal", **kwargs):
 # RESERVAS (con UTC + locales materializados)
 # ==============================================================
 
+
+
 class Reserva(models.Model):
+    # ----- Estados -----
     PEND = "PEND"
     CONF = "CONF"
     CANC = "CANC"
@@ -429,15 +479,18 @@ class Reserva(models.Model):
         (NOSH, "No show"),
     ]
 
+    # ----- Relaciones obligatorias -----
     cliente = models.ForeignKey("Cliente", on_delete=models.CASCADE)
     mesa = models.ForeignKey("Mesa", on_delete=models.CASCADE)
 
     # Acceso directo a sucursal (útil para filtros y analytics)
+    # Se mantiene nullable/blank para no romper datos existentes; puedes
+    # migrarlo a NOT NULL cuando todo esté materializado.
     sucursal = models.ForeignKey(
         "Sucursal",
         on_delete=models.CASCADE,
         related_name="reservas",
-        null=True,   # <- puedes migrar a non-nullable luego
+        null=True,
         blank=True,
     )
 
@@ -475,7 +528,7 @@ class Reserva(models.Model):
     # si se setea, la reserva terminó antes del fin teórico
     liberada_en = models.DateTimeField(null=True, blank=True, db_index=True)
 
-    objects = ReservaQuerySet.as_manager()  # <- activado para usar visible_for
+    objects = ReservaQuerySet.as_manager()  # <- activado para usar visible_for, etc.
 
     class Meta:
         ordering = ["-fecha", "-creado"]
@@ -488,6 +541,7 @@ class Reserva(models.Model):
             models.Index(fields=["local_service_date"]),
         ]
 
+    # ---------------------- Representación ----------------------
     def __str__(self):
         try:
             suc = self.sucursal.nombre if self.sucursal_id else self.mesa.sucursal.nombre
@@ -497,7 +551,25 @@ class Reserva(models.Model):
         except Exception:
             return f"{self.folio} - {self.fecha}"
 
-    # --------- Cálculos de tiempo ----------
+    # ---------------------- Reglas/validaciones ----------------------
+    def clean(self):
+        """
+        Validaciones de negocio antes de tocar la base de datos.
+        No rompe flujos actuales: sólo da mensajes claros si algo viene mal.
+        """
+        # 1) Cliente obligatorio con mensaje claro (evita IntegrityError)
+        if getattr(self, "cliente_id", None) is None:
+            raise ValidationError({"cliente": "La reserva requiere un cliente (no puede ser nulo)."})
+
+        # 2) Con USE_TZ=True, todos los DateTimeField deben ser timezone-aware
+        if getattr(settings, "USE_TZ", False):
+            for f in self._meta.fields:
+                if isinstance(f, models.DateTimeField):
+                    val = getattr(self, f.attname, None)
+                    if val and is_naive(val):
+                        raise ValidationError({f.name: "Debe ser timezone-aware con USE_TZ=True."})
+
+    # ---------------------- Cálculos de tiempo ----------------------
     def fin_teorico(self, party: Optional[int] = None):
         p = int(party or getattr(self, "num_personas", 2) or 2)
         # Usa hora local si está materializada; si no, usa 'fecha'
@@ -512,12 +584,16 @@ class Reserva(models.Model):
             return min(ft, lib)
         return ft
 
-    # --------- Persistencia UTC/Local ----------
+    # ---------------------- Persistencia UTC/Local ----------------------
     def set_from_local(self, local_inicio_naive: datetime, dur_minutes: int):
         """
         Se le pasa una datetime *naive* que representa hora local de la sucursal.
         Convierte y rellena inicio_utc/fin_utc + materializados y 'fecha' legacy.
         """
+        if not self.sucursal_id and self.mesa_id:
+            # Asegura tener tz de sucursal
+            self.sucursal_id = self.mesa.sucursal_id
+
         tz = self.sucursal.tz()
         local_dt = local_inicio_naive.replace(tzinfo=tz)
         self.local_inicio = local_dt
@@ -539,8 +615,36 @@ class Reserva(models.Model):
         self.local_service_date = li.date()
         self.fecha = li  # mantener compatibilidad con vistas existentes
 
-    # ---------- Autocompletar sucursal desde mesa ----------
+    # ---------------------- Guardado ----------------------
     def save(self, *args, **kwargs):
+        """
+        - Autocompleta 'sucursal' desde 'mesa' si no viene informada.
+        - Lanza validaciones antes del INSERT/UPDATE (evita errores de integridad).
+        - Puedes desactivar validación con save(validate=False) para flujos legacy.
+        """
+        validate = kwargs.pop("validate", True)
+
         if not self.sucursal_id and self.mesa_id:
             self.sucursal_id = self.mesa.sucursal_id
-        super().save(*args, **kwargs)
+
+        if validate:
+            self.full_clean()
+
+        return super().save(*args, **kwargs)
+
+
+
+class CountryAdminScope(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="country_scopes")
+    pais  = models.ForeignKey("Pais", on_delete=models.CASCADE, related_name="country_admins")
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("user", "pais")
+        verbose_name = "Ámbito de país (admin)"
+        verbose_name_plural = "Ámbitos de país (admins)"
+
+    def __str__(self):
+        return f"{self.user} @ {self.pais}"
+
+

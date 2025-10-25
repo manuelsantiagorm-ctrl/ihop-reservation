@@ -6,6 +6,9 @@ from datetime import datetime, date, time, timedelta
 from math import radians, cos, sin, asin, sqrt
 from django.conf import settings
 from django.contrib import messages
+from django.db.models import Max
+from .permissions import assert_user_can_manage_sucursal  # <-- IMPORTANTE
+
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required, user_passes_test, permission_required
@@ -30,7 +33,8 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 from django.http import  HttpResponseBadRequest
 from django.views.decorators.csrf import csrf_exempt 
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseRedirect, Http404
-
+from .utils_auth import scope_sucursales_for, user_allowed_countries
+from .utils_country import get_effective_country
 from .utils import mesas_disponibles_para_reserva, mover_reserva, booking_total_minutes, asignar_mesa_automatica
 from .emails import enviar_correo_reserva_confirmada
 from .forms import (
@@ -142,35 +146,67 @@ def _slot_consultado(request):
 from django.utils import timezone
 # Opcional si quieres anotar reservas_hoy:
 # from django.db.models import Count, Q
+from datetime import time
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.utils import timezone
+
+from .models import Sucursal
+from .utils_auth import user_allowed_countries, scope_sucursales_for
+# si pusiste scope_sucursales_for en otro archivo, ajusta el import.
+
+
+# ===============================
+#   HOME
+# ===============================
 
 @login_required
 def home(request):
     user = request.user
     is_admin_staff = user.is_staff
 
+    # ---- Qué sucursales mostrar en el panel “Admin de sucursal” ----
     if user.is_superuser:
         admin_sucursales = Sucursal.objects.all().order_by("nombre")
-    elif is_admin_staff:
-        admin_sucursales = Sucursal.objects.filter(administradores=user).order_by("nombre")
     else:
-        admin_sucursales = Sucursal.objects.none()
+        allowed = user_allowed_countries(user)  # queryset de países permitidos
+        if allowed.exists():
+            # Country Admin: solo sucursales de sus países
+            admin_sucursales = (
+                Sucursal.objects.filter(pais_id__in=allowed.values_list("id", flat=True))
+                .order_by("nombre")
+            )
+        elif is_admin_staff:
+            # Branch Admin: solo sucursales donde es administrador
+            admin_sucursales = Sucursal.objects.filter(administradores=user).order_by("nombre")
+        else:
+            admin_sucursales = Sucursal.objects.none()
 
-    cliente = getattr(user, "cliente", None)
-    todas = Sucursal.objects.filter(activo=True).order_by("nombre")
+    # ---- Listado público (para clientes) ----
+    if not user.is_staff:
+        user_country = get_effective_country(request)
+        todas = Sucursal.objects.filter(activo=True, pais=user_country).order_by("nombre")
+    else:
+        todas = scope_sucursales_for(request, Sucursal.objects.filter(activo=True).order_by("nombre"))
 
     # ===== Carrusel: 12 sucursales =====
     sucursales = list(todas[:12])
 
-    # >>> Añadimos 3 horarios mock por sucursal (13:00, 13:15, 13:30)
     def fmt(t: time) -> str:
-        # 01:00 pm -> 1:00 p. m. (estilo OpenTable; ajusta si quieres)
-        return t.strftime("%I:%M %p").lower().replace("am", "a. m.").replace("pm", "p. m.").lstrip("0")
+        return (
+            t.strftime("%I:%M %p")
+            .lower()
+            .replace("am", "a. m.")
+            .replace("pm", "p. m.")
+            .lstrip("0")
+        )
 
     sugerencias_mock = [fmt(time(13, 0)), fmt(time(13, 15)), fmt(time(13, 30))]
     for s in sucursales:
         s.sugerencias = sugerencias_mock
 
-    # ===== Recomendadas / Otras (tu lógica) =====
+    # ===== Recomendadas / Otras (por CP del cliente) =====
+    cliente = getattr(user, "cliente", None)
     recomendadas_qs = Sucursal.objects.none()
     otras_qs = todas
     if cliente and getattr(cliente, "codigo_postal", None):
@@ -190,27 +226,15 @@ def home(request):
     ctx = {
         "is_admin_staff": is_admin_staff,
         "admin_sucursales": admin_sucursales,
-        "sucursales": sucursales,                # <-- alimenta el carrusel
+        "sucursales": sucursales,
         "sucursales_recomendadas": recomendadas_qs,
         "otras_sucursales": otras_qs,
         "hoy": timezone.localdate(),
         "party_range": range(1, 13),
         "party_default": "2",
+        "user_country": locals().get("user_country", None),  # 👈 agregado
     }
     return render(request, "reservas/home.html", ctx)
-
-
-def register(request):
-    if request.method == 'POST':
-        form = ClienteRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return redirect('reservas:home')
-    else:
-        form = ClienteRegistrationForm()
-    return render(request, 'reservas/register.html', {'form': form})
-
 
 @login_required
 def perfil(request):
@@ -281,7 +305,7 @@ def seleccionar_sucursal(request):
     """
     Lista sucursales con filtro y orden de recomendadas o por distancia.
     GET: q, date (YYYY-MM-DD), time (HH:MM), party (int), page,
-         lat, lng, radius_km | km (radio en km)
+         lat, lng, radius_km | km
     """
     q = request.GET.get("q", "").strip()
     date_str = request.GET.get("date")
@@ -290,7 +314,6 @@ def seleccionar_sucursal(request):
     lat = request.GET.get("lat")
     lng = request.GET.get("lng")
 
-    # radius_km o km (alias)
     radius_str = request.GET.get("radius_km", request.GET.get("km", "50"))
     try:
         radius_km = float(radius_str)
@@ -308,7 +331,17 @@ def seleccionar_sucursal(request):
     except Exception:
         base_dt = now
 
-    qs = Sucursal.objects.filter(activo=True)
+    # ---- Base y scoping por país ----
+    if request.user.is_authenticated and request.user.is_staff:
+        # Staff / Admin → usa su alcance normal
+        base_qs = Sucursal.objects.filter(activo=True)
+        qs = scope_sucursales_for(request, base_qs)
+    else:
+        # Cliente → solo sucursales del país efectivo (donde está o eligió)
+        user_country = get_effective_country(request)
+        qs = Sucursal.objects.filter(activo=True, pais=user_country)
+
+    # ---- Filtro texto ----
     if q:
         qs = qs.filter(
             Q(nombre__icontains=q) |
@@ -316,6 +349,14 @@ def seleccionar_sucursal(request):
             Q(codigo_postal__icontains=q) |
             Q(cocina__icontains=q)
         )
+
+    # ---- Si es Branch Admin (sin países asignados) ----
+    if (
+        request.user.is_authenticated and request.user.is_staff
+        and not request.user.is_superuser
+        and not user_allowed_countries(request.user).exists()
+    ):
+        qs = qs.filter(administradores=request.user)
 
     user_lat = user_lng = None
     results_raw = []
@@ -328,30 +369,24 @@ def seleccionar_sucursal(request):
             user_lat = user_lng = None
 
     if user_lat is not None and user_lng is not None:
-        # Calcular distancias y (opcional) filtrar por radio
         for s in qs:
             s_lat, s_lng = _coords_from_sucursal(s)
             d = None
             if s_lat is not None and s_lng is not None:
                 d = _haversine_km(user_lat, user_lng, s_lat, s_lng)
                 if d > radius_km:
-                    continue  # fuera del radio solicitado
-
+                    continue
             results_raw.append({
                 "obj": s,
-                "map_lat": s_lat,         # para link de Mapa en el template
+                "map_lat": s_lat,
                 "map_lng": s_lng,
                 "distance_km": (None if d is None else round(d, 1)),
                 "proximos_slots": _proximos_slots(base_dt, 3),
             })
-
-        # Orden: primero con distancia (menor a mayor), luego sin distancia
         results_raw.sort(key=lambda item: (item["distance_km"] is None, item["distance_km"] or 0.0))
-
     else:
-        # --- MODO NORMAL (tu orden original) ---
-        qs = qs.order_by("-recomendado", "nombre")
-        for s in qs:
+        # --- MODO NORMAL ---
+        for s in qs.order_by("-recomendado", "nombre"):
             s_lat, s_lng = _coords_from_sucursal(s)
             results_raw.append({
                 "obj": s,
@@ -361,7 +396,6 @@ def seleccionar_sucursal(request):
                 "proximos_slots": _proximos_slots(base_dt, 3),
             })
 
-    # Paginación sobre la lista ya ordenada
     paginator = Paginator(results_raw, 12)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -372,14 +406,14 @@ def seleccionar_sucursal(request):
         "time": time_str or "19:00",
         "party": party or "2",
         "page_obj": page_obj,
-        "results": list(page_obj.object_list),  # cada item: {"obj","map_lat","map_lng","distance_km","proximos_slots"}
+        "results": list(page_obj.object_list),
         "party_range": range(1, 13),
         "user_lat": user_lat,
         "user_lng": user_lng,
         "radius_km": int(radius_km),
+        "user_country": locals().get("user_country", None),  # 👈 agregado
     }
     return render(request, "reservas/seleccionar_sucursal.html", ctx)
-
 
 # ===================================================================
 # HACER UNA RESERVA
@@ -524,19 +558,36 @@ def reservar(request, mesa_id):
 @login_required
 def reserva_exito(request, reserva_id):
     from django.conf import settings
-    reserva = get_object_or_404(
+    from django.utils import timezone, formats
+    from .utils import booking_total_minutes
+
+    r = get_object_or_404(
         Reserva.objects.select_related("mesa", "mesa__sucursal", "cliente"),
         id=reserva_id,
         cliente__user=request.user,
     )
-    return render(
-        request,
-        "reservas/reserva_exito.html",
-        {
-            "reserva": reserva,
-            "tolerancia_min": int(getattr(settings, "CHECKIN_TOLERANCIA_MIN", 5)),
-        },
-    )
+
+    tz = timezone.get_current_timezone()
+    dt_loc = timezone.localtime(r.fecha, tz)
+
+    ctx = {
+        "reserva": r,
+        "tolerancia_min": int(getattr(settings, "CHECKIN_TOLERANCIA_MIN", 5)),
+
+        # ▼ Campos derivados que el template necesita
+        "fecha_txt": formats.date_format(dt_loc.date(), "DATE_FORMAT"),
+        "hora_txt": dt_loc.strftime("%H:%M"),
+        "duracion_min": booking_total_minutes(dt_loc, r.num_personas or 2),
+        "personas": r.num_personas or 1,
+        "mesa_num": getattr(r.mesa, "numero", r.mesa_id),
+
+        # Contacto
+        "contacto_nombre": getattr(r.cliente, "nombre", "") or "",
+        "contacto_email": getattr(r.cliente, "email", "") or "",
+        "contacto_tel": getattr(r.cliente, "telefono", "") or getattr(r, "telefono", ""),
+        "notas": getattr(r, "notas", ""),
+    }
+    return render(request, "reservas/reserva_exito.html", ctx)
 
 
 
@@ -1619,16 +1670,24 @@ def admin_api_mesa_update(request, mesa_id):
         return JsonResponse({"ok": True})
 
 
-
-from django.views.decorators.http import require_POST
-
 @staff_member_required
 def admin_mesa_crear(request, sucursal_id):
     sucursal = get_object_or_404(Sucursal, pk=sucursal_id)
+    assert_user_can_manage_sucursal(request.user, sucursal)  # 🔒
+
     if request.method == "POST":
-        numero = int(request.POST.get("numero"))
+        try:
+            numero = int(request.POST.get("numero") or 0)
+        except (TypeError, ValueError):
+            numero = 0
+
         capacidad = int(request.POST.get("capacidad") or 4)
         zona = request.POST.get("zona") or "interior"
+
+        # Si el número no viene o ya existe, toma el siguiente consecutivo
+        if numero <= 0 or Mesa.objects.filter(sucursal=sucursal, numero=numero).exists():
+            ultimo = Mesa.objects.filter(sucursal=sucursal).order_by("-numero").first()
+            numero = (ultimo.numero + 1) if ultimo else 1
 
         Mesa.objects.create(
             sucursal=sucursal,
@@ -1639,7 +1698,11 @@ def admin_mesa_crear(request, sucursal_id):
             notas=request.POST.get("notas") or "",
         )
 
-        return redirect("reservas:admin_mapa_sucursal", sucursal.id)
+        messages.success(request, f"Mesa {numero} creada correctamente.")
+        return redirect("reservas:admin_mapa_sucursal", sucursal_id=sucursal.id)
+
+    return render(request, "reservas/admin_mesa_form.html", {"sucursal": sucursal})
+
 
 # reservas/views.py
 
@@ -1722,22 +1785,29 @@ def sucursales_visibles_qs(user):
 
 
 
+
 @login_required
 def admin_sucursales(request):
     u = request.user
 
-    # 1) Superuser o Dueño de Cadena => ve todas
+    # 1) Superuser o Dueño de Cadena => ve todas (¡tal cual lo tenías!)
     if u.is_superuser or (u.is_staff and u.has_perm("reservas.manage_branches")):
         sucursales = Sucursal.objects.all().order_by("id")
         return render(request, "reservas/admin_sucursales.html", {"sucursales": sucursales})
 
-    # 2) Admin de sucursal => solo su sucursal asignada
+    # 2) Admin de sucursal => solo su sucursal asignada (¡tal cual lo tenías!)
     perfil = PerfilAdmin.objects.filter(user=u).select_related("sucursal_asignada").first()
     if perfil and perfil.sucursal_asignada_id:
-        sucursales = Sucursal.objects.filter(pk=perfil.sucursal_asignada_id)
+        sucursales = Sucursal.objects.filter(pk=perfil.sucursal_asignada_id).order_by("id")
         return render(request, "reservas/admin_sucursales.html", {"sucursales": sucursales})
 
-    # 3) Si no tiene sucursal asignada
+    # 3) NUEVO: admins por país (CountryAdminScope / perfil.paises) y/o M2M 'administradores'
+    #    Usa el queryset con reglas completas que ya implementamos en SucursalQuerySet.for_user().
+    sucursales = Sucursal.objects.for_user(u).order_by("id")
+    if sucursales.exists():
+        return render(request, "reservas/admin_sucursales.html", {"sucursales": sucursales})
+
+    # 4) Sin nada visible
     messages.info(request, "No tienes sucursal asignada.")
     return render(request, "reservas/admin_sucursales.html", {"sucursales": []})
 
@@ -2494,21 +2564,81 @@ def admin_bloqueos(request, sucursal_id):
 # reservas/views.py
 
 def sucursales_grid(request):
-    q = request.GET.get("q", "")
+    q = request.GET.get("q", "").strip()
     hoy = timezone.localdate()
-    sucursales = (Sucursal.objects.annotate(reservas_hoy=Count("reservas", filter=Q(reservas__fecha=hoy))))
+
+    base = Sucursal.objects.filter(activo=True).annotate(
+        reservas_hoy=Count("reservas", filter=Q(reservas__fecha=hoy))
+    )
+
+    # Limitar por país si es Country Admin
+    qs = scope_sucursales_for(request, base).order_by("nombre")
+
+    # Si es Branch Admin (staff sin países asignados), limitar a sus sucursales
+    if (request.user.is_authenticated and request.user.is_staff
+        and not request.user.is_superuser
+        and not user_allowed_countries(request.user).exists()):
+        qs = qs.filter(administradores=request.user)
+
     if q:
-        sucursales = sucursales.filter(
-            Q(nombre__icontains=q) | Q(ciudad__icontains=q)
+        qs = qs.filter(
+            Q(nombre__icontains=q) |
+            Q(direccion__icontains=q) |
+            Q(codigo_postal__icontains=q) |
+            Q(cocina__icontains=q)
         )
+
     return render(request, "reservas/sucursales_grid.html", {
-        "sucursales": sucursales,
-        "q": q
+        "sucursales": qs,
+        "q": q,
     })
 
 
 
+
 def store_locator(request):
-    return render(request, "public/store_locator.html")
+    qs = scope_sucursales_for(request, Sucursal.objects.filter(activo=True))
+    return render(request, "reservas/store_locator.html", {"sucursales": qs})
 
 
+
+
+
+
+
+def sucursales_grid(request):
+    user_country = get_effective_country(request)
+    q = request.GET.get("q", "")
+    hoy = timezone.localdate()
+
+    sucursales = (
+        Sucursal.objects
+        .filter(pais=user_country)
+        .annotate(reservas_hoy=Count("reservas", filter=Q(reservas__fecha=hoy)))
+        .order_by("nombre")
+    )
+    if q:
+        sucursales = sucursales.filter(Q(nombre__icontains=q) | Q(ciudad__icontains=q))
+
+    return render(request, "reservas/sucursales_grid.html", {
+        "sucursales": sucursales,
+        "q": q,
+        "user_country": user_country,
+    })
+
+
+
+# ===============================
+#   REGISTER
+# ===============================
+
+def register(request):
+    if request.method == 'POST':
+        form = ClienteRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('reservas:home')
+    else:
+        form = ClienteRegistrationForm()
+    return render(request, 'reservas/register.html', {'form': form})

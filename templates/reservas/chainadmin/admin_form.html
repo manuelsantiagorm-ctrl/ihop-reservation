@@ -1,17 +1,37 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% if mode == "create" %}{% trans "Nuevo administrador" %}{% else %}{% trans "Editar administrador" %}{% endif %}{% endblock %}
+{% block title %}
+  {% if mode == "create" %}
+    {% trans "Nuevo administrador de sucursal" %}
+  {% else %}
+    {% trans "Editar administrador de sucursal" %}
+  {% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="container py-3" style="max-width:820px;">
-  <h1 class="h4 mb-3">{% if mode == "create" %}{% trans "Nuevo administrador" %}{% else %}{% trans "Editar administrador" %}{% endif %}</h1>
+  <h1 class="h4 mb-3">
+    {% if mode == "create" %}
+      {% trans "Nuevo administrador de sucursal" %}
+    {% else %}
+      {% trans "Editar administrador de sucursal" %}
+    {% endif %}
+  </h1>
+
   <div class="card p-3">
     <form method="post">
       {% csrf_token %}
+      {{ form.non_field_errors }}
       {{ form.as_p }}
-      <div class="d-flex gap-2">
-        <a href="{% url 'reservas:chainadmin_admins' %}" class="btn btn-outline-secondary">{% trans "Cancelar" %}</a>
-        <button type="submit" class="btn btn-primary">{% trans "Guardar" %}</button>
+
+      <div class="d-flex gap-2 mt-3">
+        <a href="{% url 'reservas:chainadmin_admins' %}" class="btn btn-outline-secondary">
+          {% trans "Cancelar" %}
+        </a>
+        <button type="submit" class="btn btn-primary">
+          {% trans "Guardar" %}
+        </button>
       </div>
     </form>
   </div>

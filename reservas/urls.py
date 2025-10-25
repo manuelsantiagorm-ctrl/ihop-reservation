@@ -1,29 +1,65 @@
 # reservas/urls.py
 from django.urls import path
 from django.contrib.admin.views.decorators import staff_member_required
-from . import views
-from .views_storelocator import store_locator, api_sucursales, api_sucursales_nearby
 
+from . import views
+
+# Store locator / APIs públicas
 from .views_storelocator import (
-    api_sucursales, api_sucursales_nearby, seleccionar_sucursal, store_locator)
+    store_locator,
+    api_sucursales,
+    api_sucursales_nearby,
+    seleccionar_sucursal,
+)
+
 # ChainAdmin: Admins de sucursal
 from .views_chainadmin_admins import (
-    ChainAdminAdminsListView, ChainAdminAdminsCreateView, ChainAdminAdminsUpdateView,
-    ChainAdminAdminsPasswordView, ChainAdminAdminsToggleActiveView,
+    ChainAdminAdminsListView,
+    ChainAdminAdminsCreateView,
+    ChainAdminAdminsUpdateView,
+    ChainAdminAdminsPasswordView,
+    ChainAdminAdminsToggleActiveView,
+    ChainAdminAdminsAllView,
+    ChainAdminAdminDetailView,
+    CountryAdminsAllView,
+    CountryAdminDetailView,
 )
-from .views_api import SucursalesJsonView, ReservaCreateFromLocalView
 
 # ChainAdmin: Sucursales (CRUD)
 from .views_chainadmin import (
-    ChainAdminSucursalListView, ChainAdminSucursalCreateView,
-    ChainAdminSucursalUpdateView, ChainAdminSucursalDeleteView,
+    ChainAdminSucursalListView,
+    ChainAdminSucursalCreateView,
+    ChainAdminSucursalUpdateView,
+    ChainAdminSucursalDeleteView,
 )
+
+# Chain Global (roles por país)
 from .views_chain_global import (
     ChainGlobalDashboardView,
-    ChainGlobalRoleCreateView,          # si ya la tienes
-    ChainGlobalRoleToggleActiveView,    # si ya la tienes
-    CreateCountryAdminUserView,         # NUEVO
+    ChainGlobalRoleCreateView,
+    ChainGlobalRoleToggleActiveView,
+    CreateCountryAdminUserView,
 )
+
+# Analytics
+from .views_analytics import (
+    AnalyticsPageView,
+    AnalyticsDataView,
+    BranchesForCountryView,
+    AnalyticsCompareView,)
+
+# APIs varias
+from .views_api import SucursalesJsonView, ReservaCreateFromLocalView
+
+# Country selector (cookie/sesión)
+from .views_country import set_country
+
+# Staff: listado sucursales filtrado (CBV tipo tabla)
+from .views_staff import StaffSucursalesListView
+
+# Mapa staff protegido + APIs AJAX del mapa
+from .views_admin_mapa import AdminMapaSucursalView
+from .views_mapa_api import api_list_mesas, api_guardar_posiciones
 
 app_name = "reservas"
 
@@ -47,30 +83,38 @@ urlpatterns = [
     path("reserva/exito/<int:reserva_id>/", views.reserva_exito, name="reserva_exito"),
     path("reserva/<int:reserva_id>/confirmar/", views.confirmar_reserva, name="confirmar_reserva"),
 
-    # ===== Store locator (NUEVO mapa público) =====
-    path("sucursales/", views.store_locator, name="store_locator"),
-    # (opcional) deja tu grid en otra ruta
+    # ===== Store locator (mapa público) =====
+    path("sucursales/", store_locator, name="store_locator"),
+    # grid opcional
     path("sucursales/grid/", views.sucursales_grid, name="sucursales_grid"),
 
     # ===== Staff (prefijo /staff/) =====
-    # Sucursales
+    # Vista CLÁSICA (tarjetas) — la que quieres al entrar en /staff/sucursales/
     path("staff/sucursales/", views.admin_sucursales, name="admin_sucursales"),
+
+    # Vista NUEVA (tabla/CBV) — la conservamos en otra URL para no chocar
+    path("staff/sucursales/lista/", StaffSucursalesListView.as_view(), name="staff_sucursales"),
+
     path("staff/sucursales/nueva/", views.admin_sucursal_form, name="admin_sucursal_nueva"),
     path("staff/sucursales/<int:pk>/editar/", views.admin_sucursal_form, name="admin_sucursal_editar"),
     path("staff/sucursales/<int:sucursal_id>/contenido/", views.admin_sucursal_contenido, name="admin_sucursal_contenido"),
     path("staff/sucursal/<int:sucursal_id>/bloqueos/", views.admin_bloqueos, name="admin_bloqueos"),
 
-    # Mapa y mesas
-    path("staff/sucursal/<int:sucursal_id>/mapa/", views.admin_mapa_sucursal, name="admin_mapa_sucursal"),
+    # Mapa y mesas (vista protegida)
+    path("staff/sucursal/<int:sucursal_id>/mapa/", AdminMapaSucursalView.as_view(), name="admin_mapa_sucursal"),
     path("staff/mesa/<int:mesa_id>/", views.admin_mesa_detalle, name="admin_mesa_detalle"),
     path("staff/mesa/<int:mesa_id>/editar/", views.admin_mesa_editar, name="admin_editar_mesa"),
     path("staff/sucursal/<int:sucursal_id>/mesa/crear/", views.admin_mesa_crear, name="admin_mesa_crear"),
 
-    # API de mesas
+    # API de mesas (legacy específicas por mesa — se mantienen)
     path("staff/api/mesa/<int:mesa_id>/update/", views.admin_api_mesa_update, name="admin_api_mesa_update"),
     path("staff/api/mesa/<int:mesa_id>/pos/", views.admin_api_mesa_pos, name="admin_api_mesa_pos"),
     path("staff/api/mesa/create/", views.admin_api_mesa_create, name="admin_api_mesa_create"),
     path("staff/mesas/<int:mesa_id>/setpos/", views.admin_api_mesa_setpos, name="admin_api_mesa_setpos"),
+
+    # APIs AJAX del mapa (protegidas por país/sucursal)
+    path("staff/api/sucursales/<int:sucursal_id>/mesas/", api_list_mesas, name="api_list_mesas"),
+    path("staff/api/sucursales/<int:sucursal_id>/posiciones/guardar/", api_guardar_posiciones, name="api_guardar_posiciones"),
 
     # API de recepción (drag node)
     path("staff/sucursal/<int:sucursal_id>/api/recepcion/pos/", views.admin_api_recepcion_pos, name="admin_api_recepcion_pos"),
@@ -125,32 +169,43 @@ urlpatterns = [
     path("chainadmin/sucursales/<int:pk>/eliminar/", ChainAdminSucursalDeleteView.as_view(), name="chainadmin_sucursal_eliminar"),
 
     # ===== APIs del store locator =====
-    path("api/sucursales.json", api_sucursales, name="api_sucursales"),
+    path("api/sucursales.json", SucursalesJsonView.as_view(), name="api_sucursales"),
     path("api/sucursales/nearby/", api_sucursales_nearby, name="api_sucursales_nearby"),
-    
-    
-    
-    # Store locator (mapa público)
-    path("sucursales/", store_locator, name="store_locator"),
-    path("sucursales/grid/", views.sucursales_grid, name="sucursales_grid"),
+
+    # Búsqueda staff por folio
     path("staff/buscar-folio/", views.admin_buscar_folio, name="admin_buscar_folio"),
 
-
-# APIs del store locator
-    path("seleccionar_sucursal/", seleccionar_sucursal, name="seleccionar_sucursal"),
-    path("api/sucursales/nearby", api_sucursales_nearby, name="api_sucursales_nearby"),
-    path("sucursales/", store_locator, name="store_locator"),  # opcional
-    
-    
-   
+    # ===== Chain Global / Roles por país =====
     path("admin/global/", ChainGlobalDashboardView.as_view(), name="chain_global_dashboard"),
     path("admin/global/roles/create/", ChainGlobalRoleCreateView.as_view(), name="chain_global_role_create"),
     path("admin/global/roles/<int:pk>/toggle/", ChainGlobalRoleToggleActiveView.as_view(), name="chain_global_role_toggle"),
-    path("admin/global/roles/create-user/", CreateCountryAdminUserView.as_view(), name="chain_global_create_country_admin_user"),  # NUEVO
-    
-    path("api/sucursales.json", SucursalesJsonView.as_view(), name="api_sucursales"),
+    path("admin/global/roles/create-user/", CreateCountryAdminUserView.as_view(), name="chain_global_create_country_admin_user"),
+
+    # ===== APIs varias =====
     path("api/reservas/create_from_local/", ReservaCreateFromLocalView.as_view(), name="api_reservas_create_from_local"),
+
+    # Selector de país (UI)
+    path("set-country/", set_country, name="set_country"),
+
+    # Vistas auxiliares de referents/country-admins
+    path("chainadmin/admins/all/", ChainAdminAdminsAllView.as_view(), name="chainadmin_admins_all"),
+    path("chainadmin/admins/<int:user_id>/", ChainAdminAdminDetailView.as_view(), name="chainadmin_admin_detail"),
+    path("chainadmin/referentes/", CountryAdminsAllView.as_view(), name="chainadmin_country_admins_all"),
+    path("chainadmin/referentes/<int:user_id>/", CountryAdminDetailView.as_view(), name="chainadmin_country_admin_detail"),
+
+    # Analytics
+    path("chainadmin/analytics/", AnalyticsPageView.as_view(), name="chainadmin_analytics"),
+    path("chainadmin/analytics/data/", AnalyticsDataView.as_view(), name="chainadmin_analytics_data"),
+    path("chainadmin/analytics/sucursales/", BranchesForCountryView.as_view(), name="analytics-branches"),
+    path("chainadmin/analytics/sucursales/", BranchesForCountryView.as_view(), name="analytics-branches"),
+    path("chainadmin/analytics/compare/", AnalyticsCompareView.as_view(), name="analytics-compare"),
+
+    # ▼ Dashboard Staff (usa tus vistas existentes en views.py)
+    path("admin/dashboard/", views.admin_dashboard, name="admin_dashboard"),
+    path("admin/acciones/cancelar/", views.admin_cancelar_por_folio, name="admin_cancelar_por_folio"),
+    path("admin/acciones/checkin/",  views.admin_checkin_por_folio,  name="admin_checkin_por_folio"),
+    path("admin/acciones/reactivar/", views.admin_reactivar_por_folio, name="admin_reactivar_por_folio"),
     
+    path("staff/walkin/", views.admin_walkin_reserva, name="admin_walkin_reserva"),
+
 ]
-
-

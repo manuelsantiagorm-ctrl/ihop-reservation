@@ -1,46 +1,116 @@
 {% extends "base.html" %}
 {% load i18n %}
 
-{% block title %}{% trans "Administradores de Sucursal" %}{% endblock %}
+{% block title %}{% trans "Administradores de sucursal" %}{% endblock %}
+
 {% block content %}
-<div class="container py-3" style="max-width:1100px;">
+<div class="container py-4" style="max-width:1100px;">
+
+  <!-- Encabezado -->
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <h1 class="h4 mb-0">{% trans "Administradores de Sucursal" %}</h1>
+    <h1 class="h4 mb-0">
+      <i class="bi bi-people me-1"></i> {% trans "Administradores de sucursal" %}
+    </h1>
     <a href="{% url 'reservas:chainadmin_admin_nuevo' %}" class="btn btn-primary">
-      {% trans "Nuevo admin" %}
+      <i class="bi bi-plus-lg"></i> {% trans "Nuevo administrador" %}
     </a>
   </div>
-  <div class="card p-3">
-    <div class="table-responsive">
-      <table class="table align-middle">
-        <thead>
-          <tr>
-            <th>{% trans "Usuario" %}</th>
-            <th>{% trans "Email" %}</th>
-            <th>{% trans "Sucursal asignada" %}</th>
-            <th>{% trans "Activo" %}</th>
-            <th class="text-end">{% trans "Acciones" %}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for u in admins %}
-          <tr>
-            <td>{{ u.username }}</td>
-            <td>{{ u.email }}</td>
-            <td>{{ perfiles.u.pk.sucursal_asignada|default:"—" }}</td>
-            <td>{% if u.is_active %}✅{% else %}❌{% endif %}</td>
-            <td class="text-end">
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'reservas:chainadmin_admin_editar' u.pk %}">{% trans "Editar" %}</a>
-              <a class="btn btn-sm btn-outline-secondary" href="{% url 'reservas:chainadmin_admin_password' u.pk %}">{% trans "Contraseña" %}</a>
-              <a class="btn btn-sm btn-outline-danger" href="{% url 'reservas:chainadmin_admin_toggle' u.pk %}">{% if u.is_active %}{% trans "Desactivar" %}{% else %}{% trans "Activar" %}{% endif %}</a>
-            </td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="5" class="text-center text-muted py-4">{% trans "Sin administradores." %}</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+
+  <!-- Pestañas -->
+  <ul class="nav nav-pills mb-3">
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'reservas:chainadmin_sucursales' %}">
+        {% trans "Sucursales" %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link active" aria-current="page" href="{% url 'reservas:chainadmin_admins' %}">
+        {% trans "Admins sucursal" %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'reservas:chainadmin_country_admins_all' %}">
+        {% trans "Referentes (por país)" %}
+      </a>
+
+    </li>
+  </ul>
+
+  <!-- Tabla -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>{% trans "Usuario" %}</th>
+              <th>{% trans "Correo" %}</th>
+              <th>{% trans "Sucursal asignada" %}</th>
+              <th>{% trans "Activo" %}</th>
+              <th class="text-end">{% trans "Acciones" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in admins %}
+              <tr>
+                <td class="fw-semibold">{{ u.username }}</td>
+                <td>{{ u.email }}</td>
+                <td>
+                  {% if u.perfiladmin and u.perfiladmin.sucursal_asignada %}
+                    {{ u.perfiladmin.sucursal_asignada.nombre }}
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if u.is_active %}
+                    <span class="badge bg-success">{% trans "Activo" %}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{% trans "Inactivo" %}</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm" role="group">
+                    <!-- Ver detalle -->
+                    <a href="{% url 'reservas:chainadmin_admin_detail' u.pk %}"
+                       class="btn btn-outline-secondary" title="{% trans 'Ver detalle' %}">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                    <!-- Editar -->
+                    <a href="{% url 'reservas:chainadmin_admin_editar' u.pk %}"
+                       class="btn btn-outline-primary" title="{% trans 'Editar datos' %}">
+                      <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <!-- Cambiar contraseña -->
+                    <a href="{% url 'reservas:chainadmin_admin_password' u.pk %}"
+                       class="btn btn-outline-secondary" title="{% trans 'Cambiar contraseña' %}">
+                      <i class="bi bi-key"></i>
+                    </a>
+                    <!-- Activar/Desactivar (si tu toggle es POST, conviértelo a form) -->
+                    <a href="{% url 'reservas:chainadmin_admin_toggle' u.pk %}"
+                       class="btn {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+                       title="{% if u.is_active %}{% trans 'Desactivar' %}{% else %}{% trans 'Activar' %}{% endif %}">
+                      {% if u.is_active %}
+                        <i class="bi bi-person-dash"></i>
+                      {% else %}
+                        <i class="bi bi-person-check"></i>
+                      {% endif %}
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                  <i class="bi bi-person-x"></i> {% trans "No hay administradores registrados." %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
+
 </div>
 {% endblock %}

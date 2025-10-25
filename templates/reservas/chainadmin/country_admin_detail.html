@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Detalle referente{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:900px;">
+  <h1 class="h4 mb-3">Referente: {{ admin_user.username }} ({{ admin_user.email }})</h1>
+  <h5>Países asignados</h5>
+  <ul>
+    {% for p in paises %}
+      <li>{{ p.nombre }}</li>
+    {% empty %}
+      <li class="text-muted">—</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

@@ -6,6 +6,7 @@ from django.shortcuts import render
 from django.apps import apps
 from django.db.models import Q
 from django.core.paginator import Paginator
+from .utils_auth import scope_sucursales_for, user_allowed_countries
 
 # Evita import circular si mueves modelos
 Sucursal = apps.get_model("reservas", "Sucursal")
@@ -22,9 +23,8 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     c = 2 * asin(sqrt(a))
     return R * c
 
-
 def _branch_to_dict(s):
-    """Serializa una sucursal para respuestas JSON."""
+    """Serializa una sucursal para respuestas JSON (mapas, APIs, paneles)."""
     return {
         "id": s.id,
         "nombre": s.nombre,
@@ -32,12 +32,16 @@ def _branch_to_dict(s):
         "lat": float(s.lat) if s.lat is not None else None,
         "lng": float(s.lng) if s.lng is not None else None,
         "direccion": getattr(s, "direccion", ""),
-        "cp": getattr(s, "codigo_postal", ""),
+        "codigo_postal": getattr(s, "codigo_postal", ""),
+        "pais": s.pais.nombre if getattr(s, "pais", None) else None,
+        "pais_iso": s.pais.iso2 if getattr(s, "pais", None) else None,
+        "timezone": getattr(s, "timezone", None),
         "portada": s.portada.url if getattr(s, "portada", None) else None,
-        "precio": getattr(s, "precio_nivel", ""),
+        "precio_nivel": getattr(s, "precio_nivel", None),
         "rating": float(getattr(s, "rating", 0) or 0),
-        "reviews": getattr(s, "reviews", 0),
-        "recomendado": getattr(s, "recomendado", False),
+        "reviews": int(getattr(s, "reviews", 0) or 0),
+        "recomendado": bool(getattr(s, "recomendado", False)),
+        "activo": bool(getattr(s, "activo", True)),
     }
 
 
@@ -120,17 +124,49 @@ def _slots_for(sucursal, d: date_cls, t: time_cls, party: int):
 
 # =============================== APIs JSON ===============================
 
+
+#
 def api_sucursales(request):
     """
     Lista de sucursales (JSON) con lat/lng válidos.
+    Respeta el alcance: superuser ve todo; Country Admin solo sus países;
+    Branch Admin solo sus sucursales.
+    Se puede filtrar por ?pais=<id> y ?q=<texto>
     """
-    qs = Sucursal.objects.filter(activo=True, lat__isnull=False, lng__isnull=False)
-    return JsonResponse({"results": [_branch_to_dict(s) for s in qs]})
+    qs = Sucursal.objects.filter(
+        activo=True, lat__isnull=False, lng__isnull=False
+    ).select_related("pais")
+
+    # scope por país si aplica
+    qs = scope_sucursales_for(request, qs)
+
+    # Branch Admin (staff sin países asignados): limitar a sus sucursales
+    u = request.user
+    if u.is_authenticated and u.is_staff and not u.is_superuser and not user_allowed_countries(u).exists():
+        qs = qs.filter(administradores=u)
+
+    # filtros opcionales
+    pais_id = request.GET.get("pais")
+    if pais_id:
+        qs = qs.filter(pais_id=pais_id)
+
+    q = (request.GET.get("q") or "").strip()
+    if q:
+        qs = qs.filter(
+            Q(nombre__icontains=q) |
+            Q(direccion__icontains=q) |
+            Q(codigo_postal__icontains=q) |
+            Q(cocina__icontains=q)
+        )
+
+    data = [_branch_to_dict(s) for s in qs.order_by("nombre")]
+    return JsonResponse({"results": data})
 
 
 def api_sucursales_nearby(request):
     """
     Sucursales cercanas a lat/lng dentro de 'km' km (JSON).
+    Respeta el mismo alcance que api_sucursales.
     """
     try:
         lat = float(request.GET.get("lat"))
@@ -138,14 +174,29 @@ def api_sucursales_nearby(request):
     except (TypeError, ValueError):
         return JsonResponse({"error": "lat/lng requeridos"}, status=400)
 
-    km = float(request.GET.get("km", 25))
+    try:
+        km = float(request.GET.get("km", 25))
+    except ValueError:
+        km = 25.0
+
+    base = Sucursal.objects.filter(
+        activo=True, lat__isnull=False, lng__isnull=False
+    ).select_related("pais")
+
+    # scope por país + branch admin
+    qs = scope_sucursales_for(request, base)
+    u = request.user
+    if u.is_authenticated and u.is_staff and not u.is_superuser and not user_allowed_countries(u).exists():
+        qs = qs.filter(administradores=u)
+
     out = []
-    for s in Sucursal.objects.filter(activo=True, lat__isnull=False, lng__isnull=False):
+    for s in qs:
         d = _haversine_km(lat, lng, float(s.lat), float(s.lng))
         if d <= km:
             row = _branch_to_dict(s)
             row["dist_km"] = round(d, 2)
             out.append(row)
+
     out.sort(key=lambda x: x["dist_km"])
     return JsonResponse({"results": out})
 

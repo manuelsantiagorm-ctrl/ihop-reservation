@@ -2,15 +2,47 @@
 {% load i18n %}
 
 {% block title %}{% trans "Sucursales" %}{% endblock %}
+
 {% block content %}
 <div class="container py-3" style="max-width:1000px;">
+
+  <!-- Encabezado -->
   <div class="d-flex align-items-center justify-content-between mb-3">
     <h1 class="h4 mb-0">{% trans "Sucursales" %}</h1>
-    <a href="{% url 'reservas:chainadmin_sucursal_nueva' %}" class="btn btn-primary">
-      {% trans "Nueva sucursal" %}
-    </a>
+    <div class="d-flex gap-2">
+      <!-- 🔹 Botón nuevo: Ver todos los administradores por país -->
+      <a href="{% url 'reservas:chainadmin_admins_all' %}" class="btn btn-outline-secondary">
+        {% trans "Ver todos los administradores" %}
+      </a>
+
+      <!-- 🔹 Botón ya existente -->
+      <a href="{% url 'reservas:chainadmin_sucursal_nueva' %}" class="btn btn-primary">
+        {% trans "Nueva sucursal" %}
+      </a>
+    </div>
   </div>
 
+  <!-- 🔹 Pestañas: Sucursales | Admins sucursal | Referentes -->
+  <ul class="nav nav-pills mb-3">
+    <li class="nav-item">
+      <a class="nav-link active" aria-current="page" href="{% url 'reservas:chainadmin_sucursales' %}">
+        {% trans "Sucursales" %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'reservas:chainadmin_admins' %}">
+        {% trans "Admins sucursal" %}
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="{% url 'reservas:chainadmin_country_admins_all' %}">
+        {% trans "Referentes (por país)" %}
+      </a>
+
+    </li>
+  </ul>
+
+  <!-- Tabla de sucursales -->
   <div class="card p-3">
     <div class="table-responsive">
       <table class="table align-middle">
@@ -29,16 +61,25 @@
             <td>{{ s.slug }}</td>
             <td>{% if s.activo %}✅{% else %}❌{% endif %}</td>
             <td class="text-end">
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'reservas:chainadmin_sucursal_editar' s.pk %}">{% trans "Editar" %}</a>
-              <a class="btn btn-sm btn-outline-danger" href="{% url 'reservas:chainadmin_sucursal_eliminar' s.pk %}">{% trans "Eliminar" %}</a>
+              <a class="btn btn-sm btn-outline-primary" href="{% url 'reservas:chainadmin_sucursal_editar' s.pk %}">
+                {% trans "Editar" %}
+              </a>
+              <a class="btn btn-sm btn-outline-danger" href="{% url 'reservas:chainadmin_sucursal_eliminar' s.pk %}">
+                {% trans "Eliminar" %}
+              </a>
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="4" class="text-center text-muted py-4">{% trans "No hay sucursales." %}</td></tr>
+          <tr>
+            <td colspan="4" class="text-center text-muted py-4">
+              {% trans "No hay sucursales." %}
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
+
 </div>
 {% endblock %}

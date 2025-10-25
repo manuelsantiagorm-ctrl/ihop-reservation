@@ -6,23 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{% trans "Reservas" %}{% endblock %}</title>
 
-  {# ===== Bootstrap & Icons (CDN) ===== #}
+  <!-- Bootstrap & Icons (CDN) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 
-  {# ===== CSS global del sistema ===== #}
+  <!-- CSS de la app (solo archivos estáticos) -->
   <link rel="stylesheet" href="{% static 'reservas/css/core.css' %}">
+  <link rel="stylesheet" href="{% static 'reservas/css/header.css' %}">
+  <link rel="stylesheet" href="{% static 'reservas/css/footer.css' %}">
   <link rel="stylesheet" href="{% static 'reservas/css/auth.css' %}">
   <link rel="stylesheet" href="{% static 'reservas/css/carrusel_sucursales.css' %}">
-  <link rel="stylesheet" href="{% static 'reservas/css/footer.css' %}">
-  <link rel="stylesheet" href="{% static 'reservas/css/header.css' %}"> {# estilos del header/nav #}
 
-  {# ===== CSS específico por vista (Home, etc.) ===== #}
   {% block extra_css %}{% endblock %}
 </head>
-
 <body class="bg-light layout">
-  {# ===== Navbar ===== #}
+
+  <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm navbar-ihop">
     <div class="container">
       <a class="navbar-brand fw-bold me-3 text-primary" href="{% url 'reservas:home' %}">{% trans "Reservas" %}</a>
@@ -35,59 +34,68 @@
       <div class="collapse navbar-collapse" id="mainNav">
         <ul class="navbar-nav">
           <li class="nav-item">
-            <a class="nav-link {% block nav_home %}{% endblock %}" href="{% url 'reservas:home' %}">{% trans "Home" %}</a>
+            <a class="nav-link {% block nav_home %}{% endblock %}" href="{% url 'reservas:home' %}">{% trans "Inicio" %}</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link {% block nav_bookings %}{% endblock %}" href="{% url 'reservas:mis_reservas' %}">{% trans "My bookings" %}</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% block nav_book %}{% endblock %}" href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Book" %}</a>
-          </li>
-
-          {# ===== Menú Staff ===== #}
-          {% if user.is_staff %}
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="staffMenu" role="button" data-bs-toggle="dropdown">
-              {% trans "Staff" %}
+            <a class="nav-link {% block nav_bookings %}{% endblock %}" href="{% url 'reservas:mis_reservas' %}">
+              {% trans "Mis reservaciones" %}
             </a>
-            <ul class="dropdown-menu">
-              <li><a class="dropdown-item" href="{% url 'reservas:admin_sucursales' %}">{% trans "Locations" %}</a></li>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link {% block nav_book %}{% endblock %}" href="{% url 'reservas:seleccionar_sucursal' %}">
+              {% trans "Reservar" %}
+            </a>
+          </li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item" href="{% url 'reservas:admin_walkin_reserva' %}">{% trans "Walk-in" %}</a></li>
 
-              {% url 'reservas:admin_buscar_folio' as admin_buscar_folio_url %}
-              {% if admin_buscar_folio_url %}
-                <li><a class="dropdown-item" href="{{ admin_buscar_folio_url }}">{% trans "Search folio" %}</a></li>
-              {% endif %}
+          {% if user.is_authenticated and user.is_staff %}
+          <li class="nav-item">
+            <a class="nav-link {% block nav_staff_sucursales %}{% endblock %}" href="{% url 'reservas:staff_sucursales' %}">
+              {% trans "Sucursales" %}
+            </a>
+          </li>
+          {% endif %}
 
-              {% url 'reservas:admin_dashboard' as admin_dashboard_url %}
-              {% if admin_dashboard_url %}
-                <li><a class="dropdown-item" href="{{ admin_dashboard_url }}">Dashboard</a></li>
-              {% endif %}
+          {% if user.is_authenticated and user.is_staff %}
+          {% if user.is_superuser or perms.reservas.manage_branches %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="chainMenu" role="button" data-bs-toggle="dropdown">
+              {% trans "Admin sucursales" %}
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="chainMenu">
+              <li><a class="dropdown-item" href="{% url 'reservas:chainadmin_sucursales' %}">{% trans "Catálogo (CRUD)" %}</a></li>
+              <li><a class="dropdown-item" href="{% url 'reservas:chainadmin_admins' %}">{% trans "Administradores" %}</a></li>
+              <li><a class="dropdown-item" href="{% url 'reservas:chainadmin_analytics' %}">{% trans "Analytics" %}</a></li>
+              {# debajo de Analytics #}
+              <li>
+                <a class="dropdown-item {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}"
+                href="{% url 'reservas:admin_dashboard' %}">
+                {% trans "Dashboard (reservas)" %}
+              </a>
+            </li>
 
-              {% url 'reservas:admin_walkin_reserva' as admin_walkin_url %}
-              {% if admin_walkin_url %}
-                <li><a class="dropdown-item" href="{{ admin_walkin_url }}">{% trans "New Walk-in" %}</a></li>
-              {% endif %}
             </ul>
           </li>
           {% endif %}
-
-          {# ===== Dueño de cadena / ChainOwner ===== #}
-          {% if user.is_authenticated and user.is_staff %}
-            {% if user.is_superuser or perms.reservas.manage_branches %}
-              {% url 'reservas:chainadmin_sucursales' as url_chain_sucursales %}
-              {% url 'reservas:chainadmin_admins' as url_chain_admins %}
-              {% if url_chain_sucursales %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_chain_sucursales }}">Sucursales</a></li>
-              {% endif %}
-              {% if url_chain_admins %}
-                <li class="nav-item"><a class="nav-link" href="{{ url_chain_admins }}">Admins de sucursal</a></li>
-              {% endif %}
-            {% endif %}
           {% endif %}
         </ul>
 
-        {# ===== Lado derecho: idioma + sesión ===== #}
+        <!-- Lado derecho -->
         <div class="ms-auto d-flex align-items-center gap-2">
+
+          <!-- País -->
+          <form action="{% url 'reservas:set_country' %}" method="get" class="d-none d-lg-flex align-items-center">
+            <select name="iso2" class="form-select form-select-sm" onchange="this.form.submit()">
+              {% for p in all_countries %}
+                <option value="{{ p.iso2 }}" {% if request.session.country_iso2 == p.iso2 %}selected{% endif %}>
+                  {{ p.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+
+          <!-- Idioma -->
           <form action="{% url 'set_language' %}" method="post" class="d-none d-lg-inline">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -102,20 +110,30 @@
 
           {% if user.is_authenticated %}
             <span class="navbar-text small text-muted d-none d-md-inline">
-              {% blocktrans with name=user.get_short_name|default:user.email|default:user.username %}Hi, {{ name }}{% endblocktrans %}
+              {% blocktrans with name=user.get_short_name|default:user.email|default:user.username %}Hola, {{ name }}{% endblocktrans %}
             </span>
             <form method="post" action="{% url 'account_logout' %}" class="m-0">
               {% csrf_token %}
-              <button type="submit" class="btn btn-outline-secondary btn-sm">{% trans "Sign out" %}</button>
+              <button type="submit" class="btn btn-outline-secondary btn-sm">{% trans "Cerrar sesión" %}</button>
             </form>
           {% else %}
-            <a class="btn btn-outline-secondary btn-sm" href="{% url 'account_login' %}">{% trans "Sign in" %}</a>
-            <a class="btn btn-primary btn-sm" href="{% url 'account_signup' %}">{% trans "Sign up" %}</a>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'account_login' %}">{% trans "Iniciar sesión" %}</a>
+            <a class="btn btn-primary btn-sm" href="{% url 'account_signup' %}">{% trans "Regístrate" %}</a>
           {% endif %}
         </div>
 
-        {# Selector de idioma (mobile) #}
+        <!-- Idioma + país (mobile) -->
         <div class="d-lg-none w-100 my-2">
+          <form action="{% url 'reservas:set_country' %}" method="get" class="mb-2">
+            <select name="iso2" class="form-select form-select-sm" onchange="this.form.submit()">
+              {% for p in all_countries %}
+                <option value="{{ p.iso2 }}" {% if request.session.country_iso2 == p.iso2 %}selected{% endif %}>
+                  {{ p.nombre }}
+                </option>
+              {% endfor %}
+            </select>
+          </form>
+
           <form action="{% url 'set_language' %}" method="post">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ request.get_full_path }}">
@@ -132,11 +150,11 @@
     </div>
   </nav>
 
-  {# ===== Mensajes del sistema ===== #}
+  <!-- Mensajes -->
   {% if messages %}
-  <div class="container mt-3">
+  <div class="container mt-3 messages">
     {% for message in messages %}
-      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+      <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show django-message" role="alert">
         {{ message|safe }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{% trans 'Close' %}"></button>
       </div>
@@ -144,32 +162,27 @@
   </div>
   {% endif %}
 
-  {# ===== Contenido principal ===== #}
+  <!-- Contenido -->
   <main class="container py-4 flex-fill">
     {% block content %}{% endblock %}
   </main>
 
-  {# ===== Footer global ===== #}
+  <!-- Footer -->
   {% block footer %}
     {% include "reservas/partials/footer_brand.html" %}
   {% endblock %}
 
-  {# ===== JS: Bootstrap + global ===== #}
+  <!-- JS (todo externo) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="{% static 'reservas/js/main.js' %}"></script>
   <script src="{% static 'reservas/js/carrusel_sucursales.js' %}"></script>
 
-  {# ===== Google Maps (una sola vez) ===== #}
   {% if GOOGLE_MAPS_API_KEY %}
-    <script>
-      window.GOOGLE_MAPS_API_KEY = "{{ GOOGLE_MAPS_API_KEY }}";
-    </script>
     <script async defer
       src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&loading=async">
     </script>
   {% endif %}
 
-  {# ===== JS adicional por página ===== #}
   {% block extra_js %}{% endblock %}
 </body>
 </html>

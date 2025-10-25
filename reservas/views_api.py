@@ -5,7 +5,10 @@ from django.utils.dateparse import parse_datetime
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from zoneinfo import ZoneInfo
+from django.contrib.auth.decorators import login_required
 
+from .utils_country import get_effective_country
+from .utils_auth import user_allowed_countries
 from .models import Sucursal, Reserva, Cliente, Mesa
 from .mixins import ChainScopeMixin
 
@@ -117,3 +120,38 @@ class ReservaCreateFromLocalView(ChainScopeMixin, View):
                 "inicio_utc": r.inicio_utc.isoformat() if r.inicio_utc else None,
             }
         }, status=201)
+
+
+# reservas/views_api.py
+
+@login_required
+def api_sucursales_chainadmin(request):
+    paises = user_allowed_countries(request.user)
+    data = list(Sucursal.objects.filter(pais__in=paises).values("id", "nombre", "pais__nombre"))
+    return JsonResponse(data, safe=False)
+
+
+
+
+def _branch_to_dict(s):
+    return {
+        "id": s.id,
+        "nombre": s.nombre,
+        "slug": s.slug,
+        "lat": float(s.lat) if s.lat is not None else None,
+        "lng": float(s.lng) if s.lng is not None else None,
+        "direccion": getattr(s, "direccion", ""),
+        "cp": getattr(s, "codigo_postal", ""),
+        "portada": s.portada.url if getattr(s, "portada", None) else None,
+        "precio": getattr(s, "precio_nivel", ""),
+        "rating": float(getattr(s, "rating", 0) or 0),
+        "reviews": getattr(s, "reviews", 0),
+        "recomendado": getattr(s, "recomendado", False),
+    }
+
+def api_sucursales(request):
+    user_country = get_effective_country(request)
+    qs = Sucursal.objects.filter(
+        activo=True, pais=user_country, lat__isnull=False, lng__isnull=False
+    )
+    return JsonResponse({"results": [_branch_to_dict(s) for s in qs]})

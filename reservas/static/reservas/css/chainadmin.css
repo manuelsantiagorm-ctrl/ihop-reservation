@@ -1,0 +1,50 @@
+/* Tarjetas con look limpio */
+.card {
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(16,24,40,.04);
+}
+
+/* Encabezados de sección */
+.card-header {
+  background: #fff;
+}
+.card-header .h6 {
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+/* Inputs y selects del mismo alto */
+.form-control, .form-select {
+  height: 42px;
+}
+.form-control-plaintext {
+  height: auto;
+}
+
+/* Ayudas más tenues */
+.form-text {
+  color: #6b7280;
+  font-size: .85rem;
+}
+
+/* Layout pegajoso del mapa en desktop */
+@media (min-width: 992px) {
+  .sticky-col {
+    position: sticky;
+    top: 88px; /* ajusta si tu navbar es más alta */
+  }
+}
+
+/* Mapa con fondo y borde sutil */
+#map {
+  min-height: 360px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+/* Separadores suaves entre secciones del lado izquierdo */
+.section {
+  margin-bottom: 1.25rem;
+}

@@ -10,7 +10,7 @@
 {% block content %}
 <div class="container py-4 reservar">
 
-  <!-- Breadcrumb: staff → admin_mesas_disponibles | cliente → sucursal_detalle -->
+  <!-- Breadcrumb -->
   <nav class="breadcrumb-lite mb-3">
     <a href="{% url 'reservas:home' %}">{% trans "Inicio" %}</a> /
     <a href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Sucursales" %}</a> /
@@ -39,30 +39,33 @@
   <div class="card shadow-sm mb-4">
     <div class="card-body">
       <div class="row g-3">
+        <!-- Columna izquierda -->
         <div class="col-md-6">
           <div class="border rounded p-3 h-100">
             <h6 class="text-muted mb-2">{% trans "Detalles de la reserva" %}</h6>
             <ul class="list-unstyled mb-0">
               <li><strong>{% trans "Sucursal" %}:</strong> {{ reserva.mesa.sucursal.nombre }}</li>
-              <li><strong>{% trans "Fecha" %}:</strong> {{ reserva.inicio|date:"d/m/Y" }}</li>
-              <li><strong>{% trans "Hora" %}:</strong> {{ reserva.inicio|date:"H:i" }}</li>
-              <li><strong>{% trans "Duración" %}:</strong> {{ reserva.duracion_min }} {% trans "min" %}</li>
-              <li><strong>{% trans "Personas" %}:</strong> {{ reserva.personas }}</li>
+              <li><strong>{% trans "Fecha" %}:</strong> {{ fecha_txt }}</li>
+              <li><strong>{% trans "Hora" %}:</strong> {{ hora_txt }}</li>
+              <li><strong>{% trans "Duración" %}:</strong> {{ duracion_min }} {% trans "min" %}</li>
+              <li><strong>{% trans "Personas" %}:</strong> {{ personas }}</li>
               <li><strong>{% trans "Estado" %}:</strong> {{ reserva.get_estado_display|default:_("Confirmada") }}</li>
             </ul>
           </div>
         </div>
+
+        <!-- Columna derecha -->
         <div class="col-md-6">
           <div class="border rounded p-3 h-100">
             <h6 class="text-muted mb-2">{% trans "Contacto" %}</h6>
             <ul class="list-unstyled mb-0">
-              <li><strong>{% trans "Nombre" %}:</strong> {{ reserva.nombre }}</li>
-              <li><strong>{% trans "Email" %}:</strong> {{ reserva.email }}</li>
-              {% if reserva.telefono %}
-                <li><strong>{% trans "Teléfono" %}:</strong> {{ reserva.telefono }}</li>
+              <li><strong>{% trans "Nombre" %}:</strong> {{ contacto_nombre }}</li>
+              <li><strong>{% trans "Correo electrónico" %}:</strong> {{ contacto_email }}</li>
+              {% if contacto_tel %}
+                <li><strong>{% trans "Teléfono" %}:</strong> {{ contacto_tel }}</li>
               {% endif %}
-              {% if reserva.notas %}
-                <li class="mt-2"><strong>{% trans "Notas" %}:</strong><br>{{ reserva.notas|linebreaksbr }}</li>
+              {% if notas %}
+                <li class="mt-2"><strong>{% trans "Notas" %}:</strong><br>{{ notas|linebreaksbr }}</li>
               {% endif %}
             </ul>
           </div>

@@ -1,49 +1,248 @@
-/* Tamaños y respiración del header */
+/* =========================================================
+   IHOP — Header / Navbar
+   Archivo: reservas/css/header.css
+   (No elimina funcionalidad; solo estilos y refinamientos)
+   ========================================================= */
+
+/* ---------- Design tokens (fáciles de ajustar) ---------- */
+:root {
+  --ihop-primary: #1260f6;   /* azul marca */
+  --ihop-primary-600: #0f51cb;
+  --ihop-bg: #ffffff;
+  --ihop-text: #1d2433;
+  --ihop-muted: #6b7280;
+  --ihop-border: #e6e8ec;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 1px rgba(16, 24, 40, .04);
+  --shadow-md: 0 6px 18px rgba(16, 24, 40, .08);
+  --radius-sm: .5rem;    /* 8px */
+  --radius-md: .75rem;   /* 12px */
+  --radius-lg: 1rem;     /* 16px */
+}
+
+/* ---------- Navbar container ---------- */
 .navbar-ihop {
-  /* base en móvil */
-  padding-top: .9rem;
-  padding-bottom: .9rem;
-  font-size: 0.98rem;
+  background: var(--ihop-bg);
+  border-bottom: 1px solid var(--ihop-border) !important;
+  box-shadow: var(--shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 1030; /* sobre dropdowns/Modals backdrop */
 }
 
-/* marca más visible */
+/* ---------- Brand ---------- */
 .navbar-ihop .navbar-brand {
-  font-size: 1.25rem;            /* móvil */
+  font-weight: 800;
   letter-spacing: .2px;
+  color: var(--ihop-primary) !important;
 }
 
-/* enlaces más fáciles de tocar */
-.navbar-ihop .nav-link {
+.navbar-ihop .navbar-brand:hover {
+  color: var(--ihop-primary-600) !important;
+  text-decoration: none;
+}
+
+/* ---------- Left nav (links principales) ---------- */
+.navbar-ihop .navbar-nav .nav-link {
+  color: var(--ihop-text);
+  font-weight: 500;
   padding: .6rem .9rem;
+  border-radius: .6rem;
+  transition: background-color .15s ease, color .15s ease, transform .08s ease;
 }
 
-/* selector de idioma alineado con la altura */
+/* Hover suave */
+.navbar-ihop .navbar-nav .nav-link:hover {
+  background: #f3f6ff;
+  color: var(--ihop-primary);
+}
+
+/* Estado activo (si usas aria-current, bloques de template o .active) */
+.navbar-ihop .navbar-nav .nav-link.active,
+.navbar-ihop .navbar-nav .nav-link[aria-current="page"],
+.navbar-ihop .navbar-nav .nav-link.is-active {
+  color: var(--ihop-primary) !important;
+  background: #eaf0ff;
+  box-shadow: inset 0 0 0 1px rgba(18,96,246,.15);
+}
+
+/* Pequeño feedback al hacer click */
+.navbar-ihop .navbar-nav .nav-link:active {
+  transform: translateY(1px);
+}
+
+/* ---------- Dropdowns ---------- */
+.navbar-ihop .dropdown-toggle::after {
+  margin-left: .4rem;
+  vertical-align: .1rem;
+}
+
+.navbar-ihop .dropdown-menu {
+  border: 1px solid var(--ihop-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: .4rem;
+  min-width: 220px;
+}
+
+.navbar-ihop .dropdown-item {
+  border-radius: .5rem;
+  padding: .55rem .75rem;
+  color: var(--ihop-text);
+  font-weight: 500;
+}
+
+.navbar-ihop .dropdown-item:hover,
+.navbar-ihop .dropdown-item:focus {
+  background: #f3f6ff;
+  color: var(--ihop-primary);
+}
+
+/* Separadores del menú más tenues */
+.navbar-ihop .dropdown-divider {
+  margin: .35rem 0;
+  border-color: var(--ihop-border);
+}
+
+/* ---------- Lado derecho (selects idioma/país y sesión) ---------- */
+.navbar-ihop .form-select-sm,
 .navbar-ihop .lang-select {
-  height: calc(2.35rem + 2px);
+  height: 34px;
+  padding: .25rem 1.75rem .25rem .6rem;
+  border-radius: .6rem;
+  border-color: var(--ihop-border);
+  color: var(--ihop-text);
+  background-color: #fff;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.navbar-ihop .form-select-sm:focus,
+.navbar-ihop .lang-select:focus {
+  border-color: var(--ihop-primary);
+  box-shadow: 0 0 0 .2rem rgba(18, 96, 246, .15);
+  outline: none;
+}
+
+/* Botones sesión */
+.navbar-ihop .btn.btn-outline-secondary.btn-sm {
+  border-color: var(--ihop-border);
+  color: var(--ihop-text);
+}
+
+.navbar-ihop .btn.btn-outline-secondary.btn-sm:hover {
+  border-color: var(--ihop-primary);
+  color: var(--ihop-primary);
+}
+
+.navbar-ihop .btn.btn-primary.btn-sm {
+  background: var(--ihop-primary);
+  border-color: var(--ihop-primary);
+}
+
+.navbar-ihop .btn.btn-primary.btn-sm:hover {
+  background: var(--ihop-primary-600);
+  border-color: var(--ihop-primary-600);
+}
+
+/* ---------- Gaps / alineación ---------- */
+.navbar-ihop .navbar-collapse {
+  align-items: center;
+}
+
+.navbar-ihop .navbar-nav {
+  gap: .15rem; /* compacta un poco los espacios entre tabs */
+}
+
+.navbar-ihop .ms-auto {
+  gap: .5rem;
+}
+
+/* Texto “Hola, …” más tenue y alineado */
+.navbar-ihop .navbar-text.small {
+  color: var(--ihop-muted);
+  margin-right: .25rem;
+}
+
+/* ---------- Toggler (mobile) ---------- */
+.navbar-ihop .navbar-toggler {
+  border: 1px solid var(--ihop-border);
+  border-radius: .6rem;
+  padding: .35rem .5rem;
+}
+
+.navbar-ihop .navbar-toggler:focus {
+  box-shadow: 0 0 0 .15rem rgba(18, 96, 246, .15);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 991.98px) {
+  .navbar-ihop .navbar-nav .nav-link {
+    padding: .55rem .75rem;
+    border-radius: .5rem;
+  }
+
+  .navbar-ihop .dropdown-menu {
+    box-shadow: none;
+    border-radius: .5rem;
+  }
+
+  .navbar-ihop .ms-auto {
+    width: 100%;
+    justify-content: stretch;
+    gap: .5rem;
+  }
+
+  /* Selects a ancho completo en mobile */
+  .navbar-ihop .d-lg-inline,
+  .navbar-ihop .d-none.d-lg-inline {
+    display: none !important;
+  }
+
+  .navbar-ihop .d-lg-flex,
+  .navbar-ihop .d-none.d-lg-flex {
+    display: none !important;
+  }
+
+  .navbar-ihop .d-lg-none {
+    display: block !important;
+  }
+}
+
+/* ---------- Accesibilidad (focus visible) ---------- */
+.navbar-ihop a:focus-visible,
+.navbar-ihop button:focus-visible,
+.navbar-ihop select:focus-visible {
+  outline: 2px solid rgba(18, 96, 246, .55);
+  outline-offset: 2px;
+  border-radius: .6rem;
+}
+
+/* ---------- Microdetalles visuales ---------- */
+.navbar-ihop .nav-link .bi {
+  font-size: 1rem;
+  margin-right: .3rem;
+  vertical-align: -2px;
+  opacity: .85;
+}
+
+.navbar-ihop .nav-link:hover .bi {
+  opacity: 1;
+}
+
+/* Reduce un poco el alto visual del header sin perder comodidad */
+.navbar-ihop .container {
   padding-top: .25rem;
   padding-bottom: .25rem;
 }
 
-/* en desktop subimos todo un punto */
-@media (min-width: 992px) {
-  .navbar-ihop {
-    padding-top: 1.25rem;
-    padding-bottom: 1.25rem;
-  }
-  .navbar-ihop .navbar-brand {
-    font-size: 1.5rem;
-  }
-  .navbar-ihop .nav-link {
-    font-size: 1rem;
-    padding: .75rem 1rem;
-  }
-  .navbar-ihop .btn,
-  .navbar-ihop .form-select {
-    font-size: .95rem;
-  }
+/* Acento de marca en los tabs activos del dropdown grande “Admin sucursales” */
+#chainMenu + .dropdown-menu .dropdown-item.active,
+#chainMenu + .dropdown-menu .dropdown-item[aria-current="true"] {
+  background: #eaf0ff;
+  color: var(--ihop-primary);
 }
 
-/* sutil mejora del sombreado al aumentar altura */
-.navbar-ihop.shadow-sm {
-  box-shadow: 0 4px 14px rgba(0,0,0,.06);
+/* Línea superior sutil cuando se pega el contenido al header */
+.layout main.container {
+  border-top: 1px solid transparent;
 }

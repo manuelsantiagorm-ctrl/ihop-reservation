@@ -1,21 +1,191 @@
 {% extends "base.html" %}
-{% load i18n %}
+{% load static i18n %}
 
-{% block title %}{% if obj %}{% trans "Editar sucursal" %}{% else %}{% trans "Nueva sucursal" %}{% endif %}{% endblock %}
+{% block title %}
+  {% if form.instance.pk %}{% trans "Editar sucursal" %}{% else %}{% trans "Nueva sucursal" %}{% endif %}
+{% endblock %}
+
 {% block content %}
-<div class="container py-3" style="max-width:820px;">
-  <h1 class="h4 mb-3">
-    {% if obj %}{% trans "Editar sucursal" %}{% else %}{% trans "Nueva sucursal" %}{% endif %}
-  </h1>
-  <div class="card p-3">
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      {{ form.as_p }}
-      <div class="d-flex gap-2">
-        <a href="{% url 'reservas:chainadmin_sucursales' %}" class="btn btn-outline-secondary">{% trans "Cancelar" %}</a>
-        <button type="submit" class="btn btn-primary">{% trans "Guardar" %}</button>
-      </div>
-    </form>
+<div class="container py-4">
+  <!-- Header / Breadcrumb simple -->
+  <div class="d-flex align-items-center mb-3 gap-2">
+    <a href="{{ request.META.HTTP_REFERER|default:'#' }}" class="btn btn-light btn-sm border">
+      <i class="bi bi-arrow-left"></i> {% trans "Volver" %}
+    </a>
+    <h1 class="h4 m-0">
+      {% if form.instance.pk %}{% trans "Editar sucursal" %}{% else %}{% trans "Nueva sucursal" %}{% endif %}
+    </h1>
+    {% if form.instance.pk %}<span class="badge text-bg-secondary ms-2">{% trans "Editar" %}</span>{% else %}<span class="badge text-bg-primary ms-2">{% trans "Crear" %}</span>{% endif %}
   </div>
+
+  <form method="post" enctype="multipart/form-data" novalidate id="sucursalForm" class="needs-validation">
+    {% csrf_token %}
+
+    <div class="row g-4">
+
+      <!-- Columna izquierda (secciones apiladas) -->
+      <div class="col-12 col-lg-7">
+
+        <div class="card shadow-sm border-0 section">
+          <div class="card-header bg-white border-0 pb-0">
+            <h2 class="h6 m-0">{% trans "Información básica" %}</h2>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="form-label">{% trans "Nombre" %} <span class="text-danger">*</span></label>
+                {{ form.nombre }}
+                <div class="form-text">{% trans "Ejemplo: IHOP Liverpool Polanco" %}</div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">{% trans "Dirección" %} <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  {{ form.direccion }}
+                  <button class="btn btn-outline-secondary" type="button" id="btnUseLocation" title="{% trans 'Usar mi ubicación' %}">
+                    <i class="bi bi-geo"></i>
+                  </button>
+                </div>
+                <div class="form-text">{% trans "Empieza a escribir y elige de la lista (Google Places)." %}</div>
+              </div>
+
+              <div class="col-6 col-md-4">
+                <label class="form-label">{% trans "Código postal" %}</label>
+                {{ form.cp }}
+              </div>
+              <div class="col-6 col-md-4">
+                <label class="form-label">{% trans "País" %} <span class="text-danger">*</span></label>
+                {{ form.pais }}
+              </div>
+              <div class="col-12 col-md-4">
+                <label class="form-label">{% trans "Zona horaria (IANA)" %} <span class="text-danger">*</span></label>
+                {{ form.timezone_iana }}
+                <div class="form-text">{% trans "Se usa para convertir horarios locales ↔ UTC." %}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0 section">
+          <div class="card-header bg-white border-0 pb-0">
+            <h2 class="h6 m-0">{% trans "Operación" %}</h2>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-6 col-md-3">
+                <label class="form-label">{% trans "Recepción X" %}</label>
+                {{ form.recepcion_x }}
+              </div>
+              <div class="col-6 col-md-3">
+                <label class="form-label">{% trans "Recepción Y" %}</label>
+                {{ form.recepcion_y }}
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label">{% trans "Precio nivel" %}</label>
+                {{ form.precio_nivel }}
+              </div>
+              <div class="col-12">
+                <label class="form-label">{% trans "Cocina / concepto" %}</label>
+                {{ form.cocina }}
+              </div>
+              <div class="col-12 form-check mt-2">
+                {{ form.activo }}
+                <label class="form-check-label">{% trans "Activo" %}</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0 section">
+          <div class="card-header bg-white border-0 pb-0">
+            <h2 class="h6 m-0">{% trans "Imagen de portada" %}</h2>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-12">
+                {% if form.instance.portada %}
+                  <img src="{{ form.instance.portada.url }}" class="img-fluid rounded mb-2" alt="Portada actual">
+                {% endif %}
+                {{ form.portada }}
+                <div class="form-text">PNG/JPG, 1200×800 recomendado.</div>
+              </div>
+              <div class="col-12">
+                <label class="form-label">{% trans "Texto alternativo" %}</label>
+                {{ form.portada_alt }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Columna derecha (sticky) -->
+      <div class="col-12 col-lg-5">
+        <div class="sticky-col">
+
+          <div class="card shadow-sm border-0 section">
+            <div class="card-header bg-white border-0 pb-0 d-flex align-items-center justify-content-between">
+              <h2 class="h6 m-0">{% trans "Ubicación en mapa" %}</h2>
+              <span class="text-muted small">{% trans "Arrastra el pin" %}</span>
+            </div>
+            <div class="card-body">
+              <div id="map" class="mb-3"></div>
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">{% trans "Latitud" %}</label>
+                  {{ form.lat }}
+                </div>
+                <div class="col-6">
+                  <label class="form-label">{% trans "Longitud" %}</label>
+                  {{ form.lng }}
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Place ID</label>
+                  {{ form.place_id }}
+                  <div class="form-text">{% trans "Se completa automáticamente al elegir la dirección." %}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card shadow-sm border-0 section">
+            <div class="card-header bg-white border-0 pb-0">
+              <h2 class="h6 m-0">{% trans "Administradores & Acceso" %}</h2>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">{% trans "Administradores de la sucursal" %}</label>
+                {{ form.administradores }}
+                <div class="form-text">{% trans "Mantén presionado Ctrl/Cmd para seleccionar varios." %}</div>
+              </div>
+              <div class="mb-0">
+                <label class="form-label">{% trans "Correo de contacto" %}</label>
+                {{ form.email_contacto }}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <div class="text-muted small">
+        {% trans "Los campos con" %} <span class="text-danger">*</span> {% trans "son obligatorios." %}
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'reservas:chainadmin_sucursales' %}" class="btn btn-outline-secondary">
+          {% trans "Cancelar" %}
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-save"></i> {% trans "Guardar" %}
+        </button>
+      </div>
+    </div>
+  </form>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'reservas/js/sucursal_form.js' %}"></script>
 {% endblock %}

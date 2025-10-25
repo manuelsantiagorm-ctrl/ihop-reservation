@@ -1,0 +1,45 @@
+.myr-container{max-width:1100px;margin:0 auto}
+.myr-header{display:flex;justify-content:space-between;align-items:center;margin:8px 0 18px}
+.myr-title{font-weight:800;letter-spacing:.2px;margin:0}
+.myr-subtitle{margin:2px 0 0}
+
+.myr-section{margin-bottom:28px}
+
+.myr-card{background:#fff;border:1px solid #e9ecef;border-radius:16px;box-shadow:0 1px 8px rgba(16,24,40,.06)}
+.myr-card--active{border-color:#cfe2ff;box-shadow:0 6px 24px rgba(54,111,255,.12)}
+.myr-card-head{padding:16px 20px;border-bottom:1px solid #eef1f4}
+.myr-card-body{padding:18px 20px}
+
+.myr-bigtime{font-weight:800}
+.myr-meta{display:flex;gap:16px;color:#475467}
+.myr-meta i{margin-right:6px}
+
+.myr-pill{background:#f5f7fb;border:1px solid #e6e8ef;border-radius:999px;padding:6px 10px;font-size:.9rem}
+
+.myr-box{border:1px dashed #d7dbe3;border-radius:12px;padding:12px}
+.myr-box-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #eef1f4}
+.myr-box-row:last-child{border-bottom:0}
+.myr-box-row span{color:#6b7280}
+
+.myr-badge{border-radius:999px;padding:.35rem .6rem;font-weight:600;letter-spacing:.2px}
+.myr-badge--conf{background:#e7f5ff;color:#0c63e4;border:1px solid #b6deff}
+.myr-badge--pend{background:#fff7e6;color:#b76e00;border:1px solid #ffe0a6}
+.myr-badge--canc{background:#f1f3f5;color:#6b7280;border:1px solid #e2e6ea}
+
+.myr-h2{font-size:1.25rem;font-weight:800;margin:0}
+
+.myr-search-wrap{position:relative}
+.myr-search-wrap i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#94a3b8}
+.myr-search-wrap input{padding-left:32px;min-width:250px}
+
+.myr-table-wrap{background:#fff;border:1px solid #e9ecef;border-radius:16px;box-shadow:0 1px 8px rgba(16,24,40,.04);padding:8px}
+.myr-table thead th{font-weight:700;border-bottom:1px solid #edf0f4}
+.myr-table tbody td{vertical-align:middle}
+
+.myr-empty{background:#fff;border:1px dashed #d7dbe3;border-radius:16px;padding:36px;text-align:center;color:#64748b}
+.myr-empty i{font-size:40px;margin-bottom:10px;color:#9aa7b2}
+
+.myr-copy{line-height:1}
+
+.myr-toast{position:fixed;bottom:18px;right:18px;z-index:1080;border-radius:12px;background:#1f2937;color:#fff}
+.myr-toast .btn-close{filter:invert(1)}

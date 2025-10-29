@@ -30,7 +30,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django_countries",
-
     # Tu app principal
     "reservas.apps.ReservasConfig",
 
@@ -97,6 +96,8 @@ MIDDLEWARE = [
 
     # 🔁 Redirección: evita registro por Allauth (envía a OTP)
     "accounts.middleware.RedirectSignupMiddleware",
+    'reservas.middleware.RedirectNonStaffFromStaffURLs',
+
 ]
 
 # Axes (un solo bloque)
@@ -186,6 +187,8 @@ LANGUAGE_COOKIE_SECURE = not DEBUG
 # ESTÁTICOS / MEDIA
 # =========================
 STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"  # ← requerido para collectstatic
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 MEDIA_URL = "/media/"
@@ -390,3 +393,19 @@ ACCOUNT_ADAPTER = "ihop_system.adapters.CustomAccountAdapter"
 # Mantenemos 'mandatory' para que (si algún día usas Allauth con público)
 # exija verificación a usuarios NO staff.
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+
+
+
+
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "192.168.0.20",  # ← tu IP local mostrada por ipconfig
+]
+
+# Si vas a enviar formularios desde esa IP (login, POST, etc.), añade:
+CSRF_TRUSTED_ORIGINS = [
+    "http://192.168.0.20:8000",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+]

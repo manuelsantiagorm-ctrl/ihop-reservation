@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import timedelta
 from zoneinfo import ZoneInfo
 
+from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Avg, Count
@@ -299,3 +300,20 @@ def _ensure_chainowner_group(sender, **kwargs):
     except Exception:
         # Falla silenciosa en migraciones iniciales (por dependencias aún no listas)
         pass
+
+
+# reservas/signals.py
+
+User = get_user_model()
+
+@receiver(post_save, sender=User)
+def ensure_cliente(sender, instance, created, **kwargs):
+    # No fuerces para staff/superuser si no quieres
+    if created and not instance.is_staff and not instance.is_superuser:
+        Cliente.objects.get_or_create(
+            user=instance,
+            defaults={
+                'nombre': instance.get_full_name() or instance.username,
+                'email': instance.email or '',
+            },
+        )

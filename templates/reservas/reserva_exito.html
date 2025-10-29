@@ -4,108 +4,120 @@
 {% block title %}{% trans "Reserva confirmada" %} | IHOP{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'reservas/css/reservar.css' %}">
+<link rel="stylesheet" href="{% static 'reservas/css/reserva_exito.css' %}">
+<style>
+  /* Asegura que las instrucciones siempre se vean y salgan en impresión */
+  .ticket-instructions{background:#fff7d6;border:1px solid #f4e3a1;border-radius:8px;padding:12px 14px;display:block!important}
+  @media print{.ticket-instructions{display:block!important}.print-btn{display:none!important}}
+  .ticket-logo{height:28px}
+  .folio-text{font-weight:800;font-size:clamp(20px,3vw,30px);color:#2463ff;letter-spacing:.5px}
+  .qr-box canvas,.qr-box img{width:132px;height:132px}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4 reservar">
+<div class="ticket-wrap container py-4">
 
-  <!-- Breadcrumb -->
-  <nav class="breadcrumb-lite mb-3">
-    <a href="{% url 'reservas:home' %}">{% trans "Inicio" %}</a> /
-    <a href="{% url 'reservas:seleccionar_sucursal' %}">{% trans "Sucursales" %}</a> /
-    {% if request.user.is_staff %}
-      <a href="{% url 'reservas:admin_mesas_disponibles' reserva.mesa.sucursal.id %}">{{ reserva.mesa.sucursal.nombre }}</a> /
-    {% else %}
-      <a href="{% url 'reservas:sucursal_detalle' reserva.mesa.sucursal.slug %}">{{ reserva.mesa.sucursal.nombre }}</a> /
-    {% endif %}
-    <span>{% trans "Reserva confirmada" %}</span>
-  </nav>
-
-  <header class="page-head d-flex justify-content-between align-items-start gap-3 mb-3">
-    <div>
-      <h1 class="mb-1">{% trans "¡Tu reservación está confirmada!" %}</h1>
-      <p class="lead text-muted mb-0">
-        {% blocktrans with n=reserva.mesa.numero|default:reserva.mesa.id c=reserva.mesa.capacidad %}
-          Mesa {{ n }} • {{ c }} pax
-        {% endblocktrans %}
-      </p>
+  <!-- Cabecera -->
+  <div class="d-flex align-items-start justify-content-between mb-3 flex-wrap">
+    <div class="d-flex align-items-center gap-2">
+      {# usa PNG si el SVG no existe en tu static #}
+      <img src="{% static 'reservas/img/ihop-logo.png' %}" alt="IHOP" class="ticket-logo">
+      <h1 class="ticket-title mb-0">{% trans "¡Tu reservación está confirmada!" %}</h1>
     </div>
-    <span class="pill meta">
-      {% trans "Folio" %}: <strong>{{ reserva.folio }}</strong>
-    </span>
-  </header>
-
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <div class="row g-3">
-        <!-- Columna izquierda -->
-        <div class="col-md-6">
-          <div class="border rounded p-3 h-100">
-            <h6 class="text-muted mb-2">{% trans "Detalles de la reserva" %}</h6>
-            <ul class="list-unstyled mb-0">
-              <li><strong>{% trans "Sucursal" %}:</strong> {{ reserva.mesa.sucursal.nombre }}</li>
-              <li><strong>{% trans "Fecha" %}:</strong> {{ fecha_txt }}</li>
-              <li><strong>{% trans "Hora" %}:</strong> {{ hora_txt }}</li>
-              <li><strong>{% trans "Duración" %}:</strong> {{ duracion_min }} {% trans "min" %}</li>
-              <li><strong>{% trans "Personas" %}:</strong> {{ personas }}</li>
-              <li><strong>{% trans "Estado" %}:</strong> {{ reserva.get_estado_display|default:_("Confirmada") }}</li>
-            </ul>
-          </div>
-        </div>
-
-        <!-- Columna derecha -->
-        <div class="col-md-6">
-          <div class="border rounded p-3 h-100">
-            <h6 class="text-muted mb-2">{% trans "Contacto" %}</h6>
-            <ul class="list-unstyled mb-0">
-              <li><strong>{% trans "Nombre" %}:</strong> {{ contacto_nombre }}</li>
-              <li><strong>{% trans "Correo electrónico" %}:</strong> {{ contacto_email }}</li>
-              {% if contacto_tel %}
-                <li><strong>{% trans "Teléfono" %}:</strong> {{ contacto_tel }}</li>
-              {% endif %}
-              {% if notas %}
-                <li class="mt-2"><strong>{% trans "Notas" %}:</strong><br>{{ notas|linebreaksbr }}</li>
-              {% endif %}
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- CTA -->
-      <div class="d-flex flex-wrap gap-2 mt-4">
-        <a class="btn btn-primary" href="{% url 'reservas:mis_reservas' %}">
-          <i class="bi bi-journal-text me-1"></i> {% trans "Ver mis reservaciones" %}
-        </a>
-        <a class="btn btn-outline-secondary" href="{% url 'reservas:home' %}">
-          <i class="bi bi-house-door me-1"></i> {% trans "Ir al inicio" %}
-        </a>
-
-        {% if request.user.is_staff %}
-          <a class="btn btn-outline-dark" href="{% url 'reservas:admin_mesas_disponibles' reserva.mesa.sucursal.id %}">
-            <i class="bi bi-list-ul me-1"></i> {% trans "Ver mesas (staff)" %}
-          </a>
-        {% else %}
-          <a class="btn btn-outline-dark" href="{% url 'reservas:sucursal_detalle' reserva.mesa.sucursal.slug %}">
-            <i class="bi bi-geo-alt me-1"></i> {% trans "Ver sucursal" %}
-          </a>
-        {% endif %}
-      </div>
+    <div class="ticket-folio text-end">
+      <div class="small text-muted">{% trans "Folio" %}</div>
+      <div class="folio-text">{{ reserva.folio }}</div>
     </div>
   </div>
 
-  <!-- Info -->
-  <div class="alert alert-success border-0 shadow-soft">
-    <div class="d-flex gap-2 align-items-start">
-      <i class="bi bi-check-circle-fill fs-4"></i>
-      <div>
-        <strong>{% trans "¡Listo!" %}</strong>
-        <div class="small mb-0">
-          {% trans "Te enviamos un correo con los detalles. Por favor llega a tiempo; la mesa se conserva unos minutos después de tu hora." %}
+  <p class="text-muted mb-3">
+    {% blocktrans %}Mesa {{ reserva.mesa.numero|default:reserva.mesa.id }} • {{ personas }} pax{% endblocktrans %}
+  </p>
+
+  <!-- Datos -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="text-muted">{% trans "Detalles de la reserva" %}</h6>
+          <ul class="list-unstyled mb-0">
+            <li><strong>{% trans "Sucursal" %}:</strong> {{ reserva.sucursal.nombre }}</li>
+            <li><strong>{% trans "Fecha" %}:</strong> {{ fecha_txt }}</li>
+            <li><strong>{% trans "Hora" %}:</strong> {{ hora_txt }}</li>
+            <li><strong>{% trans "Duración" %}:</strong> {{ duracion_min }} min</li>
+            <li><strong>{% trans "Personas" %}:</strong> {{ personas }}</li>
+            <li><strong>{% trans "Estado" %}:</strong> {{ reserva.get_estado_display|default:_("Confirmada") }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h6 class="text-muted">{% trans "Contacto" %}</h6>
+          <ul class="list-unstyled mb-0">
+            <li><strong>{% trans "Nombre" %}:</strong> {{ contacto_nombre|default:"—" }}</li>
+            <li><strong>{% trans "Correo electrónico" %}:</strong> {{ contacto_email|default:"—" }}</li>
+            <li><strong>{% trans "Teléfono" %}:</strong> {{ contacto_tel|default:"—" }}</li>
+          </ul>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Botones -->
+  <div class="text-center mb-3">
+    <button type="button" class="btn btn-link btn-sm print-btn">
+      <i class="bi bi-printer"></i> {% trans "Imprimir ticket" %}
+    </button>
+    <a href="{% url 'reservas:mis_reservas' %}" class="btn btn-primary d-block mt-2">
+      <i class="bi bi-journal-text me-1"></i> {% trans "Ver mis reservaciones" %}
+    </a>
+  </div>
+
+  <!-- QR (abajo del todo, con folio) -->
+  <div class="ticket-qr-wrap my-4 text-center">
+    <h6 class="text-muted mb-2">{% trans "Escanea en recepción" %}</h6>
+    <div id="qrTarget" class="qr-box"
+         data-url="{{ qr_url }}"></div>
+    <div class="mt-2 fw-semibold">{{ reserva.folio }}</div>
+    <div class="small text-muted mt-1">
+      {% trans "Tip: toma captura o guarda tu folio; lo necesitarás al llegar." %}
+    </div>
+  </div>
+
+  <!-- Instrucciones -->
+  <div class="ticket-instructions mb-4">
+    <div class="fw-semibold mb-1">
+      <i class="bi bi-info-circle"></i> {% trans "Instrucciones para tu llegada" %}
+    </div>
+    <ol class="mb-0 ps-3">
+      <li>{% trans "Presenta este QR o FOLIO en recepción. Te recomendamos tomar captura de pantalla o GUARDAR el ticket en PDF (botón “Imprimir ticket”)." %}</li>
+      <li>{% trans "Llega 10 minutos antes de tu horario para garantizar tu mesa." %}</li>
+      <li>{% trans "Si necesitas cambiar algo, comunícate a la sucursal. Los cambios/cancelaciones no se hacen en línea." %}</li>
+      <li>{% trans "Tu mesa se mantiene algunos minutos después de la hora reservada; pasado ese tiempo puede liberarse." %}</li>
+    </ol>
+  </div>
+
+  <p class="text-center text-muted small mb-0">
+    {% trans "Gracias por reservar con IHOP. ¡Te esperamos!" %}
+  </p>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+<!-- QR por CDN (sin integrity para evitar bloqueos locales) -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+  (function () {
+    const box = document.getElementById("qrTarget");
+    if (!box || typeof QRCode === "undefined") return;
+    const url = box.dataset.url || window.location.href;
+    new QRCode(box, { text: url, width: 132, height: 132, correctLevel: QRCode.CorrectLevel.M });
+    document.querySelector(".print-btn")?.addEventListener("click", () => window.print());
+  })();
+</script>
+{% endblock %}
+

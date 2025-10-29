@@ -1,6 +1,54 @@
-venv/
+﻿# ---- Django / Python ----
 __pycache__/
-*.pyc
+*.py[cod]
 *.sqlite3
+*.log
+*.pot
+*.py,cover
 db.sqlite3
-.env
+
+# ---- Virtualenv ----
+venv/
+.env/
+.venv/
+env/
+ENV/
+
+# ---- Archivos del sistema IHOP ----
+backups/
+logs/
+dump_*.sql
+*.sql
+*.tar
+*.zip
+
+# ---- Django estáticos / media ----
+media/
+staticfiles/
+static/
+
+# ---- IDEs y Sistema ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Compilados / cache ----
+*.mo
+
+# ---- Node / JS ----
+node_modules/
+
+# ---- Tests / coverage ----
+.coverage
+htmlcov/
+
+# ---- Seguridad / claves ----
+*.key
+*.pem
+*.pfx
+secrets.json
+.env.local
+.env.prod
+.env.dev

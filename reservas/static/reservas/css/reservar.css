@@ -1,103 +1,19 @@
-/* ===== Estilos Reservar Mesa ===== */
-
-.page-header {
-  margin-bottom: 1.5rem;
+.ticket-logo{height:26px;}
+.folio-text{font-size:1.8rem;font-weight:800;color:#2563eb;}
+.ticket-instructions{
+  background:#fff7d6;
+  border:1px solid #ffe083;
+  border-radius:8px;
+  padding:10px 14px;
 }
+.ticket-instructions ol{margin-bottom:0;}
+.ticket-barcode .barcode{width:300px;height:80px;}
+.print-btn{color:#6b7280;text-decoration:none;}
+.print-btn:hover{color:#000;}
 
-.page-header h1 {
-  font-weight: 700;
-  margin-bottom: .3rem;
-}
-
-.page-header small {
-  color: #6c757d;
-  font-size: .9rem;
-}
-
-/* Tarjeta principal */
-.card-reserva {
-  border: 1px solid #e5e7eb;
-  border-radius: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,.04);
-  margin-bottom: 1.5rem;
-}
-
-.card-reserva .card-body {
-  padding: 2rem;
-}
-
-/* Campos */
-.form-label {
-  font-weight: 600;
-  margin-bottom: .4rem;
-}
-
-#reservaForm input,
-#reservaForm select {
-  border-radius: .6rem;
-  border: 1px solid #d1d5db;
-}
-
-/* Botón principal */
-#btnConfirmar {
-  border-radius: .6rem;
-  font-weight: 600;
-  padding: .75rem;
-}
-
-/* Horarios */
-.slot-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .6rem;
-  margin-top: 1rem;
-}
-
-.slot-pill {
-  border: 1px solid #c7d2fe;
-  background: #eef2ff;
-  color: #3730a3;
-  border-radius: 999px;
-  padding: .5rem 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-  transition: all .15s ease-in-out;
-}
-
-.slot-pill:hover {
-  background: #4338ca;
-  color: #fff;
-  border-color: #4338ca;
-  transform: translateY(-2px);
-}
-
-.slot-pill.active {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-}
-
-.slot-pill.disabled {
-  opacity: .4;
-  cursor: not-allowed;
-}
-
-/* Sección de horarios */
-.horarios-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 1.5rem;
-}
-
-.horarios-header h5 {
-  margin: 0;
-  font-weight: 600;
-}
-
-.horarios-header .controls {
-  display: flex;
-  gap: .5rem;
-  align-items: center;  
+@media print {
+  .navbar, .footer, .btn, .breadcrumb, .print-btn {display:none !important;}
+  body{background:#fff !important;}
+  .ticket-wrap{max-width:700px;margin:0 auto;}
+  .ticket-instructions, .ticket-barcode{display:block !important;break-inside:avoid;}
 }

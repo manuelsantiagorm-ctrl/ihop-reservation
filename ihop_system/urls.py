@@ -29,10 +29,18 @@ urlpatterns = [
     # ===============================
     path("auth/", include("allauth.urls")),
 
-    # Redirecciones suaves para mantener compatibilidad
+    # 🔁 Redirecciones suaves para compatibilidad
     path("accounts/login/", RedirectView.as_view(url="/auth/login/", permanent=False)),
     path("accounts/logout/", RedirectView.as_view(url="/auth/logout/", permanent=False)),
     path("accounts/password/reset/", RedirectView.as_view(url="/auth/password/reset/", permanent=False)),
+
+    # ✅ Nueva redirección: tras login → “Reservar”
+    #    Si alguien entra a /auth/login/ y se autentica, lo manda a seleccionar_sucursal
+    path(
+        "after-login/",
+        RedirectView.as_view(pattern_name="reservas:seleccionar_sucursal", permanent=False),
+        name="after_login_redirect"
+    ),
 
     # ===============================
     # 🔒 TWO-FACTOR AUTH (sin prefijo)

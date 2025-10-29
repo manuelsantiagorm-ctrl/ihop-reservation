@@ -1,0 +1,44 @@
+{# Página de confirmación del link (cuando allauth requiere confirmar con botón).
+   Si la key no es válida muestra mensaje de error. Usa allauth_confirm.css. #}
+{% extends "base.html" %}
+{% load i18n static account %}
+
+{% block title %}{% trans "Confirmar correo" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reservas/css/allauth_confirm.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-bg">
+  <div class="auth-card card shadow-sm border-0">
+    {% if confirmation %}
+      {% user_display confirmation.email_address.user as user_display %}
+      <h1 class="h4 mb-2">{% trans "Confirmar correo" %}</h1>
+      <p class="text-muted">
+        {% blocktrans with email=confirmation.email_address.email %}
+          Confirma que <strong>{{ email }}</strong> es tu dirección de correo.
+        {% endblocktrans %}
+      </p>
+      <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary w-100">{% trans "Confirmar" %}</button>
+      </form>
+    {% else %}
+      <h1 class="h4 mb-2">{% trans "Enlace de confirmación inválido" %}</h1>
+      <p class="text-muted">
+        {% trans "El enlace ya fue usado o ha expirado. Pide otro correo de verificación." %}
+      </p>
+      <a class="btn btn-outline-secondary" href="{% url 'account_email' %}">
+        {% trans "Gestionar correos" %}
+      </a>
+    {% endif %}
+
+    <div class="mt-3">
+      <a class="small text-muted" href="{% url 'account_login' %}">{% trans "Iniciar sesión" %}</a>
+      ·
+      <a class="small text-muted" href="{% url 'account_signup' %}">{% trans "Registrarse" %}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

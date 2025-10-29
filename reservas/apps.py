@@ -15,14 +15,16 @@ class ReservacionesConfig(AppConfig):
 
 
 
+# reservas/apps.py
+# AppConfig de la app de reservas. Se encarga de registrar las señales en ready().
 
 
 class ReservasConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "reservas"   # ⚠️ IMPORTANTE: debe apuntar al nombre del paquete (carpeta) real
-    label = "reservas"  # explícito para evitar conflictos
+    name = "reservas"   # nombre del paquete (la carpeta de la app)
+    label = "reservas"  # etiqueta única de la app
 
     def ready(self):
-        # Asegúrate de que este import exista y que el archivo signals.py esté correcto
-        from . import signals  # noqa
-
+        # Importa las señales para que Django las registre al iniciar.
+        # No mover este import a nivel de módulo para evitar import cycles.
+        from . import signals  # noqa: F401

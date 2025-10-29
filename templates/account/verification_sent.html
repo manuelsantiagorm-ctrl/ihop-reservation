@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Verifique su correo" %}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reservas/css/allauth_confirm.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-bg">
+  <div class="auth-card card shadow-sm border-0 text-center">
+    <h1 class="h4 mb-2">{% trans "Verifique su dirección de correo electrónico" %}</h1>
+    <p class="text-muted mb-3">
+      {% trans "Le hemos enviado un correo para su verificación. Siga el enlace del correo para finalizar el registro. Revise también su carpeta de spam." %}
+    </p>
+
+    <div class="d-flex justify-content-center gap-2">
+      <a class="btn btn-primary" href="{% url 'account_login' %}">{% trans "Iniciar sesión" %}</a>
+      <a class="btn btn-outline-secondary" href="{% url 'account_signup' %}">{% trans "Registrarse" %}</a>
+    </div>
+
+    <p class="mt-3 small text-muted">
+      {% trans "¿No recibiste el correo? Espera unos minutos o revisa tu carpeta de correo no deseado." %}
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'reservas/js/allauth_confirm.js' %}"></script>
+{% endblock %}

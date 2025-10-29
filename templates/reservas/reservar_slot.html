@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% load i18n %}
 {% load static %}
+{% load tz %}  {# 👈 nuevo #}
 
 {% block title %}{% trans "Reservar" %} | {{ sucursal.nombre }}{% endblock %}
 
 {% block content %}
+{% timezone sucursal.timezone %} {# 👈 todo lo de abajo ya se formatea en TZ de la sucursal #}
+
 <div class="container py-5" style="max-width: 860px;">
   <a href="{% url 'reservas:sucursal_detalle' slug=sucursal.slug %}" class="text-decoration-none mb-3 d-inline-flex align-items-center gap-2">
     <i class="bi bi-arrow-left-short"></i> {% trans "Volver a la sucursal" %}
@@ -31,6 +34,7 @@
     <form method="post" action="{% url 'reservas:reservar_auto' sucursal.id %}" class="card-body p-4">
       {% csrf_token %}
       <input type="hidden" name="fecha" value="{{ fecha }}">
+      <input type="hidden" name="tz" value="{{ sucursal.timezone }}"> {# 👈 opcional pero recomendable #}
 
       <!-- Hora -->
       <div class="mb-3">
@@ -74,14 +78,14 @@
           <i class="bi bi-telephone me-1"></i> {% trans "Teléfono de contacto" %}
         </label>
         <div class="input-group">
-          <span class="input-group-text">+52</span>
+          <span class="input-group-text">{{ phone_prefix|default:"+52" }}</span> {# 👈 ya no fijo a +52 #}
           <input id="telefono"
                  class="form-control"
                  type="tel"
                  name="telefono"
                  inputmode="tel"
                  pattern="[0-9\s\-]{8,20}"
-                 placeholder="{% trans 'Ej. 33 1234 5678' %}"
+                 placeholder="{% trans 'Ej. 11 1234 5678' %}"
                  required>
         </div>
         <div class="form-text">
@@ -102,9 +106,9 @@
   </div>
 </div>
 
-<!-- Estética ligera (opcional) -->
 <style>
   .bg-primary-subtle{ background: rgba(13,110,253,.08); }
   .text-primary-emphasis{ color: #0d6efd; }
 </style>
+{% endtimezone %} {# 👈 cierre del bloque timezone #}
 {% endblock %}

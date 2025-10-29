@@ -1,17 +1,23 @@
+{# Plantilla de verificación de correo (OTP). Muestra input de código,
+   botón para reenviar y estados de error. Depende de verify_email.css/js. #}
 {% extends "base.html" %}
 {% load i18n static %}
 
 {% block title %}{% trans "Verifica tu correo" %}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reservas/css/verify_email.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="auth-bg">
   <div class="auth-card card shadow-sm border-0">
-
     <div class="text-center mb-3">
-      {# <img class="auth-logo mb-2" src="{% static 'reservas/img/ihop-logo.svg' %}" alt="IHOP" height="40"> #}
       <h1 class="h4 mb-1">{% trans "Verifica tu correo" %}</h1>
       <p class="text-muted mb-0">
-        {% blocktrans with mail=request.session.signup_email %}Te enviamos un código a <strong>{{ mail }}</strong>.{% endblocktrans %}
+        {% blocktrans with mail=request.session.signup_email %}
+          Te enviamos un código a <strong>{{ mail }}</strong>.
+        {% endblocktrans %}
       </p>
     </div>
 
@@ -24,15 +30,15 @@
 
     <form method="post" action="{% url 'accounts:verify_email' %}" class="needs-validation" novalidate>
       {% csrf_token %}
-      {# El form ya suele traer el email en hidden; si no, lo ponemos: #}
       {% if form.email %}{{ form.email }}{% else %}
         <input type="hidden" name="email" value="{{ request.session.signup_email }}">
       {% endif %}
 
       <div class="mb-3">
-        <label for="{{ form.code.id_for_label|default:'id_code' }}" class="form-label">{% trans "Código de verificación" %}</label>
+        <label for="{{ form.code.id_for_label|default:'id_code' }}" class="form-label">
+          {% trans "Código de verificación" %}
+        </label>
 
-        {# Campo optimizado para códigos: numérico, auto-complete y focus #}
         <input
           type="text"
           name="{{ form.code.html_name|default:'code' }}"
@@ -61,7 +67,6 @@
     <div class="d-flex align-items-center justify-content-between mt-3">
       <form method="post" action="{% url 'accounts:resend_otp' %}">
         {% csrf_token %}
-        {# Cooldown opcional: pasa resend_seconds_remaining en el contexto; por defecto 0 #}
         {% with remain=resend_seconds_remaining|default:0 %}
           <button
             type="submit"
@@ -83,44 +88,10 @@
     <p class="text-center mt-3 mb-0 text-muted small">
       {% trans "¿No te llegó? Revisa la carpeta de spam o pulsa en “Reenviar código”." %}
     </p>
-
   </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  // Autofocus en el input de código
-  (function () {
-    const code = document.getElementById('{{ form.code.id_for_label|default:"id_code" }}');
-    if (code) code.focus();
-
-    // Enter envía el formulario
-    code && code.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        this.closest('form').submit();
-      }
-    });
-
-    // Cooldown visual para "Reenviar código"
-    const btn = document.getElementById('resendBtn');
-    if (!btn) return;
-    let remaining = parseInt(btn.dataset.remaining || '0', 10);
-    const originalText = btn.textContent;
-
-    function tick() {
-      if (remaining > 0) {
-        btn.disabled = true;
-        btn.textContent = originalText + ' (' + remaining + 's)';
-        remaining -= 1;
-        setTimeout(tick, 1000);
-      } else {
-        btn.disabled = false;
-        btn.textContent = originalText;
-      }
-    }
-    if (remaining > 0) tick();
-  })();
-</script>
+<script src="{% static 'reservas/js/verify_email.js' %}"></script>
 {% endblock %}

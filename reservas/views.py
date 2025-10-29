@@ -2,48 +2,116 @@
 import os
 import json
 import logging
-from datetime import datetime, date, time, timedelta
 from math import radians, cos, sin, asin, sqrt
+from datetime import datetime, date, time, timedelta
+from zoneinfo import ZoneInfo
+from urllib.parse import urlencode
 from django.conf import settings
 from django.contrib import messages
-from django.db.models import Max
-from .permissions import assert_user_can_manage_sucursal  # <-- IMPORTANTE
-
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import login
-from django.contrib.auth.decorators import login_required, user_passes_test, permission_required
+from django.contrib.auth.decorators import (
+    login_required, user_passes_test, permission_required
+)
+from datetime import timezone as py_tz  # <-- para usar py_tz.utc en vez de timezone.utc
 from django.contrib.messages import get_messages
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.db import connection, transaction
-from django.db.models import Q, Exists, OuterRef, Value, BooleanField, Case, When
-from django.core.cache import cache
+from django.db.models import (
+    Q, Exists, OuterRef, Value, BooleanField, Case, When, Max, Count
+)
+from django.http import (
+    JsonResponse, HttpResponse, HttpResponseForbidden,
+    HttpResponseRedirect, HttpResponseBadRequest, Http404
+)
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from .helpers.permisos import assert_can_manage
 from django.utils import timezone, formats
-from django.db.models import Count
-from django.utils.dateparse import parse_datetime
+from django.utils import timezone as dj_tz
+from django.utils.dateparse import parse_datetime, parse_date
 from django.utils.safestring import mark_safe
-from django.utils.dateparse import parse_date
 from django.utils.translation import gettext as _
-from django.views.decorators.http import require_GET, require_POST, require_http_methods
-from django.http import  HttpResponseBadRequest
-from django.views.decorators.csrf import csrf_exempt 
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseRedirect, Http404
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import (
+    require_GET, require_POST, require_http_methods
+)
+
+from .permissions import assert_user_can_manage_sucursal  # <-- IMPORTANTE
+from .helpers.permisos import assert_can_manage
 from .utils_auth import scope_sucursales_for, user_allowed_countries
 from .utils_country import get_effective_country
-from .utils import mesas_disponibles_para_reserva, mover_reserva, booking_total_minutes, asignar_mesa_automatica
+from .utils import (
+    mesas_disponibles_para_reserva, mover_reserva,
+    booking_total_minutes, asignar_mesa_automatica
+)
 from .emails import enviar_correo_reserva_confirmada
 from .forms import (
-    WalkInReservaForm, ClientePerfilForm, ClienteRegistrationForm, ReservaForm,
-    SucursalForm, SucursalFotoForm, SucursalFotoFormSet,
+    WalkInReservaForm, ClientePerfilForm, ClienteRegistrationForm,
+    ReservaForm, SucursalForm, SucursalFotoForm, SucursalFotoFormSet,
 )
 from .models import (
-    Cliente, Mesa, Reserva, Sucursal, SucursalFoto, PerfilAdmin, BloqueoMesa,
+    Cliente, Mesa, Reserva, Sucursal, SucursalFoto,
+    PerfilAdmin, BloqueoMesa,
 )
+
+def _get_reserva_by_folio(folio: str):
+    # Búsqueda case-insensitive por folio exacto
+    return get_object_or_404(Reserva, folio__iexact=folio.strip())
+
+@login_required
+def reserva_scan_entry(request, folio):
+    r = get_object_or_404(
+        Reserva.objects.select_related("sucursal", "mesa", "cliente", "cliente__user"),
+        folio=folio,
+    )
+
+    # TZ sucursal y textos de fecha/hora/duración
+    tz = _tz_for_sucursal(r.sucursal or (r.mesa and r.mesa.sucursal))
+    li = r.local_inicio or (r.inicio_utc and timezone.localtime(r.inicio_utc, tz))
+    lf = r.local_fin or (r.fin_utc and timezone.localtime(r.fin_utc, tz))
+    fecha_txt = formats.date_format(li.date(), "DATE_FORMAT") if li else ""
+    hora_txt = li.strftime("%H:%M") if li else ""
+    duracion_min = int(((lf - li).total_seconds() // 60)) if (li and lf) else 0
+
+    ctx = {
+        "reserva": r,
+        "fecha_txt": fecha_txt,
+        "hora_txt": hora_txt,
+        "duracion_min": duracion_min,
+        "personas": r.num_personas,
+        "for_staff": request.user.is_staff,
+        **_contacto_from_reserva(r),
+    }
+    return render(request, "reservas/reserva_scan_entry.html", ctx)
+
+@require_POST
+@login_required
+def reserva_checkin(request, folio):
+    """
+    Marca la reserva como llegada (check-in). Solo staff.
+    """
+    if not request.user.is_staff:
+        return HttpResponseForbidden("Solo personal autorizado")
+
+    reserva = _get_reserva_by_folio(folio)
+    # Usa los campos que ya existen en tu modelo
+    reserva.llego = True
+    reserva.checkin_at = dj_tz.now()
+    reserva.arrived_at = reserva.checkin_at  # si usas ambos
+    # Opcional: cambia estado si usas choices (ajústalo a tu enumeración)
+    if hasattr(reserva, "estado") and not reserva.estado:
+        pass
+    reserva.save(update_fields=["llego", "checkin_at", "arrived_at"])
+
+    messages.success(request, "¡Check-in registrado!")
+    return redirect("reservas:reserva_scan_entry", folio=reserva.folio)
+
+
+
+
 
 # --- Rate limit (shim para que migrate no truene si falta la lib) ---
 try:
@@ -55,7 +123,46 @@ except Exception:
         return _inner
 
 
+def _activate_sucursal_tz(sucursal):
+    """Activa la zona horaria local de la sucursal para esta request."""
+    try:
+        dj_tz.activate(ZoneInfo(sucursal.timezone))
+    except Exception:
+        # Fallback: no rompas si el nombre está mal
+        dj_tz.deactivate()
 
+
+
+
+def _tz_for_sucursal(s) -> timezone.tzinfo:
+    """
+    Devuelve la TZ de una sucursal.
+    Intenta, en orden: s.timezone (o zona_horaria), s.pais.tz; si falla, usa TZ actual de Django.
+    """
+    # nombres posibles que tú usas en tus modelos
+    posibles = ("timezone", "zona_horaria", "tz",)
+    tzname = None
+
+    for attr in posibles:
+        val = getattr(s, attr, None)
+        if val:
+            tzname = val
+            break
+
+    # intentar via país (s.pais.tz)
+    if not tzname:
+        try:
+            tzname = getattr(getattr(s, "pais", None), "tz", None)
+        except Exception:
+            tzname = None
+
+    if tzname and ZoneInfo:
+        try:
+            return ZoneInfo(tzname)
+        except Exception:
+            pass
+
+    return timezone.get_current_timezone()
 
 # ===================================================================
 # Constantes y utilidades internas
@@ -143,17 +250,6 @@ def _slot_consultado(request):
 # ===================================================================
 # HOME / REGISTRO / PERFIL
 # ===================================================================
-from django.utils import timezone
-# Opcional si quieres anotar reservas_hoy:
-# from django.db.models import Count, Q
-from datetime import time
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.utils import timezone
-
-from .models import Sucursal
-from .utils_auth import user_allowed_countries, scope_sucursales_for
-# si pusiste scope_sucursales_for en otro archivo, ajusta el import.
 
 
 # ===============================
@@ -320,24 +416,11 @@ def seleccionar_sucursal(request):
     except Exception:
         radius_km = 50.0
 
-    now = timezone.localtime()
-    base_dt = now
-    try:
-        if date_str:
-            if time_str:
-                base_dt = timezone.make_aware(datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M"))
-            else:
-                base_dt = timezone.make_aware(datetime.strptime(f"{date_str} 19:00", "%Y-%m-%d %H:%M"))
-    except Exception:
-        base_dt = now
-
     # ---- Base y scoping por país ----
     if request.user.is_authenticated and request.user.is_staff:
-        # Staff / Admin → usa su alcance normal
         base_qs = Sucursal.objects.filter(activo=True)
         qs = scope_sucursales_for(request, base_qs)
     else:
-        # Cliente → solo sucursales del país efectivo (donde está o eligió)
         user_country = get_effective_country(request)
         qs = Sucursal.objects.filter(activo=True, pais=user_country)
 
@@ -358,6 +441,19 @@ def seleccionar_sucursal(request):
     ):
         qs = qs.filter(administradores=request.user)
 
+    # Helper: base_dt por sucursal (en su TZ)
+    def _base_dt_for_sucursal(suc: Sucursal) -> datetime:
+        tz = ZoneInfo(suc.timezone)
+        if date_str:
+            try:
+                t = datetime.strptime(time_str or "19:00", "%H:%M").time()
+                d = date.fromisoformat(date_str)
+                return dj_tz.make_aware(datetime.combine(d, t), tz)
+            except Exception:
+                pass
+        # si no viene fecha válida, usar ahora local de la sucursal
+        return timezone.now().astimezone(tz)
+
     user_lat = user_lng = None
     results_raw = []
 
@@ -376,24 +472,28 @@ def seleccionar_sucursal(request):
                 d = _haversine_km(user_lat, user_lng, s_lat, s_lng)
                 if d > radius_km:
                     continue
+            tz = ZoneInfo(s.timezone)
+            base_dt = _base_dt_for_sucursal(s)
             results_raw.append({
                 "obj": s,
                 "map_lat": s_lat,
                 "map_lng": s_lng,
                 "distance_km": (None if d is None else round(d, 1)),
-                "proximos_slots": _proximos_slots(base_dt, 3),
+                "proximos_slots": _proximos_slots(base_dt, 3, tz=tz),
             })
         results_raw.sort(key=lambda item: (item["distance_km"] is None, item["distance_km"] or 0.0))
     else:
         # --- MODO NORMAL ---
         for s in qs.order_by("-recomendado", "nombre"):
             s_lat, s_lng = _coords_from_sucursal(s)
+            tz = ZoneInfo(s.timezone)
+            base_dt = _base_dt_for_sucursal(s)
             results_raw.append({
                 "obj": s,
                 "map_lat": s_lat,
                 "map_lng": s_lng,
                 "distance_km": None,
-                "proximos_slots": _proximos_slots(base_dt, 3),
+                "proximos_slots": _proximos_slots(base_dt, 3, tz=tz),
             })
 
     paginator = Paginator(results_raw, 12)
@@ -402,7 +502,7 @@ def seleccionar_sucursal(request):
 
     ctx = {
         "q": q,
-        "date": date_str or timezone.localdate().strftime("%Y-%m-%d"),
+        "date": date_str or dj_tz.localdate().strftime("%Y-%m-%d"),
         "time": time_str or "19:00",
         "party": party or "2",
         "page_obj": page_obj,
@@ -411,9 +511,39 @@ def seleccionar_sucursal(request):
         "user_lat": user_lat,
         "user_lng": user_lng,
         "radius_km": int(radius_km),
-        "user_country": locals().get("user_country", None),  # 👈 agregado
+        "user_country": locals().get("user_country", None),
     }
     return render(request, "reservas/seleccionar_sucursal.html", ctx)
+
+
+
+# --- Redirección directa desde "Ver disponibilidad" al detalle de sucursal ---
+
+
+def seleccionar_sucursal_redirect(request):
+    """
+    Recibe ?id=<sucursal_id>&date=YYYY-MM-DD&time=HH:MM&party=N
+    y redirige a /s/<slug>/?date=...&time=...&party=...
+    """
+    sucursal_id = request.GET.get("id") or request.GET.get("sucursal_id")
+    if not sucursal_id:
+        return redirect("reservas:store_locator")
+
+    sucursal = get_object_or_404(Sucursal, pk=sucursal_id)
+    detalle_url = reverse("reservas:sucursal_detalle", kwargs={"slug": sucursal.slug})
+
+    params = {}
+    for key in ("date", "time", "party"):
+        val = request.GET.get(key)
+        if val:
+            params[key] = val
+
+    if params:
+        detalle_url = f"{detalle_url}?{urlencode(params)}"
+
+    return redirect(detalle_url)
+
+
 
 # ===================================================================
 # HACER UNA RESERVA
@@ -596,7 +726,16 @@ def mis_reservas(request):
     from .utils import _auto_cancel_por_tolerancia
     _auto_cancel_por_tolerancia(minutos=6)
 
-    cliente = request.user.cliente
+    # ✅ Garantiza que exista el perfil Cliente para el usuario actual
+    cliente, _ = Cliente.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "nombre": request.user.get_full_name() or request.user.username,
+            "email": request.user.email or "",
+            # agrega otros defaults si tu modelo los requiere
+        },
+    )
+
     GRACIA_MINUTOS = 5
     ahora = timezone.now()
     corte_gracia = ahora - timedelta(minutes=GRACIA_MINUTOS)
@@ -623,8 +762,6 @@ def mis_reservas(request):
 # SUCURSAL y MESAS (cliente)
 # ===================================================================
 # reservas/views.py
-from django.contrib.admin.views.decorators import staff_member_required
-
 @staff_member_required
 def ver_mesas(request, sucursal_id):
     from .utils import _auto_cancel_por_tolerancia
@@ -632,12 +769,12 @@ def ver_mesas(request, sucursal_id):
     _auto_cancel_por_tolerancia(minutos=6)
 
     sucursal = get_object_or_404(Sucursal, id=sucursal_id)
+    _activate_sucursal_tz(sucursal)  # 👈 clave para que slot_inicio/fin sean locales
 
-    # 🔒 NUEVO: proteger por sucursal
     if not _puede_ver_sucursal(request.user, sucursal):
-        raise Http404()  # o: return HttpResponseForbidden("No tienes permiso para esta sucursal.")
+        raise Http404()
 
-    inicio, fin = _slot_consultado(request)
+    inicio, fin = _slot_consultado(request)  # ideal: que devuelva aware en TZ activa
     estados_ocupan = ["PEND", "CONF"]
 
     try:
@@ -663,8 +800,9 @@ def ver_mesas(request, sucursal_id):
     )
 
     ctx = {"sucursal": sucursal, "mesas": mesas, "slot_inicio": inicio, "slot_fin": fin}
-    return render(request, "reservas/ver_mesas.html", ctx)
-
+    resp = render(request, "reservas/ver_mesas.html", ctx)
+    # (opcional) dj_tz.deactivate()
+    return resp
 
 # ===================================================================
 # ADMIN: SUCURSALES (UI propia) + FORM crear/editar con imagen
@@ -1329,7 +1467,7 @@ def _slots_disponibles(mesa, fecha_dt, party=2):
     if hasattr(mesa, "bloqueada") and getattr(mesa, "bloqueada", False):
         return []
 
-    tz = timezone.get_current_timezone()
+    tz = ZoneInfo(mesa.sucursal.timezone)
     base = timezone.make_aware(datetime(fecha_dt.year, fecha_dt.month, fecha_dt.day, 0, 0, 0), tz)
 
     apertura = int(getattr(settings, 'HORARIO_APERTURA', 8))
@@ -1707,12 +1845,13 @@ def admin_mesa_crear(request, sucursal_id):
 # reservas/views.py
 
 
+def _proximos_slots(base_dt, n=3, paso_min=15, tz=None):
+    """
+    Devuelve N horarios próximos como strings (ej: '7:30 pm'),
+    formateados en la TZ indicada (o la activa).
+    """
+    tz = tz or dj_tz.get_current_timezone()
 
-def _proximos_slots(base_dt, n=3, paso_min=15):
-    """
-    Devuelve N horarios próximos como strings (ej: '7:30 pm').
-    Compatible con Windows y Linux/Mac.
-    """
     start = base_dt.replace(second=0, microsecond=0)
     resto = start.minute % paso_min
     if resto:
@@ -1721,16 +1860,16 @@ def _proximos_slots(base_dt, n=3, paso_min=15):
     slots = []
     cur = start
     for _ in range(n):
-        dt_local = timezone.localtime(cur)
+        # Localiza en la TZ deseada
+        dt_local = cur.astimezone(tz)
         if os.name == "nt":
-            # Windows: %#I quita el cero a la izquierda
             s = dt_local.strftime("%#I:%M %p")
         else:
-            # Unix: %-I quita el cero a la izquierda
             s = dt_local.strftime("%-I:%M %p")
         slots.append(s.lower())
         cur += timedelta(minutes=paso_min)
     return slots
+
 
 
 
@@ -1812,19 +1951,24 @@ def admin_sucursales(request):
     return render(request, "reservas/admin_sucursales.html", {"sucursales": []})
 
 
-
 def sucursal_detalle(request, slug):
     s = get_object_or_404(Sucursal.objects.filter(activo=True), slug=slug)
+
+    # 🔑 Activar TZ local de la sucursal
+    tz = ZoneInfo(s.timezone)
+    dj_tz.activate(tz)
 
     date_str = request.GET.get("date")
     time_str = request.GET.get("time")
     party = (request.GET.get("party") or "2").strip()
 
-    now = timezone.localtime()
+    # now/base_dt en la TZ de la sucursal
+    now = dj_tz.localtime()
     try:
         if date_str:
-            base_dt = timezone.make_aware(
-                datetime.strptime(f"{date_str} {time_str or '19:00'}", "%Y-%m-%d %H:%M")
+            base_dt = dj_tz.make_aware(
+                datetime.strptime(f"{date_str} {time_str or '19:00'}", "%Y-%m-%d %H:%M"),
+                tz
             )
         else:
             base_dt = now
@@ -1836,7 +1980,8 @@ def sucursal_detalle(request, slug):
     except Exception:
         precio_signos = "$"
 
-    proximos = _proximos_slots(base_dt, 5)
+    # Sugerencias en la TZ de la sucursal
+    proximos = _proximos_slots(base_dt, 5, tz=tz)
 
     # Menú (categorías + items activos)
     categorias = (s.menu_categorias
@@ -1858,7 +2003,7 @@ def sucursal_detalle(request, slug):
         "s": s,
         "precio_signos": precio_signos,
         "party": party or "2",
-        "date": date_str or timezone.localdate().strftime("%Y-%m-%d"),
+        "date": date_str or dj_tz.localdate().strftime("%Y-%m-%d"),
         "time": time_str or "19:00",
         "proximos_slots": proximos,
         "fotos": s.fotos.all(),
@@ -1866,7 +2011,6 @@ def sucursal_detalle(request, slug):
         "page_obj": page_obj,   # reseñas
     }
     return render(request, "reservas/sucursal_detalle.html", ctx)
-
 
 
 
@@ -1885,23 +2029,15 @@ def api_slots_sucursal(request, sucursal_id):
         "duracion_min": <int>
       }
     """
-    # --- imports de utilidades (con fallback para parseo de fecha) ---
+    # --- utilidades ---
     from .utils import booking_total_minutes, _slots_disponibles
     try:
-        # si tienes un parser propio lo usamos
         from .utils import _parse_fecha_param as _parse_fecha_param_util
     except Exception:
         _parse_fecha_param_util = None
 
     # ---------- parámetros ----------
-    # fecha (YYYY-MM-DD); tolera 'date' como alias y cae a hoy si viene mal
     fecha_raw = (request.GET.get("fecha") or request.GET.get("date") or "").strip()
-    if _parse_fecha_param_util:
-        dia = _parse_fecha_param_util(fecha_raw)
-    else:
-        dia = parse_date(fecha_raw) if fecha_raw else None
-    if dia is None:
-        dia = timezone.localdate()  # no rompemos; devolvemos slots para hoy si procede
 
     # party
     try:
@@ -1917,11 +2053,20 @@ def api_slots_sucursal(request, sucursal_id):
         limit = 12
     limit = max(1, limit)
 
-    # sucursal (activa)
+    # sucursal (activa) y TZ local
     sucursal = get_object_or_404(Sucursal, pk=sucursal_id, activo=True)
+    tz = ZoneInfo(sucursal.timezone)
+    dj_tz.activate(tz)  # 🔑 todo lo que siga usa la TZ de la sucursal
 
-    tz = timezone.get_current_timezone()
-    now_loc = timezone.localtime()
+    # fecha (YYYY-MM-DD)
+    if _parse_fecha_param_util:
+        dia = _parse_fecha_param_util(fecha_raw)
+    else:
+        dia = parse_date(fecha_raw) if fecha_raw else None
+    if dia is None:
+        dia = dj_tz.localdate()  # hoy en la TZ de la sucursal
+
+    now_loc = dj_tz.localtime()  # ahora en TZ sucursal
 
     # ---------- ancla de tiempo ----------
     # si es hoy, no permitimos ir al pasado; si es otro día, usamos hora de apertura
@@ -1930,7 +2075,7 @@ def api_slots_sucursal(request, sucursal_id):
     for fmt in ("%H:%M", "%I:%M%p", "%I:%M %p", "%H", "%I%p", "%I %p"):
         try:
             t = datetime.strptime(hraw, fmt).time()
-            anchor = timezone.make_aware(datetime.combine(dia, t), tz)
+            anchor = dj_tz.make_aware(datetime.combine(dia, t), tz)
             break
         except Exception:
             pass
@@ -1940,23 +2085,21 @@ def api_slots_sucursal(request, sucursal_id):
             anchor = now_loc
         else:
             apertura = int(getattr(settings, "HORARIO_APERTURA", 8))
-            anchor = timezone.make_aware(datetime(dia.year, dia.month, dia.day, apertura, 0), tz)
+            anchor = dj_tz.make_aware(datetime(dia.year, dia.month, dia.day, apertura, 0), tz)
     else:
         if now_loc.date() == dia and anchor < now_loc:
             anchor = now_loc
 
-    # redondeo de anchor al siguiente múltiplo de intervalo
+    # redondeo del anchor al siguiente múltiplo de intervalo
     step = int(getattr(settings, "RESERVA_INTERVALO_MIN", 15))
     bump = (step - (anchor.minute % step)) % step
     if bump:
         anchor = anchor + timedelta(minutes=bump)
 
     # ---------- unión de slots por mesa ----------
-    # solo mesas con capacidad suficiente
     mesas = Mesa.objects.filter(sucursal=sucursal, capacidad__gte=party).only("id", "capacidad")
     all_slots = set()
 
-    # si no hay mesas que soporten ese party, regresamos vacío (200)
     if not mesas.exists():
         return JsonResponse({
             "sucursal": sucursal.id,
@@ -1971,7 +2114,6 @@ def api_slots_sucursal(request, sucursal_id):
         try:
             return _slots_disponibles(m, dia, party=party)
         except TypeError as e:
-            # Solo caemos al modo antiguo si el error es exactamente por el kw 'party'
             if "unexpected keyword argument 'party'" in str(e):
                 return _slots_disponibles(m, dia)
             raise
@@ -1982,26 +2124,22 @@ def api_slots_sucursal(request, sucursal_id):
                 if dt >= anchor:
                     all_slots.add(dt)
         except Exception:
-            # si una mesa da error, la ignoramos y seguimos con el resto
             continue
 
     futuros = sorted(all_slots)[:limit]
 
     # ---------- formateo para UI ----------
-    # compatibilidad Windows/Linux con %-I/%#I
     def _label_12h(dloc: datetime) -> str:
         fmt = "%#I:%M %p" if os.name == "nt" else "%-I:%M %p"
         try:
             return dloc.strftime(fmt).lower()
         except Exception:
-            # fallback portable
             return dloc.strftime("%I:%M %p").lstrip("0").lower()
 
     def _fmt(dt):
         dloc = dt.astimezone(tz)
         return {"label": _label_12h(dloc), "value": dloc.strftime("%H:%M")}
 
-    # duración estimada (según party y tu lógica)
     dur_min = booking_total_minutes(anchor, party)
     payload = [_fmt(dt) for dt in futuros]
 
@@ -2106,68 +2244,82 @@ def admin_finalizar_reserva(request, reserva_id):
     return redirect("reservas:admin_mapa_sucursal", sucursal_id=r.mesa.sucursal_id)
 
 
-
-
-
-
-
-@login_required
-@require_POST
+@require_http_methods(["POST", "GET"])
 def reservar_auto(request, sucursal_id):
-    tz = timezone.get_current_timezone()
-    s = get_object_or_404(Sucursal, pk=sucursal_id, activo=True)
+    """
+    Crea una reserva automática asignando mesa según disponibilidad.
+    Compatible con modelo IHOP (campos: fecha, inicio_utc, fin_utc, num_personas, estado, etc.)
+    Maneja correctamente zonas horarias de sucursal.
+    """
+    from datetime import timezone as py_tz
 
-    fecha_str = (request.POST.get("fecha") or "").strip()   # YYYY-MM-DD
-    hora_str  = (request.POST.get("hora")  or "").strip()   # HH:MM
+    # 1) Obtener sucursal con seguridad
+    s = _get_sucursal_scoped(request, sucursal_id)
+
+    # 2) Zona horaria local
+    tz = _tz_for_sucursal(s)
+
+    # 3) Parámetros recibidos
+    date_str = (request.POST.get("date") or request.GET.get("date") or "").strip()
+    time_str = (request.POST.get("time") or request.GET.get("time") or "").strip()
+    party_raw = (request.POST.get("party") or request.GET.get("party") or "2").strip()
+
     try:
-        party = max(1, int((request.POST.get("party") or "2").strip()))
+        party = max(1, int(party_raw))
     except Exception:
         party = 2
 
-    # parse datetime
+    # 4) Si no hay fecha/hora, usar actual +15 min
+    now_loc = timezone.localtime(timezone.now(), tz)
+    if date_str and time_str:
+        try:
+            dt_local = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            dt_local = timezone.make_aware(dt_local, tz)
+        except Exception:
+            dt_local = (now_loc + timedelta(minutes=15)).replace(second=0, microsecond=0)
+    else:
+        dt_local = (now_loc + timedelta(minutes=15)).replace(second=0, microsecond=0)
+
+    # 5) Autoasignación de mesa
     try:
-        inicio = timezone.make_aware(datetime.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M"), tz)
-    except Exception:
-        messages.error(request, "Horario inválido.")
+        mesa = asignar_mesa_automatica(s, dt_local, party)
+    except Exception as e:
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse({"ok": False, "error": "no_table", "detail": str(e)}, status=200)
+        from django.contrib import messages
+        messages.error(request, "No hay mesas disponibles para ese horario.")
         return redirect("reservas:sucursal_detalle", slug=s.slug)
 
-    # anticipación mínima (si ya tienes helper, úsalo)
-    now_loc = timezone.localtime()
-    if inicio <= now_loc:
-        messages.error(request, "Selecciona un horario futuro.")
-        return redirect("reservas:sucursal_detalle", slug=s.slug)
+    # 6) Calcular fin de reserva
+    dur_min = booking_total_minutes(dt_local, party)
+    dt_fin_local = dt_local + timedelta(minutes=dur_min)
 
-    # cliente
-    cliente, _ = Cliente.objects.get_or_create(
-        user=request.user,
-        defaults={"nombre": request.user.get_full_name() or request.user.username,
-                  "email": request.user.email or ""},
-    )
+    # 7) Convertir a UTC
+    inicio_utc = dt_local.astimezone(py_tz.utc)
+    fin_utc = dt_fin_local.astimezone(py_tz.utc)
 
-    # asignación
-    mesa = asignar_mesa_automatica(s, inicio, party)
-    if not mesa:
-        messages.error(request, "No hay mesas disponibles para ese horario y tamaño de grupo.")
-        return redirect("reservas:sucursal_detalle", slug=s.slug)
+    # 8) Cliente (si está logueado)
+    cliente = getattr(request.user, "cliente", None)
 
-    # CREAR reserva
-    dur_min = booking_total_minutes(inicio, party)
+    # 9) Crear la reserva
     reserva = Reserva.objects.create(
-        cliente=cliente,
+        sucursal=s,
         mesa=mesa,
-        estado=Reserva.PEND,
-        fecha=inicio,
+        cliente=cliente,
+        fecha=dt_local.date(),
+        inicio_utc=inicio_utc,
+        fin_utc=fin_utc,
+        local_service_date=dt_local.date(),
+        local_inicio=dt_local,
+        local_fin=dt_fin_local,
         num_personas=party,
+        estado="CONF",  # ✅ según tus choices reales
     )
 
-    # correo on_commit (si ya lo usas en otros flujos)
-    try:
-        from .emails import enviar_correo_reserva_confirmada
-        enviar_correo_reserva_confirmada(reserva, bcc_sucursal=True)
-    except Exception:
-        pass
-
-    return redirect("reservas:reserva_exito", reserva_id=reserva.id)
+    # 10) Mensaje de éxito
+    from django.contrib import messages
+    messages.success(request, "¡Reserva creada correctamente!")
+    return redirect("reservas:reserva_detalle", pk=reserva.pk)
 
 
 
@@ -2219,37 +2371,47 @@ def admin_reasignar_reserva(request, reserva_id):
 
 
 
-from django.utils import timezone
-from django.shortcuts import get_object_or_404, render, redirect
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from .models import Sucursal
-
 @login_required
 def reservar_slot(request, sucursal_id):
-    """
-    Muestra un formulario para pedir PERSONAS y HORA (editable).
-    Usa la fecha que llega por querystring y una hora sugerida,
-    pero el usuario puede cambiarla antes de enviar.
-    """
     s = get_object_or_404(Sucursal, pk=sucursal_id, activo=True)
 
+    # Activar TZ de la sucursal para esta request
+    try:
+        dj_tz.activate(ZoneInfo(s.timezone))
+    except Exception:
+        dj_tz.deactivate()
+
     fecha_str = (request.GET.get("fecha") or "").strip()  # YYYY-MM-DD
-    hora_sugerida = (request.GET.get("hora") or "").strip()  # HH:MM (opcional)
+    hora_sugerida = (request.GET.get("hora") or "").strip()  # HH:MM
+
     if not fecha_str:
         messages.error(request, "Selecciona una fecha válida.")
         return redirect("reservas:sucursal_detalle", slug=s.slug)
 
+    # Sugerir hora local redondeada si no viene
+    if not hora_sugerida:
+        now_local = dj_tz.localtime()
+        mins = ((now_local.minute // 15) + 1) * 15
+        if mins >= 60:
+            now_local = now_local.replace(hour=(now_local.hour + 1) % 24, minute=0, second=0, microsecond=0)
+        else:
+            now_local = now_local.replace(minute=mins, second=0, microsecond=0)
+        hora_sugerida = now_local.strftime("%H:%M")
+
+    # Prefijo telefónico por país (ajusta a tu modelo; si ya tienes campo, úsalo)
+    iso2 = getattr(getattr(s, "pais", None), "iso2", "MX")
+    prefix_map = {"MX": "+52", "AR": "+54", "ES": "+34", "US": "+1"}
+    phone_prefix = prefix_map.get(iso2, "+52")
+
     contexto = {
         "sucursal": s,
         "fecha": fecha_str,
-        "hora_sugerida": hora_sugerida,      # se mostrará en un <input type="time"> editable
+        "hora_sugerida": hora_sugerida,  # HH:MM local
         "party_default": 2,
         "cap_max": 12,
+        "phone_prefix": phone_prefix,     # 👈 para el template
     }
     return render(request, "reservas/reservar_slot.html", contexto)
-
-
 
 
 
@@ -2642,3 +2804,125 @@ def register(request):
     else:
         form = ClienteRegistrationForm()
     return render(request, 'reservas/register.html', {'form': form})
+
+
+def _get_sucursal_scoped(request, sucursal_id: int) -> Sucursal:
+    """
+    Obtiene la sucursal respetando el alcance:
+    - Clientes: sólo sucursales del país efectivo.
+    - Staff: respeta scope_sucursales_for.
+    """
+    base = Sucursal.objects.filter(activo=True)
+
+    if request.user.is_authenticated and request.user.is_staff:
+        qs = scope_sucursales_for(request, base)
+    else:
+        user_country = get_effective_country(request)
+        qs = base.filter(pais=user_country)
+
+    return get_object_or_404(qs, pk=sucursal_id)
+
+
+# tu helper existente
+# _tz_for_sucursal(sucursal)  -> devuelve ZoneInfo de la sucursal
+
+@login_required
+def reserva_detalle(request, pk):
+    """
+    Ticket/recibo de la reserva con QR (sin código de barras).
+    """
+    reserva = get_object_or_404(
+        Reserva.objects.select_related("sucursal", "mesa", "cliente", "cliente__user"),
+        pk=pk,
+    )
+
+    # TZ de sucursal
+    tz = _tz_for_sucursal(reserva.sucursal or (getattr(reserva, "mesa", None) and reserva.mesa.sucursal))
+
+    # Normaliza locales
+    li = reserva.local_inicio or (reserva.inicio_utc and timezone.localtime(reserva.inicio_utc, tz))
+    lf = reserva.local_fin    or (reserva.fin_utc   and timezone.localtime(reserva.fin_utc, tz))
+
+    fecha_txt = formats.date_format(li.date(), "DATE_FORMAT") if li else ""
+    hora_txt  = li.strftime("%H:%M") if li else ""
+    duracion_min = int(((lf - li).total_seconds() // 60)) if (li and lf) else 0
+
+    # Contacto fallbacks
+    cliente = getattr(reserva, "cliente", None)
+    user = getattr(cliente, "user", None)
+
+    contacto_nombre = (
+        (reserva.nombre_contacto or "").strip()
+        or (getattr(cliente, "nombre", "") or "").strip()
+        or (" ".join(filter(None, [getattr(user, "first_name", ""), getattr(user, "last_name", "")])).strip() if user else "")
+        or (getattr(user, "username", "") if user else "")
+    )
+
+    contacto_email = (
+        (reserva.email_contacto or "").strip()
+        or (getattr(cliente, "email", "") or "").strip()
+        or (getattr(user, "email", "") if user else "")
+    )
+
+    contacto_tel = (
+        (reserva.telefono_contacto or "").strip()
+        or (getattr(cliente, "telefono", "") or "").strip()
+    )
+
+    # URL absoluta para el QR (entrada por folio)
+    qr_url = request.build_absolute_uri(
+        reverse("reservas:reserva_scan_entry", args=[reserva.folio])
+    )
+
+    ctx = {
+        "reserva": reserva,
+        "fecha_txt": fecha_txt,
+        "hora_txt": hora_txt,
+        "duracion_min": duracion_min,
+        "personas": reserva.num_personas,
+        "contacto_nombre": contacto_nombre,
+        "contacto_email": contacto_email,
+        "contacto_tel": contacto_tel,
+        "notas": getattr(reserva, "notas", "") or "",
+        "qr_url": qr_url,
+    }
+    return render(request, "reservas/reserva_exito.html", ctx)
+
+
+
+# --- Helper contacto/fallbacks ----------------------------------------------
+def _contacto_from_reserva(reserva):
+    """
+    Devuelve un dict con nombre/email/tel usando fallbacks:
+    Reserva -> Cliente -> User.
+    """
+    cliente = getattr(reserva, "cliente", None)
+    user = getattr(cliente, "user", None)
+
+    nombre = (
+        (reserva.nombre_contacto or "").strip()
+        or (getattr(cliente, "nombre", "") or "").strip()
+        or (
+            (" ".join([
+                (getattr(user, "first_name", "") or "").strip(),
+                (getattr(user, "last_name", "") or "").strip()
+            ])).strip() if user else ""
+        )
+        or (getattr(user, "username", "") if user else "")
+        or ""
+    )
+    email = (
+        (reserva.email_contacto or "").strip()
+        or (getattr(cliente, "email", "") or "").strip()
+        or (getattr(user, "email", "") if user else "")
+        or ""
+    )
+    tel = (
+        (reserva.telefono_contacto or "").strip()
+        or (getattr(cliente, "telefono", "") or "").strip()
+        or ""
+    )
+    return {"contacto_nombre": nombre, "contacto_email": email, "contacto_tel": tel}
+
+
+

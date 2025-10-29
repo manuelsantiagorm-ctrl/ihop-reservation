@@ -125,3 +125,15 @@ class RedirectSignupMiddleware:
         if request.path.startswith("/auth/signup"):
             return redirect("accounts:signup_start")
         return self.get_response(request)
+
+
+class RedirectNonStaffFromStaffURLs:
+    """Si un usuario NO es staff y entra a /staff/, lo mandamos a seleccionar_sucursal."""
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        path = request.path or ''
+        if path.startswith('/staff/') and request.user.is_authenticated and not request.user.is_staff:
+            return redirect(reverse('reservas:seleccionar_sucursal'))
+        return self.get_response(request)

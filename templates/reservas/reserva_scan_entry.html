@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Reserva" %} {{ reserva.folio }}{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'reservas/css/reserva_exito.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 reservar">
+  <nav class="breadcrumb-lite mb-3">
+    <a href="{% url 'reservas:home' %}">{% trans "Inicio" %}</a> /
+    <span>{% trans "Reserva" %}</span>
+  </nav>
+
+  <header class="d-flex justify-content-between align-items-start gap-3 mb-3 flex-wrap">
+    <div>
+      <h1 class="mb-1">{% trans "Detalle de la reservación" %}</h1>
+      <p class="lead text-muted mb-0">
+        {% blocktrans with n=reserva.mesa.numero|default:reserva.mesa.id p=personas %}
+          Mesa {{ n }} · {{ p }} pax
+        {% endblocktrans %}
+      </p>
+    </div>
+    <div class="text-end">
+      <div class="text-muted small">{% trans "Folio" %}</div>
+      <div class="folio-display">{{ reserva.folio }}</div>
+    </div>
+  </header>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <h6 class="text-muted mb-2">{% trans "Detalles de la reserva" %}</h6>
+            <ul class="list-unstyled mb-0">
+              <li><strong>{% trans "Sucursal" %}:</strong> {{ reserva.sucursal.nombre }}</li>
+              <li><strong>{% trans "Fecha" %}:</strong> {{ fecha_txt }}</li>
+              <li><strong>{% trans "Hora" %}:</strong> {{ hora_txt }}</li>
+              <li><strong>{% trans "Duración" %}:</strong> {{ duracion_min }} {% trans "min" %}</li>
+              <li><strong>{% trans "Personas" %}:</strong> {{ personas }}</li>
+              {% if reserva.get_estado_display %}
+                <li><strong>{% trans "Estado" %}:</strong> {{ reserva.get_estado_display }}</li>
+              {% endif %}
+              {% if reserva.llego %}
+                <li><strong>{% trans "Llegó" %}:</strong> ✅</li>
+              {% endif %}
+            </ul>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="border rounded p-3 h-100">
+            <h6 class="text-muted mb-2">{% trans "Contacto" %}</h6>
+            <ul class="list-unstyled mb-0">
+              <li><strong>{% trans "Nombre" %}:</strong> {{ contacto_nombre|default:"—" }}</li>
+              <li><strong>{% trans "Correo electrónico" %}:</strong> {{ contacto_email|default:"—" }}</li>
+              <li><strong>{% trans "Teléfono" %}:</strong> {{ contacto_tel|default:"—" }}</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {% if for_staff %}
+      <form method="post" action="{% url 'reservas:reserva_checkin' reserva.folio %}" class="mt-3">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success w-100">
+          <i class="bi bi-check2-circle me-1"></i> {% trans "Confirmar llegada" %}
+        </button>
+      </form>
+      {% else %}
+      <div class="alert alert-info mt-3 mb-0">
+        {% trans "Presenta este folio en recepción. Si necesitas hacer cambios, comunícate a la sucursal." %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

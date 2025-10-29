@@ -1,3 +1,13 @@
+# ==========================================================
+# Archivo: reservas/emails.py
+# ----------------------------------------------------------
+# 📬 Módulo responsable de enviar correos de confirmación
+# de reservas. Calcula la hora local de la SUCURSAL y,
+# opcionalmente, muestra una equivalencia con la hora local
+# del CLIENTE (por ejemplo: “Equivale a las 11:30 a. m. hora CDMX”).
+# Compatible con reservas multi-país y multi-zona horaria.
+# ==========================================================
+
 import logging
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
@@ -11,7 +21,6 @@ try:
 except Exception:
     ZoneInfo = None
 
-
 logger = logging.getLogger("reservas.mail")
 
 
@@ -21,33 +30,52 @@ def _normalize_email(val: str | None) -> str:
 
 def _tz_for_reserva(reserva):
     """
-    Devuelve la zona horaria (TZ) para la reserva.
-    Si tu modelo tiene algo como reserva.mesa.sucursal.pais.tz = "America/Mexico_City",
-    úsalo; si no, cae a la TZ actual de Django.
+    Devuelve la zona horaria (TZ) principal de la reserva (sucursal).
+    Prioriza:
+      1. reserva.mesa.sucursal.timezone
+      2. reserva.mesa.sucursal.pais.timezone
+      3. settings.TIME_ZONE
     """
-    tzname = None
     try:
-        # Ajusta el acceso si tu campo se llama distinto (por ejemplo sucursal.timezone)
-        tzname = getattr(getattr(getattr(reserva, "mesa", None), "sucursal", None), "pais", None)
-        tzname = getattr(tzname, "tz", None)
+        suc = getattr(reserva, "mesa", None) and getattr(reserva.mesa, "sucursal", None)
+        if suc and getattr(suc, "timezone", None):
+            return ZoneInfo(suc.timezone)
+        if suc and getattr(suc, "pais", None) and getattr(suc.pais, "timezone", None):
+            return ZoneInfo(suc.pais.timezone)
     except Exception:
-        tzname = None
+        pass
+    return timezone.get_current_timezone()
 
-    if tzname and ZoneInfo:
+
+def _guess_cliente_tz(reserva):
+    """
+    Intenta deducir la TZ del cliente:
+      - cliente.timezone (si existe)
+      - perfil de usuario (si tiene)
+      - settings.TIME_ZONE
+    """
+    cliente = getattr(reserva, "cliente", None)
+    if cliente and hasattr(cliente, "timezone") and cliente.timezone:
         try:
-            return ZoneInfo(tzname)
+            return ZoneInfo(cliente.timezone)
         except Exception:
             pass
 
-    # Si no se encontró TZ específica, usar la del sistema Django
-    return timezone.get_current_timezone()
+    user = getattr(cliente, "user", None)
+    if user and hasattr(user, "timezone") and user.timezone:
+        try:
+            return ZoneInfo(user.timezone)
+        except Exception:
+            pass
+
+    return ZoneInfo(getattr(settings, "TIME_ZONE", "UTC"))
 
 
 def enviar_correo_reserva_confirmada(reserva, *, bcc_sucursal: bool = False, reply_to: list[str] | None = None) -> int:
     """
     Envía el correo de confirmación al cliente (y opcionalmente en BCC a la sucursal).
-    Retorna 1 si el backend reporta enviado, 0 si no se envió.
-    Lanza excepción sólo si deseas fallar duro; por defecto captura y loguea.
+    Incluye la hora local de la sucursal y, si aplica, la equivalencia en la TZ del cliente.
+    Retorna 1 si se envió correctamente; 0 si hubo error.
     """
     try:
         cliente = getattr(reserva, "cliente", None)
@@ -59,23 +87,32 @@ def enviar_correo_reserva_confirmada(reserva, *, bcc_sucursal: bool = False, rep
         folio = getattr(reserva, "folio", "") or ""
         subject = f"Reserva confirmada · {folio}".strip()
 
-        # ▼ NUEVO: calcula hora local y valores formateados
-        tz = _tz_for_reserva(reserva)
+        # --- Determinar zonas horarias ---
+        tz_sucursal = _tz_for_reserva(reserva)
+        tz_cliente = _guess_cliente_tz(reserva)
 
-        # Intenta usar reserva.local_inicio si existe; si no, cae a reserva.inicio o reserva.fecha
-        dt = getattr(reserva, "local_inicio", None) or getattr(reserva, "inicio", None) or getattr(reserva, "fecha", None)
-        if dt:
-            dt_loc = timezone.localtime(dt, tz)
-            fecha_txt = formats.date_format(dt_loc.date(), "DATE_FORMAT")
-            hora_txt = dt_loc.strftime("%H:%M")
-        else:
-            fecha_txt = ""
-            hora_txt = ""
+        # --- Base datetime (local_inicio o UTC) ---
+        dt = getattr(reserva, "inicio_utc", None) or getattr(reserva, "local_inicio", None)
+        if not dt:
+            dt = getattr(reserva, "fecha", None)
+        if not dt:
+            logger.warning("Reserva %s sin fecha/hora válida.", reserva.id)
+            return 0
+
+        # --- Convertir a ambas zonas ---
+        dt_sucursal = timezone.localtime(dt, tz_sucursal)
+        dt_cliente = dt_sucursal.astimezone(tz_cliente)
+
+        # --- Formatos de texto ---
+        fecha_txt = formats.date_format(dt_sucursal.date(), "DATE_FORMAT")
+        hora_txt = dt_sucursal.strftime("%I:%M %p").lstrip("0").lower()
 
         personas = getattr(reserva, "personas", None) or getattr(reserva, "num_personas", None) or 1
         sucursal = getattr(getattr(reserva, "mesa", None), "sucursal", None)
 
-        # Contexto para las plantillas de correo
+        mostrar_equivalencia = tz_sucursal.key != tz_cliente.key
+
+        # --- Contexto para plantillas ---
         ctx = {
             "cliente": cliente,
             "reserva": reserva,
@@ -83,31 +120,38 @@ def enviar_correo_reserva_confirmada(reserva, *, bcc_sucursal: bool = False, rep
             "fecha_txt": fecha_txt,
             "hora_txt": hora_txt,
             "personas": personas,
+            "dt_sucursal": dt_sucursal,
+            "dt_cliente": dt_cliente,
+            "mostrar_equivalencia": mostrar_equivalencia,
+            "tz_label_sucursal": getattr(getattr(sucursal, "pais", None), "nombre", None)
+                or getattr(sucursal, "timezone", "Local"),
+            "tz_label_cliente": tz_cliente.key.split("/")[-1].replace("_", " "),
         }
 
-        # Render seguro de plantillas
+        # --- Render de plantillas ---
         try:
             body_html = render_to_string("emails/reserva_confirmada.html", ctx)
             body_txt = render_to_string("emails/reserva_confirmada.txt", ctx)
-        except TemplateDoesNotExist as e:
-            logger.exception("Plantilla faltante para confirmación (%s). Usando solo texto plano.", e)
+        except TemplateDoesNotExist:
+            logger.exception("Plantilla faltante, usando fallback texto.")
             body_html = None
-            body_txt = f"Tu reserva {folio} ha sido confirmada."
+            body_txt = (
+                f"Tu reserva {folio} ha sido confirmada para {fecha_txt} a las {hora_txt} "
+                f"(hora local de la sucursal)."
+            )
 
-        # from / reply-to
+        # --- Configuración de envío ---
         from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
         if not from_email:
-            logger.warning("DEFAULT_FROM_EMAIL no está configurado. Configúralo en settings.py para mejor entregabilidad.")
+            logger.warning("DEFAULT_FROM_EMAIL no está configurado.")
 
-        # BCC sucursal (si existe)
         bcc = None
         if bcc_sucursal:
-            sucursal = getattr(getattr(reserva, "mesa", None), "sucursal", None)
             suc_email = _normalize_email(getattr(sucursal, "email", None)) if sucursal else ""
             if suc_email:
                 bcc = [suc_email]
 
-        # Construcción del mensaje
+        # --- Construcción del mensaje ---
         msg = EmailMultiAlternatives(
             subject=subject,
             body=body_txt or strip_tags(body_html or ""),
@@ -125,7 +169,10 @@ def enviar_correo_reserva_confirmada(reserva, *, bcc_sucursal: bool = False, rep
             msg.attach_alternative(body_html, "text/html")
 
         sent = msg.send(fail_silently=False)
-        logger.info("Confirmación enviada a %s (reserva=%s, folio=%s) -> %s", to_email, getattr(reserva, "id", "?"), folio, sent)
+        logger.info(
+            "Confirmación enviada a %s (reserva=%s, folio=%s) -> %s",
+            to_email, getattr(reserva, "id", "?"), folio, sent
+        )
         return int(bool(sent))
 
     except Exception as e:

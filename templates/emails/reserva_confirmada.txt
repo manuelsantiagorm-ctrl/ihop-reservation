@@ -1,11 +1,32 @@
+# templates/emails/reserva_confirmada.txt
+# Plantilla de TEXTO PLANO del correo de confirmación.
+# Muestra la hora local de la SUCURSAL y, si aplica, la equivalencia en la zona horaria del CLIENTE.
+
 ¡Tu reserva está confirmada!
 
 Folio: {{ reserva.folio }}
-Fecha y hora: {{ reserva.fecha|date:"d/M/Y H:i" }}
+
+Fecha y hora (sucursal):
+{% if fecha_txt or hora_txt -%}
+{{ fecha_txt }} {{ hora_txt }}{% if tz_label_sucursal %} · {{ tz_label_sucursal }}{% endif %}
+{%- else -%}
+{{ dt_sucursal|date:"d/M/Y g:i a" }}{% if tz_label_sucursal %} · {{ tz_label_sucursal }}{% endif %}
+{%- endif %}
+
+{% if mostrar_equivalencia -%}
+Equivale a: {{ dt_cliente|date:"d/M/Y g:i a" }}{% if tz_label_cliente %} (tu zona: {{ tz_label_cliente }}){% endif %}
+{%- endif %}
+
 Personas: {{ reserva.num_personas|default:1 }}
 Mesa: {{ reserva.mesa.numero|default:"-" }}
-Sucursal: {{ reserva.mesa.sucursal.nombre|default:"" }}{% if reserva.mesa.sucursal.direccion %}
-Dirección: {{ reserva.mesa.sucursal.direccion }}{% endif %}{% if reserva.get_absolute_url %}
-Ver mi reserva: {{ reserva.get_absolute_url }}{% endif %}
+
+Sucursal: {{ reserva.mesa.sucursal.nombre|default:"" }}
+{% if reserva.mesa.sucursal.direccion -%}
+Dirección: {{ reserva.mesa.sucursal.direccion }}
+{%- endif %}
+
+{% if reserva.get_absolute_url -%}
+Ver mi reserva: {{ reserva.get_absolute_url }}
+{%- endif %}
 
 Si no reconoces esta reserva, responde a este correo para asistencia.

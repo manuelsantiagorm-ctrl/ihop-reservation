@@ -84,19 +84,12 @@
   </form>
 </div>
 
-<!-- Config (mínimo inline para pasar i18n/urls al JS externo) -->
+{# Config para JS #}
 <script id="walkin-config" type="application/json">
 {
   "urls": {
-    "api_slots_base": "{% url 'reservas:api_slots_sucursal' 0 %}"
-  },
-  "i18n": {
-    "searching": "{% trans 'Buscando…' %}",
-    "error": "{% trans 'Error consultando disponibilidad.' %}",
-    "no_slots": "{% trans 'No hay mesas con horarios disponibles.' %}",
-    "cap": "{% trans 'Cap.' %}",
-    "list_title": "{% trans 'Horarios disponibles' %}",
-    "select_table_hint": "{% trans 'Seleccione la mesa en el formulario antes de guardar.' %}"
+    "api_slots_base": "{% url 'reservas:api_slots_sucursal' 0 %}",
+    "api_mesas_base": "{% url 'reservas:api_list_mesas' 0 %}"
   }
 }
 </script>
@@ -104,5 +97,6 @@
 
 {% block extra_js %}
 <link rel="stylesheet" href="{% static 'reservas/css/walkin.css' %}">
+<script src="{% static 'reservas/js/walkin_mesas.js' %}"></script>
 <script src="{% static 'reservas/js/walkin.js' %}"></script>
 {% endblock %}

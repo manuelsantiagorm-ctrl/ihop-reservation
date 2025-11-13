@@ -1,0 +1,19 @@
+<div>
+  <h5 class="mb-3">
+    Mesa {{ mesa.nombre }} <small class="text-muted">({{ mesa.capacidad }} pax)</small>
+  </h5>
+
+  <div class="border rounded p-3 bg-light mb-3">
+    <p class="mb-1"><strong>Orden ID:</strong> {{ orden.id }}</p>
+    <p class="mb-0 text-muted">Estado: {{ orden.get_status_display }}</p>
+  </div>
+
+  <div class="alert alert-info">
+    💡 Próximamente aquí podrás agregar platillos y ver el total.
+  </div>
+
+  <div class="text-end">
+    <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+    <button class="btn btn-success">Guardar orden</button>
+  </div>
+</div>

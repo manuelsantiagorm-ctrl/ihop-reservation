@@ -13,6 +13,18 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import (
     login_required, user_passes_test, permission_required
 )
+# BIEN: importar desde models_orders
+from .models_orders import Orden, OrdenItem, Order, OrderItem as POSOrderItem
+
+# Si usas catálogo nuevo en las vistas:
+from .models_menu import CatalogItem
+# Y los core (mesa/sucursal/reserva) siguen en models.py:
+from .models import Sucursal, Mesa, Reserva
+
+
+# Catálogo nuevo (si tu búsqueda usa catálogo)
+from .models_menu import CatalogItem
+from django.template.loader import render_to_string
 from datetime import timezone as py_tz  # <-- para usar py_tz.utc en vez de timezone.utc
 from django.contrib.messages import get_messages
 from django.core.cache import cache
@@ -26,6 +38,8 @@ from django.http import (
     JsonResponse, HttpResponse, HttpResponseForbidden,
     HttpResponseRedirect, HttpResponseBadRequest, Http404
 )
+from reservas.services_orders import liberar_preorden_al_checkin
+
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -90,24 +104,24 @@ def reserva_scan_entry(request, folio):
 @require_POST
 @login_required
 def reserva_checkin(request, folio):
-    """
-    Marca la reserva como llegada (check-in). Solo staff.
-    """
     if not request.user.is_staff:
         return HttpResponseForbidden("Solo personal autorizado")
 
     reserva = _get_reserva_by_folio(folio)
-    # Usa los campos que ya existen en tu modelo
     reserva.llego = True
     reserva.checkin_at = dj_tz.now()
-    reserva.arrived_at = reserva.checkin_at  # si usas ambos
-    # Opcional: cambia estado si usas choices (ajústalo a tu enumeración)
+    reserva.arrived_at = reserva.checkin_at
     if hasattr(reserva, "estado") and not reserva.estado:
         pass
     reserva.save(update_fields=["llego", "checkin_at", "arrived_at"])
 
-    messages.success(request, "¡Check-in registrado!")
+    # ✅ Liberar pre-orden al hacer check-in
+    from reservas.services_orders import liberar_preorden_al_checkin
+    liberar_preorden_al_checkin(reserva)
+
+    messages.success(request, "¡Check-in registrado y pedido enviado a cocina!")
     return redirect("reservas:reserva_scan_entry", folio=reserva.folio)
+
 
 
 
@@ -2926,3 +2940,132 @@ def _contacto_from_reserva(reserva):
 
 
 
+
+# ⬇️ AJUSTA estos imports a tus modelos reales si difieren
+
+@staff_member_required
+@require_GET
+def orden_mesa_nueva(request):
+    """
+    Crea (o reutiliza) una Orden en estado DRAFT para la mesa indicada
+    y devuelve el HTML del modal renderizado dentro de JSON.
+    """
+    mesa_id = request.GET.get("mesa_id")
+    if not mesa_id:
+        return JsonResponse({"ok": False, "error": "mesa_id requerido"}, status=400)
+
+    mesa = get_object_or_404(Mesa, pk=mesa_id)
+
+    # Reutiliza una orden DRAFT abierta para esa mesa, o crea una nueva
+    orden, _created = Orden.objects.get_or_create(
+        mesa=mesa,
+        estado="DRAFT",                 # ajusta si tu campo/choice se llama distinto
+        defaults={
+            "sucursal": getattr(mesa, "sucursal", None),
+        },
+    )
+
+    html = render_to_string(
+        "reservas/orden_modal_body.html",
+        {
+            "sucursal": getattr(mesa, "sucursal", None),
+            "mesa": mesa,
+            "orden": orden,
+        },
+        request=request,
+    )
+    return JsonResponse({"ok": True, "html": html})
+
+
+@staff_member_required
+@require_GET
+def api_menu_buscar(request):
+    """
+    Búsqueda rápida de productos del menú.
+    Respuesta: {"results":[{"id":..,"codigo":"..","nombre":"..","precio":..}, ...]}
+    """
+    q = (request.GET.get("q") or "").strip()
+    if len(q) < 2:
+        return JsonResponse({"results": []})
+
+    qs = MenuItem.objects.all()
+    # filtros sencillos por código o nombre
+    qs = qs.filter(nombre__icontains=q)[:25]
+
+    results = [
+        {
+            "id": mi.id,
+            "codigo": getattr(mi, "codigo", "") or "",
+            "nombre": mi.nombre,
+            "precio": float(getattr(mi, "precio", 0) or 0),
+        }
+        for mi in qs
+    ]
+    return JsonResponse({"results": results})
+
+
+@staff_member_required
+@require_POST
+@transaction.atomic
+def api_orden_crear(request):
+    """
+    Agrega un item a la Orden.
+    Body JSON admite:
+      - orden_id (req)
+      - item_id (opcional)  ó  codigo (opcional)  ó  nombre (opcional)
+      - cantidad (default 1)
+      - notas (opcional)
+    Respuesta: {ok, html} con el cuerpo del modal re-renderizado.
+    """
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return HttpResponseBadRequest("JSON inválido")
+
+    orden_id = data.get("orden_id")
+    if not orden_id:
+        return JsonResponse({"ok": False, "error": "orden_id requerido"}, status=400)
+
+    orden = get_object_or_404(Orden, pk=orden_id)
+
+    cantidad = int(data.get("cantidad") or 1)
+    if cantidad < 1:
+        cantidad = 1
+
+    menu_item = None
+    item_id = data.get("item_id")
+    codigo = (data.get("codigo") or "").strip()
+    nombre = (data.get("nombre") or "").strip()
+
+    if item_id:
+        menu_item = get_object_or_404(MenuItem, pk=item_id)
+    elif codigo:
+        menu_item = MenuItem.objects.filter(codigo__iexact=codigo).first()
+    elif nombre:
+        # Estrategia básica: nombre exacto; ajusta a icontains si lo prefieres
+        menu_item = MenuItem.objects.filter(nombre__iexact=nombre).first()
+
+    if not menu_item:
+        return JsonResponse({"ok": False, "error": "Producto no encontrado"}, status=404)
+
+    # Crear renglón de Orden
+    OrdenItem.objects.create(
+        orden=orden,
+        codigo=getattr(menu_item, "codigo", "") or "",
+        nombre=menu_item.nombre,
+        precio_unit=getattr(menu_item, "precio", 0) or 0,
+        cantidad=cantidad,
+        notas=(data.get("notas") or "").strip(),
+    )
+
+    # Re-render del parcial
+    html = render_to_string(
+        "reservas/orden_modal_body.html",
+        {
+            "sucursal": getattr(orden, "sucursal", getattr(orden.mesa, "sucursal", None)),
+            "mesa": orden.mesa,
+            "orden": orden,
+        },
+        request=request,
+    )
+    return JsonResponse({"ok": True, "html": html})

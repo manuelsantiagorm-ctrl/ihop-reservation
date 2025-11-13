@@ -5,6 +5,8 @@ from django.core.exceptions import ValidationError
 from django.conf import settings
 from django.utils import timezone
 from django.db import IntegrityError, transaction
+from datetime import datetime   # <--- ESTE es el que falta
+from django.forms.models import construct_instance  # <-- ESTE ES EL QUE FALTABA
 
 from django.forms import inlineformset_factory
 from .models import SucursalFoto
@@ -12,6 +14,7 @@ from .models import Cliente, Reserva, Sucursal, Mesa
 from .utils import conflicto_y_disponible, generar_folio
 from .emails import enviar_correo_reserva_confirmada
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 
 # =========================
 # Registro de cliente
@@ -146,13 +149,11 @@ class ClientePerfilForm(forms.ModelForm):
 # =========================
 # Walk-in (staff)
 # =========================
-# reservas/fo
+# ---- imports necesarios (arriba de forms.py) ----
 
-# =========================
-# Walk-in (staff)
-# =========================
+
 class WalkInReservaForm(forms.ModelForm):
-    # Datos del cliente
+    # Campos UI (no del modelo)
     nombre_cliente = forms.CharField(label="Nombre del cliente", max_length=120)
     email_cliente = forms.EmailField(label="Email (opcional)", required=False)
     telefono_cliente = forms.CharField(label="Teléfono (opcional)", max_length=30, required=False)
@@ -161,48 +162,70 @@ class WalkInReservaForm(forms.ModelForm):
     sucursal = forms.ModelChoiceField(queryset=Sucursal.objects.all(), required=False, label="Sucursal")
     mesa = forms.ModelChoiceField(queryset=Mesa.objects.none(), label="Mesa")
 
-    # Fecha/hora  🔧 forzamos formato de render "%Y-%m-%dT%H:%M"
+    # Fecha/hora (para <input type="datetime-local">)
     fecha = forms.DateTimeField(
         label="Fecha y hora",
         widget=forms.DateTimeInput(
             attrs={"type": "datetime-local"},
-            format="%Y-%m-%dT%H:%M",   # <-- clave: render correcto para datetime-local
+            format="%Y-%m-%dT%H:%M",
         ),
-        input_formats=[
-            "%Y-%m-%dT%H:%M",         # lo que envía el browser
-            "%Y-%m-%d %H:%M",         # toleramos espacio por si acaso
-        ],
+        input_formats=["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"],
     )
 
     class Meta:
         model = Reserva
         fields = ["sucursal", "mesa", "fecha", "num_personas"]
 
+    # 1) Excluir 'cliente' de la validación del modelo
+    def _get_validation_exclusions(self):
+        excl = super()._get_validation_exclusions()
+        excl.add("cliente")
+        return excl
+
+    # 3) Filtrar errores del modelo en 'cliente' para que no reviente add_error
+    def _post_clean(self):
+        # Copia del flujo de ModelForm._post_clean con intercept
+        # 3.1: pasar cleaned_data al instance
+        construct_instance(self, self.instance, self._meta.fields, self._meta.exclude)
+        # 3.2: validar campos de modelo (sin unique)
+        exclude = self._get_validation_exclusions()
+        try:
+            self.instance.full_clean(exclude=exclude, validate_unique=False)
+        except ValidationError as e:
+            error_dict = e.error_dict.copy()
+            # quitar 'cliente' si vino del modelo
+            if "cliente" in error_dict:
+                error_dict.pop("cliente", None)
+            if error_dict:
+                # reinyectar solo si quedan otros errores válidos
+                raise ValidationError(error_dict)
+            # si no quedó nada, lo ignoramos
+        # 3.3: validar uniqueness normal del ModelForm
+        try:
+            self.validate_unique()
+        except ValidationError as e:
+            self._update_errors(e)
+
     def __init__(self, *args, **kwargs):
-        """
-        kwargs extra:
-          - user (request.user) para filtrar sucursal si no es superuser
-          - sucursal_pref (Sucursal) para preselección
-        """
         self.user = kwargs.pop("user", None)
         suc_pref = kwargs.pop("sucursal_pref", None)
         super().__init__(*args, **kwargs)
 
-        # 🔧 Asegurar formato y paso del widget siempre
+        # Widget fecha
         self.fields["fecha"].widget.format = "%Y-%m-%dT%H:%M"
-        self.fields["fecha"].widget.attrs["step"] = 60  # 1 min, evita segundos
+        self.fields["fecha"].widget.attrs["step"] = 60
 
-        # Clases Bootstrap básicas
+        # Bootstrap
         for name in ["nombre_cliente", "email_cliente", "telefono_cliente", "fecha", "num_personas"]:
             if name in self.fields:
-                cur = self.fields[name].widget.attrs.get("class", "")
-                self.fields[name].widget.attrs["class"] = (cur + " form-control").strip()
+                cls = self.fields[name].widget.attrs.get("class", "")
+                self.fields[name].widget.attrs["class"] = (cls + " form-control").strip()
         for name in ["sucursal", "mesa"]:
             if name in self.fields:
-                cur = self.fields[name].widget.attrs.get("class", "")
-                self.fields[name].widget.attrs["class"] = (cur + " form-select").strip()
+                cls = self.fields[name].widget.attrs.get("class", "")
+                self.fields[name].widget.attrs["class"] = (cls + " form-select").strip()
 
-        # Staff no superuser => sucursal fija del PerfilAdmin
+        # Sucursal por perfil
         suc = None
         if self.user and not getattr(self.user, "is_superuser", False):
             from .models import PerfilAdmin
@@ -216,7 +239,6 @@ class WalkInReservaForm(forms.ModelForm):
                 self.fields["sucursal"].queryset = Sucursal.objects.none()
                 suc = None
         else:
-            # Superuser
             if suc_pref:
                 self.fields["sucursal"].initial = suc_pref.id
                 suc = suc_pref
@@ -233,7 +255,7 @@ class WalkInReservaForm(forms.ModelForm):
         else:
             self.fields["mesa"].queryset = Mesa.objects.none()
 
-        # Fecha por defecto (redondeada al paso y sin segundos)
+        # Fecha por defecto
         if not self.initial.get("fecha") and not self.data.get("fecha"):
             tz = timezone.get_current_timezone()
             now = timezone.now().astimezone(tz).replace(second=0, microsecond=0)
@@ -246,42 +268,14 @@ class WalkInReservaForm(forms.ModelForm):
         tz = timezone.get_current_timezone()
         if timezone.is_naive(dt):
             dt = timezone.make_aware(dt, tz)
-        # 🔧 garantizamos sin segundos al guardar/validar
         return dt.replace(second=0, microsecond=0)
 
     def clean(self):
         cleaned = super().clean()
-        mesa = cleaned.get("mesa")
-        fecha = cleaned.get("fecha")
-        num = cleaned.get("num_personas") or 1
-        sucursal = cleaned.get("sucursal")
 
-        if not mesa or not fecha:
-            return cleaned
-
-        # Mesa debe pertenecer a la sucursal seleccionada (si aplica)
-        if sucursal and mesa.sucursal_id != sucursal.id:
-            self.add_error("mesa", "La mesa no pertenece a la sucursal seleccionada.")
-            return cleaned
-
-        # Capacidad
-        if getattr(mesa, "capacidad", None) and num > mesa.capacidad:
-            self.add_error("num_personas", f"La mesa admite hasta {mesa.capacidad} personas.")
-
-        # Choque con reservas de la mesa
-        hay, hasta = conflicto_y_disponible(mesa, fecha)
-        if hay:
-            self.add_error(
-                "fecha",
-                f"Choque: la mesa está ocupada hasta las {hasta.astimezone(timezone.get_current_timezone()).strftime('%H:%M')}."
-            )
-        return cleaned
-
-    def save(self, commit=True):
-        # ... (tu save queda igual)
-        reserva = super().save(commit=False)
+        # 2) Crear/asignar SIEMPRE el cliente al instance (aunque falte mesa/fecha)
         email = (self.cleaned_data.get("email_cliente") or "").strip()
-        nombre = self.cleaned_data.get("nombre_cliente").strip()
+        nombre = (self.cleaned_data.get("nombre_cliente") or "").strip()
         tel = (self.cleaned_data.get("telefono_cliente") or "").strip()
 
         if email:
@@ -299,10 +293,38 @@ class WalkInReservaForm(forms.ModelForm):
             if to_update:
                 cliente.save(update_fields=to_update)
         else:
+            # Walk-in sin email: lo creamos con nombre/tel
             cliente = Cliente.objects.create(nombre=nombre, telefono=tel or "")
 
-        reserva.cliente = cliente
-        reserva.estado = "CONF"
+        self.instance.cliente = cliente
+        self.instance.estado = "CONF"
+
+        # Validaciones de mesa/fecha/capacidad/choques
+        mesa = cleaned.get("mesa")
+        fecha = cleaned.get("fecha")
+        num = cleaned.get("num_personas") or 1
+        sucursal = cleaned.get("sucursal")
+
+        if mesa and sucursal and mesa.sucursal_id != sucursal.id:
+            self.add_error("mesa", "La mesa no pertenece a la sucursal seleccionada.")
+            return cleaned
+
+        if mesa and getattr(mesa, "capacidad", None) and num > mesa.capacidad:
+            self.add_error("num_personas", f"La mesa admite hasta {mesa.capacidad} personas.")
+
+        if mesa and fecha:
+            hay, hasta = conflicto_y_disponible(mesa, fecha)
+            if hay:
+                self.add_error(
+                    "fecha",
+                    f"Choque: la mesa está ocupada hasta las "
+                    f"{hasta.astimezone(timezone.get_current_timezone()).strftime('%H:%M')}."
+                )
+
+        return cleaned
+
+    def save(self, commit=True):
+        reserva = super().save(commit=False)
 
         if not getattr(reserva, "folio", ""):
             reserva.folio = generar_folio(reserva)
@@ -318,6 +340,7 @@ class WalkInReservaForm(forms.ModelForm):
             else:
                 raise
 
+            email = (self.cleaned_data.get("email_cliente") or "").strip()
             if email:
                 try:
                     enviar_correo_reserva_confirmada(reserva, bcc_sucursal=True)

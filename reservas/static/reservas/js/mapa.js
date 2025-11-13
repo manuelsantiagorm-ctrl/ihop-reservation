@@ -1,19 +1,16 @@
 /* global document, window */
-
-/**
- * Mapa de mesas (drag + popover de acciones)
- * - Bloqueo/desbloqueo del diseño (candado)
- * - Arrastrar mesas y recepción (guarda posición vía AJAX)
- * - Filtro por zona (interior/terraza/exterior)
- * - Popover de acciones: aparece al doble clic sobre la mesa
- */
 (function () {
   const canvas = document.getElementById("mapCanvas");
   if (!canvas) return;
 
   // ============================================================
-  //  Helpers generales
+  //  URLs absolutas + CSRF
   // ============================================================
+  const ORIGIN = window.location.origin; // ej: http://127.0.0.1:8000
+  function absUrl(u) {
+    try { return new URL(u, ORIGIN).toString(); } catch { return u; }
+  }
+
   function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -21,9 +18,8 @@
   }
   const csrftoken = getCookie("csrftoken");
 
-  /** POST JSON cómodo con CSRF y manejo básico de errores */
   async function postJSON(url, payload) {
-    const res = await fetch(url, {
+    const res = await fetch(absUrl(url), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -65,7 +61,6 @@
 
   // ============================================================
   //  Popover de acciones por mesa (doble clic)
-  //  - Cierra con click-fuera, tecla ESC o al iniciar drag
   // ============================================================
   let activeNode = null;
 
@@ -75,7 +70,6 @@
       activeNode = null;
     }
   }
-
   function togglePopoverFor(node) {
     if (!node) return;
     if (activeNode && activeNode !== node) activeNode.classList.remove("active");
@@ -83,74 +77,85 @@
     activeNode = node.classList.contains("active") ? node : null;
   }
 
-  canvas.addEventListener("dblclick", (e) => {
-    const node = e.target.closest(".mesa-node");
-    if (!node) return;
-    e.preventDefault();
-    togglePopoverFor(node);
-  });
-
+  // Cerrar con click fuera y con ESC
   document.addEventListener("click", (e) => {
     if (activeNode && !e.target.closest(".mesa-node")) closePopover();
   });
-
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closePopover();
   });
 
   // ============================================================
-  //  Drag & drop genérico (mesas y recepción)
-  //  - Calcula posición en % relativo al canvas
-  //  - Llama a onDrop({pos_x,pos_y}) al soltar
-  //  - Cierra popover activo al iniciar drag
-  //  - Añade/Quita clase .dragging para subir z-index en CSS
+  //  Drag & drop genérico (mesas y recepción) con umbral
   // ============================================================
   function makeDraggable(el, { onDrop }) {
-    let dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+    let dragging = false, maybeDrag = false;
+    let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+    const THRESHOLD = 3; // px para no matar el dblclick
 
     const onDown = (e) => {
       if (canvas.getAttribute("data-editable") !== "1") return;
-      dragging = true;
-
-      closePopover();                 // si hay un popover abierto, ciérralo
-      el.classList.add("dragging");   // <- eleva z-index mientras arrastras
-      el.style.boxShadow = "0 6px 20px rgba(0,0,0,.12)";
+      if (e.target.closest(".mesa-toolbar")) return; // no drag desde la toolbar
+      // NO preventDefault aquí: permite que el navegador dispare dblclick
+      maybeDrag = true;
+      dragging  = false;
 
       const pt = e.touches ? e.touches[0] : e;
       startX = pt.clientX; startY = pt.clientY;
       startLeft = parseFloat(el.style.left) || 0;
       startTop  = parseFloat(el.style.top)  || 0;
-      e.preventDefault?.();
     };
 
     const onMove = (e) => {
-      if (!dragging) return;
-      const rect = canvas.getBoundingClientRect();
+      if (!maybeDrag) return;
+
       const pt = e.touches ? e.touches[0] : e;
-      const ddx = ((pt.clientX - startX) / rect.width) * 100;
-      const ddy = ((pt.clientY - startY) / rect.height) * 100;
+      const dx = pt.clientX - startX;
+      const dy = pt.clientY - startY;
+      const dist = Math.hypot(dx, dy);
+
+      if (!dragging && dist < THRESHOLD) return;
+
+      // activar drag al superar el umbral
+      if (!dragging) {
+        closePopover();               // cierra popover si estaba abierto
+        el.classList.add("dragging"); // sube z-index
+        el.style.boxShadow = "0 6px 20px rgba(0,0,0,.12)";
+        dragging = true;
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      const ddx = (dx / rect.width)  * 100;
+      const ddy = (dy / rect.height) * 100;
       const nx = Math.max(0, Math.min(100, startLeft + ddx));
-      const ny = Math.max(0, Math.min(100, startTop + ddy));
+      const ny = Math.max(0, Math.min(100, startTop  + ddy));
       el.style.left = nx + "%";
       el.style.top  = ny + "%";
     };
 
     const onUp = async () => {
-      if (!dragging) return;
-      dragging = false;
-      el.classList.remove("dragging");    // <- vuelve a z-index normal
-      el.style.boxShadow = "0 2px 12px rgba(0,0,0,.06)";
-      const pos_x = Math.round((parseFloat(el.style.left) || 0) * 100) / 100;
-      const pos_y = Math.round((parseFloat(el.style.top)  || 0) * 100) / 100;
-      try {
-        await onDrop({ pos_x, pos_y });
-        el.style.outline = "2px solid #22c55e"; // feedback OK
-        setTimeout(() => (el.style.outline = "none"), 600);
-      } catch (err) {
-        console.error(err);
-        el.style.outline = "2px solid #ef4444"; // feedback error
-        setTimeout(() => (el.style.outline = "none"), 900);
+      if (!maybeDrag) return;
+      const endedDragging = dragging;
+      maybeDrag = false;
+      dragging  = false;
+
+      if (endedDragging) {
+        el.classList.remove("dragging");
+        el.style.boxShadow = "0 2px 12px rgba(0,0,0,.06)";
+        const pos_x = Math.round((parseFloat(el.style.left) || 0) * 100) / 100;
+        const pos_y = Math.round((parseFloat(el.style.top)  || 0) * 100) / 100;
+        try {
+          await onDrop({ pos_x, pos_y });
+          el.style.outline = "2px solid #22c55e";
+          setTimeout(() => (el.style.outline = "none"), 600);
+        } catch (err) {
+          console.error(err);
+          el.style.outline = "2px solid #ef4444";
+          setTimeout(() => (el.style.outline = "none"), 900);
+        }
       }
+      // Si no hubo drag, dejamos que el navegador maneje el dblclick normal
     };
 
     if ("onpointerdown" in window) {
@@ -159,16 +164,16 @@
       window.addEventListener("pointerup", onUp);
     } else {
       el.addEventListener("mousedown", onDown);
-      el.addEventListener("touchstart", onDown, { passive: false });
+      el.addEventListener("touchstart", onDown, { passive: true });
       window.addEventListener("mousemove", onMove);
-      window.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("touchmove", onMove, { passive: true });
       window.addEventListener("mouseup", onUp);
       window.addEventListener("touchend", onUp);
     }
   }
 
   // ============================================================
-  //  Mesas: inicializar posición + guardar al soltar
+  //  Mesas: inicializar, drag y dblclick de popover
   // ============================================================
   const mesaNodes = Array.from(canvas.querySelectorAll(".mesa-node"));
   mesaNodes.forEach((node) => {
@@ -177,10 +182,16 @@
     node.style.left = dx + "%";
     node.style.top  = dy + "%";
 
+    // Doble clic confiable en cada mesa
+    node.addEventListener("dblclick", (e) => {
+      if (e.target.closest(".mesa-toolbar")) return; // si fue sobre toolbar, no togglear
+      togglePopoverFor(node);
+    });
+
     makeDraggable(node, {
       onDrop: async ({ pos_x, pos_y }) => {
         await postJSON(node.dataset.updateUrl, { pos_x, pos_y });
-        node.dataset.x = String(pos_x);   // evita “rebotes”
+        node.dataset.x = String(pos_x);
         node.dataset.y = String(pos_y);
       },
     });
@@ -206,43 +217,39 @@
   }
 
   // ============================================================
-  //  Auto-altura del canvas en función del número de mesas
+  //  Auto-altura del canvas en función de #mesas
   // ============================================================
-  const mesasCount = mesaNodes.length;
   const base = 600;
-  const extra = Math.ceil(mesasCount / 10) * 150;
+  const extra = Math.ceil(mesaNodes.length / 10) * 150;
   const max = 1600;
   canvas.style.minHeight = Math.min(base + extra, max) + "px";
 
   // ============================================================
-  //  Filtro por zona (botones de la barra superior)
+  //  Filtro por zona (botones superiores)
   // ============================================================
   const buttons = document.querySelectorAll("[data-zone-filter]");
 
   function applyZoneFilter(zona) {
-    // estilos del botón activo
     buttons.forEach((b) => b.classList.remove("btn-secondary", "text-white"));
     const active = Array.from(buttons).find(
       (b) => (b.dataset.zoneFilter || "") === (zona || "")
     );
     if (active) active.classList.add("btn-secondary", "text-white");
 
-    // mostrar/ocultar mesas
     mesaNodes.forEach((m) => {
       const mz = m.dataset.zona || "interior";
       m.style.display = !zona || zona === mz ? "flex" : "none";
     });
-
-    closePopover(); // cierra popovers visibles al cambiar filtro
+    closePopover();
   }
 
   buttons.forEach((btn) =>
     btn.addEventListener("click", () => applyZoneFilter(btn.dataset.zoneFilter || ""))
   );
-  applyZoneFilter(""); // “Todas” por defecto
+  applyZoneFilter("");
 
   // ============================================================
-  //  (Opcional) Modal de edición rápida vía AJAX
+  //  (Opcional) Modal de edición rápida vía AJAX (si existe)
   // ============================================================
   const editButtons = document.querySelectorAll("[data-edit-mesa]");
   const editForm = document.getElementById("formEditMesa");
@@ -291,4 +298,125 @@
       }
     });
   }
+})();
+
+
+// ===============================
+//  AUTOCOMPLETE DE PRODUCTOS
+// ===============================
+(function () {
+  const CFG = window.ORDENES_CONFIG || {};
+  if (!CFG.searchUrl) return; // sin URL no activamos el autocomplete
+
+  // Helpers
+  const ORIGIN = window.location.origin;
+  const absUrl = (u) => { try { return new URL(u, ORIGIN).toString(); } catch { return u; } };
+  const debounce = (fn, ms=250) => {
+    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+  };
+
+  // Campos del modal (con fallback por name)
+  const $modal     = document.getElementById('modalOrden');
+  if (!$modal) return;
+
+  const $buscar    = $modal.querySelector('[data-orden-buscar]') 
+                  || $modal.querySelector('input[name="buscar"]')
+                  || $modal.querySelector('input[placeholder*="2-3 letras"]');
+  const $codigo    = $modal.querySelector('[data-orden-codigo]') 
+                  || $modal.querySelector('input[name="codigo"]');
+  const $nombre    = $modal.querySelector('[data-orden-nombre]') 
+                  || $modal.querySelector('input[name="nombre"]');
+  const $cantidad  = $modal.querySelector('[data-orden-cantidad]') 
+                  || $modal.querySelector('input[name="cantidad"]');
+
+  if (!$buscar || !$codigo || !$nombre) return;
+
+  // Contenedor de sugerencias (se crea si no existe)
+  let $drop = $modal.querySelector('#orden-sugerencias');
+  if (!$drop) {
+    $drop = document.createElement('div');
+    $drop.id = 'orden-sugerencias';
+    $drop.style.position = 'absolute';
+    $drop.style.zIndex = '2000';
+    $drop.style.minWidth = '260px';
+    $drop.style.maxHeight = '240px';
+    $drop.style.overflowY = 'auto';
+    $drop.style.border = '1px solid rgba(0,0,0,.1)';
+    $drop.style.borderRadius = '10px';
+    $drop.style.background = '#fff';
+    $drop.style.boxShadow = '0 12px 28px rgba(0,0,0,.15)';
+    $drop.style.display = 'none';
+    $modal.appendChild($drop);
+  }
+
+  function placeDropdown() {
+    const r = $buscar.getBoundingClientRect();
+    const m = $modal.getBoundingClientRect();
+    // posición relativa al modal
+    $drop.style.left = (r.left - m.left) + 'px';
+    $drop.style.top  = (r.bottom - m.top + 6) + 'px';
+    $drop.style.width = r.width + 'px';
+  }
+
+  function hide() { $drop.style.display = 'none'; $drop.innerHTML = ''; }
+  function show() { placeDropdown(); $drop.style.display = 'block'; }
+
+  function render(items) {
+    if (!items || !items.length) { hide(); return; }
+    const html = items.map((p, idx) => `
+      <button type="button" class="list-group-item list-group-item-action" 
+              style="display:block;text-align:left;border:0;border-bottom:1px solid rgba(0,0,0,.06);padding:.5rem .75rem;"
+              data-codigo="${p.codigo}" data-nombre="${p.nombre}">
+        <div style="font-weight:600">${p.nombre}</div>
+        <small class="text-muted">${p.codigo}${p.precio ? " · $" + p.precio : ""}</small>
+      </button>
+    `).join('');
+    $drop.innerHTML = html;
+    show();
+  }
+
+  async function buscar(term) {
+    term = (term || '').trim();
+    if (term.length < 2) { hide(); return; }
+    try {
+      const res = await fetch(absUrl(CFG.searchUrl) + '?q=' + encodeURIComponent(term), {
+        headers: { 'X-Requested-With': 'fetch' },
+        credentials: 'same-origin'
+      });
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      // espera un array de objetos: [{codigo, nombre, precio}, ...]
+      render(Array.isArray(data) ? data : (data.results || []));
+    } catch (e) {
+      console.error('buscar productos:', e);
+      hide();
+    }
+  }
+
+  const doBuscar = debounce(() => buscar($buscar.value), 250);
+
+  // Eventos
+  $buscar.addEventListener('input', doBuscar);
+  $buscar.addEventListener('focus', () => { if ($drop.innerHTML) show(); placeDropdown(); });
+  window.addEventListener('resize', placeDropdown);
+  $modal.addEventListener('scroll', placeDropdown, true);
+
+  // Click en sugerencia
+  $drop.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-codigo]');
+    if (!btn) return;
+    $codigo.value = btn.dataset.codigo || '';
+    $nombre.value = btn.dataset.nombre || '';
+    hide();
+    $cantidad?.focus();
+  });
+
+  // Teclado básico: Esc cierra
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
+
+  // Click fuera cierra
+  document.addEventListener('click', (e) => {
+    if ($drop.contains(e.target) || e.target === $buscar) return;
+    hide();
+  });
 })();

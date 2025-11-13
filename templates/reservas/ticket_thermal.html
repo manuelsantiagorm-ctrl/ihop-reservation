@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Ticket #{{ orden.id }}</title>
+<style>
+@page { size: 80mm auto; margin: 0; }
+body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin:0; }
+.ticket { width: 72mm; margin: 0 auto; padding: 4mm 4mm 10mm; }
+.center { text-align: center; }
+.line { border-top: 1px dashed #000; margin: 6px 0; }
+.row { display:flex; justify-content:space-between; }
+.small { font-size: 12px; }
+</style>
+</head>
+<body onload="window.print()">
+<div class="ticket">
+  <div class="center">
+    <strong>{{ orden.sucursal.nombre }}</strong><br>
+    RFC: {{ orden.sucursal.rfc|default:"XAXX010101000" }}<br>
+    {{ orden.sucursal.direccion|default:"" }}<br>
+    ------------------------------<br>
+    Ticket: #{{ orden.id }}<br>
+    Fecha: {{ orden.created_at|date:"Y-m-d H:i" }}<br>
+    Mesa: {{ orden.mesa.nombre if orden.mesa }}<br>
+  </div>
+  <div class="line"></div>
+
+  {% for it in orden.orderitem_set.all %}
+    {% if not it.cancelado %}
+      <div class="row">
+        <div>{{ it.cantidad }} x {{ it.nombre }}{% if it.notas %} ({{ it.notas }}){% endif %}</div>
+        <div>${{ it.importe }}</div>
+      </div>
+    {% endif %}
+  {% endfor %}
+
+  <div class="line"></div>
+  <div class="row"><div>Artículos:</div><div>{{ orden.orderitem_set.all|length }}</div></div>
+  <div class="row"><div>Sub-total:</div><div>${{ totals.subtotal_base }}</div></div>
+  <div class="row"><div>IVA 16%:</div><div>${{ totals.iva_total }}</div></div>
+  <div class="row"><div>Total:</div><div>${{ totals.total_bruto }}</div></div>
+  {% if orden.propina and orden.propina|floatformat:2 != "0.00" %}
+    <div class="row"><div>Propina:</div><div>${{ orden.propina }}</div></div>
+    <div class="row"><div><strong>TOTAL A PAGAR</strong></div><div><strong>${{ totals.total_con_propina }}</strong></div></div>
+  {% endif %}
+
+  <div class="line"></div>
+  <div class="center small">
+    *** Comprobante de consumo ***<br>
+    Para factura solicítela con su folio #{{ orden.id }}<br>
+    ¡Gracias por su visita!
+  </div>
+</div>
+</body>
+</html>

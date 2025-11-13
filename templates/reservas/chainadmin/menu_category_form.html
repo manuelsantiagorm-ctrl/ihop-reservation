@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Categoría" %}{% endblock %}
+
+{% block content %}
+<div class="container py-3" style="max-width: 760px;">
+  <h1 class="h4 mb-3">{% if form.instance.pk %}{% trans "Editar categoría" %}{% else %}{% trans "Nueva categoría" %}{% endif %}</h1>
+  <form method="post" class="card p-3">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="d-flex justify-content-between mt-2">
+      <a href="{% url 'reservas:chainadmin_menu_catalogo' %}" class="btn btn-outline-secondary">{% trans "Volver" %}</a>
+      <button class="btn btn-primary">{% trans "Guardar" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

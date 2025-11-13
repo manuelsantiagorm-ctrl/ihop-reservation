@@ -1,0 +1,42 @@
+{% load i18n %}
+<div class="p-3">
+  <div class="d-flex align-items-center justify-content-between mb-2">
+    <div>
+      <div class="fw-semibold">Mesa #{{ mesa.numero }}</div>
+      <div class="text-muted small">{{ mesa.sucursal.nombre }}</div>
+    </div>
+    <span class="badge text-bg-success" id="ordenTotal">$0.00</span>
+  </div>
+
+  <input id="buscarItem"
+         class="form-control"
+         type="text"
+         placeholder="{% trans 'Buscar por nombre o código' %}"
+         data-endpoint="{% url 'reservas:menu_api_buscar' %}"
+         autocomplete="off">
+
+  <input type="hidden" id="ordenId" value="{{ orden.id }}">
+  <input type="hidden" id="endpointAdd" value="{% url 'reservas:api_orden_crear' %}">
+
+  <table class="table table-sm align-middle mt-3">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>{% trans 'Código' %}</th>
+        <th>{% trans 'Nombre' %}</th>
+        <th class="text-end">{% trans 'Precio' %}</th>
+        <th class="text-center">{% trans 'Cant.' %}</th>
+        <th class="text-end">{% trans 'Subtotal' %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="busquedaResultados"></tbody>
+  </table>
+
+  <label class="form-label mt-2">{% trans 'Notas de la orden (opcional)' %}</label>
+  <textarea class="form-control" rows="2" id="notasOrden"></textarea>
+
+  <div class="text-muted small mt-2">
+    {% trans 'Sugerencia: escribe 2-3 letras para buscar.' %}
+  </div>
+</div>

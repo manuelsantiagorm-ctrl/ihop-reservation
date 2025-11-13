@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{{ combo.nombre }} · {% trans "Componentes" %}{% endblock %}
+
+{% block content %}
+<div class="container py-3" style="max-width: 980px;">
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h1 class="h4 mb-1">{% trans "Componentes del combo" %}</h1>
+      <div class="text-muted small">
+        <strong>{{ combo.codigo }}</strong> — {{ combo.nombre }} ·
+        {% if combo.precio_combo %}{% trans "Precio fijo" %}: ${{ combo.precio_combo }}{% else %}{% trans "Sin precio fijo" %}{% endif %}
+      </div>
+    </div>
+    <a class="btn btn-outline-secondary" href="{% url 'reservas:chainadmin_menu_catalogo' %}">{% trans "Volver" %}</a>
+  </div>
+
+  <div class="card p-3 mb-3">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-2">
+        <div class="col-md-8">
+          {{ form.item.label_tag }} {{ form.item }}
+        </div>
+        <div class="col-md-2">
+          {{ form.cantidad.label_tag }} {{ form.cantidad }}
+        </div>
+        <div class="col-md-2 d-grid">
+          <button class="btn btn-primary mt-4 mt-md-0">{% trans "Agregar" %}</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>{% trans "Código" %}</th>
+          <th>{% trans "Nombre" %}</th>
+          <th class="text-center">{% trans "Cantidad" %}</th>
+          <th class="text-end">{% trans "Acciones" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in componentes %}
+          <tr>
+            <td><span class="badge text-bg-secondary">{{ c.item.codigo }}</span></td>
+            <td>{{ c.item.nombre }}</td>
+            <td class="text-center">{{ c.cantidad }}</td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-danger"
+                 href="{% url 'reservas:chainadmin_menu_combo_comp_del' combo.id c.id %}">
+                {% trans "Eliminar" %}
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="text-center text-muted py-3">{% trans "Aún sin componentes." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

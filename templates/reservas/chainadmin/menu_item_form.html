@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Ítem de menú" %}{% endblock %}
+
+{% block content %}
+<div class="container py-3" style="max-width: 860px;">
+  <h1 class="h4 mb-3">
+    {% if form.instance.pk %}{% trans "Editar ítem" %}{% else %}{% trans "Nuevo ítem" %}{% endif %}
+  </h1>
+
+  <form method="post" class="card p-3">
+    {% csrf_token %}
+
+    <div class="row g-3">
+      <div class="col-md-4">{{ form.codigo.label_tag }} {{ form.codigo }}</div>
+      <div class="col-md-8">{{ form.nombre.label_tag }} {{ form.nombre }}</div>
+
+      <div class="col-md-6">{{ form.categoria.label_tag }} {{ form.categoria }}</div>
+      <div class="col-md-3">{{ form.precio.label_tag }} {{ form.precio }}</div>
+      <div class="col-md-3">{{ form.activo.label_tag }} {{ form.activo }}</div>
+
+      <div class="col-12">{{ form.descripcion.label_tag }} {{ form.descripcion }}</div>
+
+      <div class="col-md-4">{{ form.area_impresion.label_tag }} {{ form.area_impresion }}</div>
+      <div class="col-md-4">{{ form.imprimible.label_tag }} {{ form.imprimible }}</div>
+
+      <div class="col-md-4">{{ form.aplica_impuesto.label_tag }} {{ form.aplica_impuesto }}</div>
+      <div class="col-md-4">{{ form.aplica_servicio.label_tag }} {{ form.aplica_servicio }}</div>
+
+      <div class="col-md-4">{{ form.es_combo.label_tag }} {{ form.es_combo }}</div>
+      <div class="col-md-4">{{ form.precio_combo.label_tag }} {{ form.precio_combo }}</div>
+    </div>
+
+    <div class="d-flex justify-content-between mt-3">
+      <a href="{% url 'reservas:chainadmin_menu_catalogo' %}" class="btn btn-outline-secondary">{% trans "Volver" %}</a>
+      <button class="btn btn-primary">{% trans "Guardar" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

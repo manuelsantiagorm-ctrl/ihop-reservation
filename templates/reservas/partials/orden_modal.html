@@ -1,0 +1,247 @@
+{% load i18n %}
+<div id="ordenModalBody"
+     class="pos-modal"
+     data-endpoint="{{ endpoint_add }}"
+     data-endpoint-add="{{ endpoint_add }}"
+     data-endpoint-buscar="{{ endpoint_buscar }}"
+     data-endpoint-item-update="{{ endpoint_item_update }}"
+     data-endpoint-item-remove="{{ endpoint_item_remove }}"
+     data-endpoint-remove="{{ endpoint_item_remove }}">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+    <div class="d-flex flex-column">
+      <div class="d-flex align-items-center gap-2">
+        <h5 class="mb-0">{% trans "Mesa" %} #{{ mesa.numero }}</h5>
+        <span class="badge rounded-pill bg-secondary">{{ mesa.capacidad }} pax</span>
+        {% if mesa.zona %}
+          <span class="badge rounded-pill bg-light text-dark">
+            <i class="bi bi-geo-alt me-1"></i>{{ mesa.get_zona_display|default:mesa.zona|title }}
+          </span>
+        {% endif %}
+      </div>
+      <div class="text-muted small mt-1">
+        {{ sucursal.nombre }} · {{ ahora_local|date:"Y-m-d H:i" }}
+      </div>
+    </div>
+    <div>
+      <span class="badge bg-success-subtle text-success border border-success-subtle">
+        <i class="bi bi-receipt-cutoff me-1"></i>{% trans "Orden" %} #{{ orden.id }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="row g-4 align-items-stretch">
+
+    <!-- Izquierda: captura + buscador -->
+    <div class="col-12 col-md-6 col-lg-5">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <!-- Captura rápida -->
+          <form id="formAgregarItem"
+                class="row g-2 align-items-end"
+                method="post"
+                action="javascript:void(0)"
+                onsubmit="return false"
+                data-endpoint="{{ endpoint_add }}">
+            <input type="hidden" name="orden_id" value="{{ orden.id }}">
+
+            <div class="col-12">
+              <label class="form-label small fw-semibold mb-1">{% trans "Código" %}</label>
+              <input type="text" name="codigo" class="form-control" placeholder="Ej. CAF, DES-2X2X2">
+              <div class="form-text">
+                {% trans "Debe existir en el Menú. Si no lo conoces, usa el buscador de abajo." %}
+              </div>
+            </div>
+
+            <div class="col-4">
+              <label class="form-label small fw-semibold mb-1">{% trans "Cantidad" %}</label>
+              <input type="number" name="cantidad" min="1" value="1" class="form-control">
+            </div>
+
+            <div class="col-8">
+              <label class="form-label small fw-semibold mb-1">{% trans "Notas (opcional)" %}</label>
+              <input type="text" name="notas" class="form-control" placeholder="{% trans 'Sin cebolla, bien cocido…' %}">
+            </div>
+
+            <div class="col-12 d-grid">
+              <button type="submit" class="btn btn-success">
+                <span class="when-idle"><i class="bi bi-plus-circle me-1"></i>{% trans "Agregar" %}</span>
+                <span class="when-busy d-none"><span class="spinner-border spinner-border-sm me-1"></span>{% trans "Agregando…" %}</span>
+              </button>
+            </div>
+
+            <div class="col-12">
+              <div class="alert alert-danger d-none mt-2" data-error></div>
+            </div>
+          </form>
+
+          <hr class="my-3">
+
+          <!-- Buscador -->
+          <label class="form-label small fw-semibold mb-1">{% trans "Buscar producto" %}</label>
+          <input id="buscarItem"
+                 class="form-control"
+                 type="text"
+                 placeholder="{% trans 'Escribe 2–3 letras…' %}"
+                 data-endpoint="{{ endpoint_buscar }}"
+                 data-sucursal-id="{{ sucursal.id }}">
+          <div class="form-text">
+            {% trans "Sugerencia: escribe 2–3 letras para ver resultados." %}
+          </div>
+
+          <div class="table-responsive mt-3">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:48%"># / {% trans 'Producto' %}</th>
+                  <th class="text-end" style="width:18%">{% trans 'Precio' %}</th>
+                  <th class="text-center" style="width:18%">{% trans 'Cant.' %}</th>
+                  <th class="text-end" style="width:16%">{% trans 'Acciones' %}</th>
+                </tr>
+              </thead>
+              <tbody id="busquedaResultados"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Derecha: carrito -->
+    <div class="col-12 col-md-6 col-lg-7">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-header bg-light fw-semibold d-flex align-items-center">
+          <i class="bi bi-basket2 me-2"></i>{% trans "Carrito de productos" %}
+        </div>
+
+        <div class="card-body p-0" style="max-height: 420px; overflow:auto;">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:48%">{% trans "Producto" %}</th>
+                  <th class="text-center" style="width:12%">{% trans "Cant." %}</th>
+                  <th class="text-end" style="width:16%">{% trans "Precio" %}</th>
+                  <th class="text-end" style="width:16%">{% trans "Importe" %}</th>
+                  <th class="text-end" style="width:8%">{% trans "Acc." %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if items %}
+                  {% for it in items %}
+                    <tr data-item-row="{{ it.id }}" class="align-middle">
+                      <td class="fw-medium">
+                        {{ it.nombre }}
+                        {% if it.notas %}
+                          <div class="small text-muted">{{ it.notas }}</div>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">{{ it.cantidad }}</td>
+                      <td class="text-end">{{ it.precio }}</td>
+                      <td class="text-end">{{ it.importe }}</td>
+                      <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                          <button type="button"
+                                  class="btn btn-outline-secondary"
+                                  title="{% trans 'Editar notas / cantidad' %}"
+                                  data-edit-item
+                                  data-item-id="{{ it.id }}"
+                                  data-item-notas="{{ it.notas|escape }}"
+                                  data-item-cant="{{ it.cantidad }}">
+                            <i class="bi bi-pencil-square"></i>
+                          </button>
+                          <button type="button"
+                                  class="btn btn-outline-danger"
+                                  title="{% trans 'Quitar' %}"
+                                  data-remove-item
+                                  data-item-id="{{ it.id }}"
+                                  data-orden-id="{{ orden.id }}">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    <!-- Editor inline oculto -->
+                    <tr class="d-none" data-item-editor="{{ it.id }}">
+                      <td colspan="5" class="bg-body-tertiary">
+                        <div class="p-2">
+                          <div class="row g-2 align-items-end">
+                            <div class="col-12">
+                              <label class="form-label small mb-1">{% trans "Notas de este producto" %}</label>
+                              <input type="text" class="form-control" data-editor-notas value="{{ it.notas }}">
+                              <div class="form-text">
+                                {% trans "Ejemplo: 1 de olla, 1 americano; sin azúcar; extra salsa." %}
+                              </div>
+                            </div>
+                            <div class="col-6 col-md-3">
+                              <label class="form-label small mb-1">{% trans "Cantidad" %}</label>
+                              <input type="number" min="1" class="form-control" data-editor-cantidad value="{{ it.cantidad }}">
+                            </div>
+                            <div class="col-12 col-md-9 d-flex justify-content-end gap-2">
+                              <button class="btn btn-sm btn-outline-secondary" data-editor-cancel>
+                                {% trans "Cancelar" %}
+                              </button>
+                              <button class="btn btn-sm btn-primary"
+                                      data-editor-save
+                                      data-item-id="{{ it.id }}"
+                                      data-orden-id="{{ orden.id }}">
+                                <i class="bi bi-check2 me-1"></i>{% trans "Guardar" %}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                      <i class="bi bi-cart2 me-1"></i>{% trans "Sin productos en la orden." %}
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Totales -->
+        <div class="card-footer bg-white">
+          <div class="d-flex justify-content-between small text-muted">
+            <span>{% trans "Subtotal" %}</span>
+            <strong>${{ subtotal|floatformat:2 }}</strong>
+          </div>
+          <div class="d-flex justify-content-between small text-muted">
+            <span>{% trans "Impuestos" %}</span>
+            <strong>${{ impuestos|floatformat:2 }}</strong>
+          </div>
+          <hr class="my-2">
+          <div class="d-flex justify-content-between fs-6">
+            <span class="fw-semibold">{% trans "Total" %}</span>
+            <strong>${{ total|floatformat:2 }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="d-grid gap-2 mt-3">
+        <button class="btn btn-outline-secondary" disabled>
+          <i class="bi bi-printer me-1"></i>{% trans "Imprimir comanda" %}
+        </button>
+        <button class="btn btn-outline-secondary" disabled>
+          <i class="bi bi-send me-1"></i>{% trans "Enviar a cocina" %}
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger w-50">
+            <i class="bi bi-x-circle me-1"></i>{% trans "Cancelar" %}
+          </button>
+          <button class="btn btn-success w-50">
+            <i class="bi bi-cash-coin me-1"></i>{% trans "Cobrar" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div><!-- /row -->
+</div>

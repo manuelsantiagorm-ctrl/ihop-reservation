@@ -1,0 +1,69 @@
+{% load i18n static %}
+<div class="container py-3" style="max-width: 900px;">
+  <h2>Mesa {{ mesa.nombre }} — Orden #{{ orden.id }} ({{ orden.get_status_display }})</h2>
+
+  <div class="card p-3 mb-3">
+    <form id="addItemForm" class="row g-2"
+          data-url="{% url 'reservas:order_add_item' orden.id %}">
+      {% csrf_token %}
+      <div class="col-md-4">
+        <input name="nombre" class="form-control" placeholder="Nombre del platillo" required>
+      </div>
+      <div class="col-md-2">
+        <input name="precio" class="form-control" placeholder="Precio" type="number" step="0.01" required>
+      </div>
+      <div class="col-md-2">
+        <input name="cantidad" class="form-control" placeholder="Cant." type="number" min="1" value="1">
+      </div>
+      <div class="col-md-3">
+        <input name="notas" class="form-control" placeholder="Notas (opcional)">
+      </div>
+      <div class="col-md-1 d-grid">
+        <button class="btn btn-primary" type="submit">Agregar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card p-3 mb-3">
+    <h5>Ítems</h5>
+    <ul class="list-group mb-3">
+      {% for it in orden.orderitem_set.all %}
+        {% if not it.cancelado %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ it.cantidad }} × {{ it.nombre }} {% if it.notas %}<small class="text-muted">({{ it.notas }})</small>{% endif %}</span>
+          <strong>${{ it.importe }}</strong>
+        </li>
+        {% endif %}
+      {% empty %}
+        <li class="list-group-item">Sin ítems</li>
+      {% endfor %}
+    </ul>
+
+    <div class="text-end">
+      <div>Sub-total: <strong>${{ totals.subtotal_base }}</strong></div>
+      <div>IVA 16%: <strong>${{ totals.iva_total }}</strong></div>
+      <div class="fs-5">Total (sin propina): <strong>${{ totals.total_bruto }}</strong></div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    {% if orden.status == "DRAFT" %}
+      <button id="btnEnviar"
+              class="btn btn-warning"
+              type="button"
+              data-url="{% url 'reservas:order_submit' orden.id %}">
+        Enviar a cocina
+      </button>
+    {% endif %}
+    <button id="btnCobrar"
+            class="btn btn-success"
+            type="button"
+            data-url="{% url 'reservas:order_cobrar' orden.id %}">
+      Cobrar y cerrar
+    </button>
+  </div>
+</div>
+
+{% block extra_js %}
+  <script src="{% static 'reservas/js/order_page.js' %}"></script>
+{% endblock %}

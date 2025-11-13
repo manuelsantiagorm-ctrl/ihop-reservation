@@ -1,0 +1,79 @@
+{# templates/reservas/orden_modal_body.html #}
+{% load i18n %}
+
+<div class="p-3">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div>
+      <div class="fw-semibold">{% trans "Mesa" %} #{{ mesa.numero }}</div>
+      <small class="text-muted">{% trans "Orden" %} #{{ orden.id }} · {{ orden.get_estado_display }}</small>
+    </div>
+    <div class="text-end">
+      <div class="fs-5 fw-bold">${{ orden.total }}</div>
+      <small class="text-muted">{% trans "Total" %}</small>
+    </div>
+  </div>
+
+  <hr class="my-3">
+
+  <form id="formAgregarItem"
+        class="row gy-2 gx-2 align-items-end"
+        data-endpoint="{% url 'reservas:api_orden_crear' %}">
+    {% csrf_token %}
+    <input type="hidden" name="orden_id" value="{{ orden.id }}">
+
+    <div class="col-12 col-md-3">
+      <label class="form-label">{% trans "Código" %}</label>
+      <input type="text" class="form-control" name="codigo" placeholder="P001">
+      <div class="form-text">{% trans "Opcional si eliges por nombre." %}</div>
+    </div>
+
+    <div class="col-12 col-md-4">
+      <label class="form-label">{% trans "Nombre (búsqueda rápida)" %}</label>
+      <input id="buscarItem"
+             type="text"
+             class="form-control"
+             name="nombre"
+             placeholder="{% trans 'Hot Cake, Café...' %}"
+             data-endpoint="{% url 'reservas:api_menu_buscar' %}"
+             data-add-endpoint="{% url 'reservas:api_orden_crear' %}"
+             data-orden-id="{{ orden.id }}"
+             data-sucursal-id="{{ sucursal.id }}">
+    </div>
+
+    <div class="col-6 col-md-2">
+      <label class="form-label">{% trans "Cantidad" %}</label>
+      <input type="number" class="form-control" name="cantidad" value="1" min="1">
+    </div>
+
+    <div class="col-6 col-md-3 d-grid">
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> {% trans "Agregar" %}
+      </button>
+    </div>
+
+    <div class="col-12">
+      <input type="text" class="form-control" name="notas" placeholder="{% trans 'Notas del platillo (opcional)' %}">
+    </div>
+
+    <div class="col-12">
+      <div class="alert alert-warning d-none mt-2" data-error></div>
+    </div>
+  </form>
+
+  <hr class="my-3">
+
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>{% trans "Producto" %}</th>
+          <th class="text-end">{% trans "Precio" %}</th>
+          <th class="text-center">{% trans "Cant." %}</th>
+          <th class="text-end">{% trans "Subtotal" %}</th>
+        </tr>
+      </thead>
+      <tbody id="busquedaResultados"></tbody>
+    </table>
+  </div>
+</div>

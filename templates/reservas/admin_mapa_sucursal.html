@@ -6,18 +6,17 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'reservas/css/mapa.css' %}">
 <link rel="stylesheet" href="{% static 'reservas/css/bloqueos.css' %}">
+<link rel="stylesheet" href="{% static 'reservas/css/ordenes.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container py-3">
 
-  <!-- Breadcrumb -->
   <nav class="breadcrumb-lite" aria-label="{% trans 'breadcrumb' %}">
     <a href="{% url 'reservas:admin_sucursales' %}">{% trans "Sucursales" %}</a> /
     <span>{{ sucursal.nombre }}</span>
   </nav>
 
-  <!-- Encabezado / acciones -->
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
       <h1 class="page-title mb-1">{% trans "Mapa de mesas" %}</h1>
@@ -25,8 +24,6 @@
     </div>
 
     <div class="d-flex gap-2 align-items-center">
-
-      <!-- Filtro por zona -->
       <div class="btn-group me-2" role="group" aria-label="{% trans 'Filtrar zona' %}">
         <button type="button" class="btn btn-light btn-sm" data-zone-filter="">{% trans "Todas" %}</button>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-zone-filter="interior">{% trans "Interior" %}</button>
@@ -34,22 +31,18 @@
         <button type="button" class="btn btn-outline-secondary btn-sm" data-zone-filter="exterior">{% trans "Exterior" %}</button>
       </div>
 
-      <!-- Candado diseño (usa localStorage) -->
       <button id="btnDesignLock" class="btn btn-link text-muted" data-sucursal-id="{{ sucursal.id }}">
         <i class="bi bi-unlock"></i> <span data-lock-text>{% trans "Diseño editable" %}</span>
       </button>
 
-      <!-- Nueva mesa -->
       <button class="btn btn-primary btn-round" data-bs-toggle="modal" data-bs-target="#modalCreateMesa">
         <i class="bi bi-plus-lg"></i> {% trans "Nueva mesa" %}
       </button>
 
-      <!-- Buscar folio -->
       <a class="btn btn-outline-secondary btn-round" href="{% url 'reservas:admin_buscar_folio' %}">
         <i class="bi bi-search"></i> {% trans "Buscar folio" %}
       </a>
 
-      <!-- Bloqueos sucursal -->
       <button class="btn btn-outline-dark btn-round"
               data-bloqueo-sucursal
               data-sucursal-id="{{ sucursal.id }}"
@@ -65,10 +58,14 @@
               data-bs-target="#modalBloqueosLista">
         <i class="bi bi-eye"></i> {% trans "Ver bloqueos (sucursal)" %}
       </button>
+
+      {# Acceso rápido al panel del Chef (KDS) #}
+      <a class="btn btn-outline-success btn-round" href="{% url 'reservas:kds' %}">
+        👨‍🍳 {% trans "Cocina (KDS)" %}
+      </a>
     </div>
   </div>
 
-  <!-- Leyenda -->
   <ul class="list-inline small text-muted mb-2 map-legend">
     <li class="list-inline-item"><span class="legend-dot legend-interior"></span> {% trans "Interior" %}</li>
     <li class="list-inline-item"><span class="legend-dot legend-terraza"></span> {% trans "Terraza" %}</li>
@@ -76,7 +73,6 @@
     <li class="list-inline-item"><span class="legend-dot legend-recepcion"></span> {% trans "Recepción" %}</li>
   </ul>
 
-  <!-- Canvas / mapa -->
   <div id="mapCanvas"
        class="map-canvas"
        data-editable="1"
@@ -84,7 +80,6 @@
        data-api-save="{{ api_save_url }}"
        aria-label="{% trans 'Mapa de mesas arrastrable' %}">
 
-    {# Recepción (draggable). Defaults si no hay coords guardadas #}
     {% with rx=sucursal.recepcion_x|default_if_none:3 ry=sucursal.recepcion_y|default_if_none:3 %}
       <div id="recepcionNode"
            class="recepcion-node"
@@ -99,7 +94,6 @@
       </div>
     {% endwith %}
 
-    {# Mesas (compatibilidad con tu HTML actual) #}
     {% for item in estado_mesas %}
       {% with m=item.mesa est=item.estado reservas=item.reservas %}
         {% with nx=m.pos_x|default_if_none:8 ny=m.pos_y|default_if_none:8 %}
@@ -118,7 +112,6 @@
             style="left: {{ nx }}%; top: {{ ny }}%;">
 
             <span class="mesa-badge">#{{ m.id }}</span>
-
             <div class="mesa-cap">{{ m.capacidad }} pax</div>
 
             <div class="mesa-meta">
@@ -132,16 +125,9 @@
               {% else %}{% trans "Ocupada" %}{% endif %}
             </div>
 
-            <div class="mesa-toolbar" aria-hidden="true">
-              <a class="btn btn-xs btn-primary"
-                 href="{% url 'reservas:admin_mesa_detalle' m.id %}">
-                {% trans "Detalle" %}
-              </a>
-
-              <a class="btn btn-xs btn-outline-secondary"
-                 href="{% url 'reservas:admin_editar_mesa' m.id %}?next=mapa">
-                {% trans "Editar" %}
-              </a>
+            <div class="mesa-toolbar" data-toolbar>
+              <a class="btn btn-xs btn-primary" href="{% url 'reservas:admin_mesa_detalle' m.id %}">{% trans "Detalle" %}</a>
+              <a class="btn btn-xs btn-outline-secondary" href="{% url 'reservas:admin_editar_mesa' m.id %}?next=mapa">{% trans "Editar" %}</a>
 
               <button type="button"
                       class="btn btn-xs btn-outline-dark"
@@ -152,6 +138,16 @@
                       data-bs-target="#modalBloqueo">
                 {% trans "Bloquear" %}
               </button>
+
+              <button type="button"
+                      class="btn btn-xs btn-success"
+                      data-orden-mesa
+                      data-mesa-id="{{ m.id }}"
+                      data-mesa-numero="{{ m.numero }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#modalOrden">
+                <i class="bi bi-receipt"></i> {% trans "Orden" %}
+              </button>
             </div>
           </div>
         {% endwith %}
@@ -160,8 +156,6 @@
       <div class="text-muted p-3">{% trans "No hay mesas configuradas." %}</div>
     {% endfor %}
   </div>
-
-  {# === Modales === #}
 
   <!-- Modal crear bloqueo -->
   <div class="modal fade" id="modalBloqueo" tabindex="-1" aria-labelledby="modalBloqueoLabel" aria-hidden="true">
@@ -174,7 +168,6 @@
         <div class="modal-body">
           <form id="formBloqueo" class="row g-3" novalidate>
             <input type="hidden" name="sucursal_id" value="{{ sucursal.id }}">
-
             <div class="col-12 col-md-4">
               <label class="form-label">{% trans "Ámbito" %}</label>
               <select class="form-select" name="scope" data-scope>
@@ -182,34 +175,27 @@
                 <option value="mesa">{% trans "Mesa específica" %}</option>
               </select>
             </div>
-
             <div class="col-12 col-md-4" data-mesa-wrap style="display:none;">
               <label class="form-label">{% trans "Mesa" %}</label>
               <select class="form-select" name="mesa_id" data-mesa-id>
-                {% for item in estado_mesas %}
-                  {% with m=item.mesa %}
-                    <option value="{{ m.id }}">#{{ m.numero }} · id {{ m.id }} ({{ m.capacidad }} pax)</option>
-                  {% endwith %}
-                {% endfor %}
+                {% for item in estado_mesas %}{% with m=item.mesa %}
+                  <option value="{{ m.id }}">#{{ m.numero }} · id {{ m.id }} ({{ m.capacidad }} pax)</option>
+                {% endwith %}{% endfor %}
               </select>
               <div class="form-text" data-mesa-help style="display:none;"></div>
             </div>
-
             <div class="col-12 col-md-4">
               <label class="form-label">{% trans "Inicio" %}</label>
               <input type="datetime-local" class="form-control" name="inicio" required>
             </div>
-
             <div class="col-12 col-md-4">
               <label class="form-label">{% trans "Fin" %}</label>
               <input type="datetime-local" class="form-control" name="fin" required>
             </div>
-
             <div class="col-12 col-md-8">
               <label class="form-label">{% trans "Motivo (opcional)" %}</label>
               <input type="text" class="form-control" name="motivo" maxlength="200" placeholder="{% trans 'Evento, mantenimiento, VIP, etc.' %}">
             </div>
-
             <div class="col-12">
               <div class="alert alert-warning d-none" data-error></div>
               <div class="alert alert-success d-none" data-success>{% trans "Bloqueo creado." %}</div>
@@ -232,7 +218,7 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 id="modalBloqueosListaLabel" class="modal-title">{% trans "Bloqueos programados" %}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cerrar' %}"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cerrar' %}"></button>
         </div>
         <div class="modal-body">
           <div class="d-flex align-items-center justify-content-between mb-3">
@@ -240,11 +226,9 @@
               <label class="form-label mb-0">{% trans "Filtrar por mesa" %}</label>
               <select class="form-select" style="width:220px" data-filtro-mesa>
                 <option value="">{% trans "(Todas)" %}</option>
-                {% for item in estado_mesas %}
-                  {% with m=item.mesa %}
-                    <option value="{{ m.id }}">#{{ m.numero }} · id {{ m.id }}</option>
-                  {% endwith %}
-                {% endfor %}
+                {% for item in estado_mesas %}{% with m=item.mesa %}
+                  <option value="{{ m.id }}">#{{ m.numero }} · id {{ m.id }}</option>
+                {% endwith %}{% endfor %}
               </select>
             </div>
             <small class="text-muted">{% trans "Desde hoy en adelante" %}</small>
@@ -263,7 +247,7 @@
                   <th class="text-end">{% trans "Acciones" %}</th>
                 </tr>
               </thead>
-              <tbody><!-- rows dinámicas via JS --></tbody>
+              <tbody></tbody>
             </table>
           </div>
 
@@ -274,7 +258,28 @@
     </div>
   </div>
 
-  {# Config global (URLs para JS) #}
+  <!-- Modal de Orden (host para inyectar el body) -->
+  <div class="modal fade" id="modalOrden" tabindex="-1" aria-labelledby="modalOrdenLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 id="modalOrdenLabel" class="modal-title">
+            <i class="bi bi-receipt"></i> {% trans "Orden de mesa" %}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{% trans 'Cerrar' %}"></button>
+        </div>
+        <div class="modal-body p-0">
+          <div id="ordenContenido" class="p-3">
+            <div class="text-center py-4 text-muted">
+              <div class="spinner-border"></div>
+              <p class="mt-2">{% trans "Cargando orden..." %}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="bloqueosConfig"
        data-sucursal-id="{{ sucursal.id }}"
        data-url-create="{% url 'reservas:admin_api_bloqueo_create' %}"
@@ -282,10 +287,8 @@
        data-url-delete="{% url 'reservas:admin_api_bloqueo_delete' %}">
   </div>
 
-  <!-- CSRF accesible para JS -->
   <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
 
-  <!-- Modal "Crear mesa" -->
   <div class="modal fade" id="modalCreateMesa" tabindex="-1" aria-labelledby="modalCreateMesaLabel" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -334,7 +337,6 @@
 {% endblock %}
 
 {% block extra_js %}
-{# Config / datos iniciales para que el mapa pinte sin esperar el fetch #}
 <script>
   window.MAPA_CONFIG = {
     sucursalId: {{ sucursal.id }},
@@ -342,8 +344,25 @@
     apiSavePosUrl: "{{ api_save_url }}"
   };
 </script>
+
 <script id="mesas-data" type="application/json">{{ mesas_json }}</script>
 
-<script src="{% static 'reservas/js/mapa.js' %}"></script>
+<!-- JS del mapa y bloqueos -->
+<script src="{% static 'reservas/js/mapa.js' %}?v=20251105"></script>
 <script src="{% static 'reservas/js/bloqueos.js' %}"></script>
+
+<!-- Config y JS de órdenes (NECESARIO) -->
+<script>
+  window.ORDENES_CONFIG = {
+    urlNuevaOrden: "{% url 'reservas:orden_mesa_nueva' %}",
+    csrfToken: document.getElementById('csrfToken')?.value || "",
+    texto: {
+      cargando: "{% trans 'Cargando orden...' %}",
+      error: "{% trans 'Error al cargar la orden' %}"
+    }
+  };
+</script>
+<script src="{% static 'reservas/js/ordenes.js' %}?v=20251106"></script>
+<script src="{% static 'reservas/js/orden_modal.js' %}?v=20251112"></script>
+
 {% endblock %}

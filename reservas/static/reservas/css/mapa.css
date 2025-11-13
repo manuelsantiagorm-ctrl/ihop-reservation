@@ -3,6 +3,10 @@
    - Contenedor del plano con cuadrícula sutil, borde y esquina redonda
    - Puedes ajustar el "background-size" para cambiar la densidad de la grilla
    ============================================================ */
+
+
+
+
 .map-canvas{
   position: relative;
   width: 100%;

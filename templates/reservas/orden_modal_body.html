@@ -2,23 +2,22 @@
 
 <div id="ordenModalBody"
      class="p-3"
-     data-order-id="{{ orden.id }}"
-     data-order-status="{{ orden.estado|default:'DRAFT' }}"
-     data-items-count="{{ orden.items.count }}"
      data-endpoint-add="{% url 'reservas:api_orden_crear' %}"
      data-endpoint-buscar="{% url 'reservas:menu_api_buscar' %}"
      data-endpoint-item-update="{% url 'reservas:api_orden_item_update' %}"
      data-endpoint-item-remove="{% url 'reservas:api_orden_item_remove' %}"
+     data-order-id="{{ orden.id }}"
+     data-order-status="{{ orden.status|default:'DRAFT' }}"
+     data-items-count="{{ orden.items.count }}"
      data-submit-url="{% url 'reservas:order_submit' orden.id %}"
-     data-charge-url="{% url 'reservas:order_cobrar' orden.id %}"
->
+     data-charge-url="{% url 'reservas:order_cobrar' orden.id %}">
 
   <!-- Encabezado -->
   <div class="d-flex justify-content-between align-items-center mb-2">
     <div>
       <div class="fw-semibold">{% trans "Mesa" %} #{{ mesa.numero }}</div>
       <small class="text-muted">
-        {% trans "Orden" %} #{{ orden.id }} — {{ orden.get_estado_display }}
+        {% trans "Orden" %} #{{ orden.id }} · {{ orden.get_estado_display|default:orden.status }}
       </small>
     </div>
     <div class="text-end">
@@ -27,10 +26,11 @@
     </div>
   </div>
 
-  <hr>
+  <hr class="my-3">
 
   <!-- Form Agregar -->
-  <form id="formAgregarItem" class="row gy-2 gx-2 align-items-end"
+  <form id="formAgregarItem"
+        class="row gy-2 gx-2 align-items-end"
         data-endpoint="{% url 'reservas:api_orden_crear' %}">
     <input type="hidden" name="orden_id" value="{{ orden.id }}">
 
@@ -56,7 +56,8 @@
     </div>
 
     <div class="col-12">
-      <input type="text" class="form-control" name="notas" placeholder="{% trans 'Notas del platillo (opcional)' %}">
+      <input type="text" class="form-control" name="notas"
+             placeholder="{% trans 'Notas del platillo (opcional)' %}">
     </div>
 
     <div class="col-12">
@@ -64,7 +65,7 @@
     </div>
   </form>
 
-  <hr>
+  <hr class="my-3">
 
   <!-- Buscador -->
   <div class="row g-2 align-items-end">
@@ -77,7 +78,9 @@
              data-add-endpoint="{% url 'reservas:api_orden_crear' %}"
              data-orden-id="{{ orden.id }}"
              data-sucursal-id="{{ mesa.sucursal_id }}">
-      <div class="form-text">{% trans "Sugerencia: escribe 2–3 letras para ver resultados." %}</div>
+      <div class="form-text">
+        {% trans "Sugerencia: escribe 2–3 letras para ver resultados." %}
+      </div>
     </div>
   </div>
 
@@ -98,12 +101,11 @@
     </table>
   </div>
 
-  <hr>
+  <hr class="my-3">
 
   <!-- Items de la orden -->
   <div class="table-responsive">
     <table class="table table-sm align-middle">
-
       <thead>
         <tr>
           <th>#</th>
@@ -116,9 +118,8 @@
 
       <tbody>
         {% for it in orden.items.all %}
-          <tr>
+          <tr data-item-row>
             <td>{{ forloop.counter }}</td>
-
             <td>
               <div class="fw-semibold">{{ it.nombre }}</div>
               <small class="text-muted">
@@ -127,7 +128,6 @@
                 {% if it.notas %} · {{ it.notas }}{% endif %}
               </small>
             </td>
-
             <td class="text-end">${{ it.precio|default:it.precio_unit }}</td>
             <td class="text-center">{{ it.cantidad }}</td>
             <td class="text-end">${{ it.subtotal|default:it.importe }}</td>
@@ -147,21 +147,20 @@
           <th class="text-end fs-6">${{ orden.total }}</th>
         </tr>
       </tfoot>
-
     </table>
   </div>
 
-  <hr>
+  <hr class="my-3">
 
   <!-- Acciones -->
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-
     <div class="text-muted small">
       <i class="bi bi-printer"></i> {% trans "Imprimir comanda" %}
     </div>
 
     <div class="d-flex gap-2">
-      <button id="btnEnviarCocina" class="btn btn-outline-secondary" disabled>
+      <!-- 🔴 YA SIN disabled -->
+      <button id="btnEnviarCocina" class="btn btn-outline-secondary">
         👨‍🍳 {% trans "Enviar a cocina" %}
       </button>
 
@@ -169,7 +168,6 @@
         💵 {% trans "Cobrar" %}
       </button>
     </div>
-
   </div>
 
 </div>

@@ -337,32 +337,32 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-  window.MAPA_CONFIG = {
-    sucursalId: {{ sucursal.id }},
-    apiListUrl: "{{ api_list_url }}",
-    apiSavePosUrl: "{{ api_save_url }}"
-  };
-</script>
+  <script>
+    window.MAPA_CONFIG = {
+      sucursalId: {{ sucursal.id }},
+      apiListUrl: "{{ api_list_url }}",
+      apiSavePosUrl: "{{ api_save_url }}"
+    };
+  </script>
 
-<script id="mesas-data" type="application/json">{{ mesas_json }}</script>
+  <script id="mesas-data" type="application/json">{{ mesas_json }}</script>
 
-<!-- JS del mapa y bloqueos -->
-<script src="{% static 'reservas/js/mapa.js' %}?v=20251105"></script>
-<script src="{% static 'reservas/js/bloqueos.js' %}"></script>
+  <!-- JS del mapa y bloqueos -->
+  <script src="{% static 'reservas/js/mapa.js' %}?v=20251105"></script>
+  <script src="{% static 'reservas/js/bloqueos.js' %}"></script>
 
-<!-- Config y JS de órdenes (NECESARIO) -->
-<script>
-  window.ORDENES_CONFIG = {
-    urlNuevaOrden: "{% url 'reservas:orden_mesa_nueva' %}",
-    csrfToken: document.getElementById('csrfToken')?.value || "",
-    texto: {
-      cargando: "{% trans 'Cargando orden...' %}",
-      error: "{% trans 'Error al cargar la orden' %}"
-    }
-  };
-</script>
-<script src="{% static 'reservas/js/ordenes.js' %}?v=20251106"></script>
-<script src="{% static 'reservas/js/orden_modal.js' %}?v=20251112"></script>
+  <!-- Config de órdenes (ANTES de ordenes.js) -->
+  <script>
+    window.ORDENES_CONFIG = {
+      urlNuevaOrden: "{% url 'reservas:orden_mesa_nueva' %}",
+      csrfToken: document.getElementById('csrfToken')?.value || "",
+      texto: {
+        cargando: "{% trans 'Cargando orden...' %}",
+        error: "{% trans 'Error al cargar la orden' %}"
+      }
+    };
+  </script>
 
+  <!-- JS de órdenes (SOLO UNA VEZ) -->
+  <script src="{% static 'reservas/js/ordenes.js' %}?v=20251106"></script>
 {% endblock %}

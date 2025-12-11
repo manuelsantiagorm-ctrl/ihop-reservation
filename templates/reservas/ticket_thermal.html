@@ -4,16 +4,109 @@
 <meta charset="utf-8">
 <title>Ticket #{{ orden.id }}</title>
 <style>
-@page { size: 80mm auto; margin: 0; }
-body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin:0; }
-.ticket { width: 72mm; margin: 0 auto; padding: 4mm 4mm 10mm; }
-.center { text-align: center; }
-.line { border-top: 1px dashed #000; margin: 6px 0; }
-.row { display:flex; justify-content:space-between; }
-.small { font-size: 12px; }
+  @page { size: 80mm auto; margin: 0; }
+
+  body {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin: 0;
+    background: #f3f4f6;
+  }
+
+  .ticket {
+    width: 72mm;
+    margin: 10px auto 0;
+    padding: 4mm 4mm 10mm;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  }
+
+  .center { text-align: center; }
+  .line { border-top: 1px dashed #000; margin: 6px 0; }
+  .row { display:flex; justify-content:space-between; }
+  .small { font-size: 12px; }
+
+  /* Barra de botones superior (solo para pantalla) */
+  .toolbar {
+    width: 100%;
+    padding: 8px 0;
+    background: #111827;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  }
+
+  .toolbar-btn {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 13px;
+    border-radius: 999px;
+    border: none;
+    padding: 6px 16px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #fff;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+  }
+
+  .toolbar-btn span.icon {
+    font-size: 14px;
+  }
+
+  .toolbar-btn.back {
+    background: #4f46e5;
+  }
+
+  .toolbar-btn.print {
+    background: #16a34a;
+  }
+
+  .toolbar-btn:hover {
+    opacity: 0.92;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+  }
+
+  .toolbar-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+
+  /* Ocultar barra en la impresión */
+  @media print {
+    body { background: #ffffff; }
+    .toolbar { display: none; }
+    .ticket {
+      margin-top: 0;
+      box-shadow: none;
+    }
+  }
 </style>
 </head>
+
 <body onload="window.print()">
+
+<!-- Barra de acciones -->
+<div class="toolbar">
+  <button
+    type="button"
+    class="toolbar-btn back"
+    onclick="window.location.href='{% url 'reservas:admin_mapa_sucursal' orden.sucursal.id %}'">
+    <span class="icon">⬅</span>
+    <span>Regresar al mapa</span>
+  </button>
+
+  <button
+    type="button"
+    class="toolbar-btn print"
+    onclick="window.print()">
+    <span class="icon">🖨</span>
+    <span>Imprimir nuevamente</span>
+  </button>
+</div>
+
+<!-- Ticket térmico -->
 <div class="ticket">
   <div class="center">
     <strong>{{ orden.sucursal.nombre }}</strong><br>
@@ -22,8 +115,9 @@ body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; ma
     ------------------------------<br>
     Ticket: #{{ orden.id }}<br>
     Fecha: {{ orden.created_at|date:"Y-m-d H:i" }}<br>
-    Mesa: {{ orden.mesa.nombre if orden.mesa }}<br>
+    Mesa: {% if orden.mesa %}{{ orden.mesa.nombre }}{% else %}N/A{% endif %}<br>
   </div>
+
   <div class="line"></div>
 
   {% for it in orden.orderitem_set.all %}
@@ -40,9 +134,13 @@ body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; ma
   <div class="row"><div>Sub-total:</div><div>${{ totals.subtotal_base }}</div></div>
   <div class="row"><div>IVA 16%:</div><div>${{ totals.iva_total }}</div></div>
   <div class="row"><div>Total:</div><div>${{ totals.total_bruto }}</div></div>
+
   {% if orden.propina and orden.propina|floatformat:2 != "0.00" %}
     <div class="row"><div>Propina:</div><div>${{ orden.propina }}</div></div>
-    <div class="row"><div><strong>TOTAL A PAGAR</strong></div><div><strong>${{ totals.total_con_propina }}</strong></div></div>
+    <div class="row">
+      <div><strong>TOTAL A PAGAR</strong></div>
+      <div><strong>${{ totals.total_con_propina }}</strong></div>
+    </div>
   {% endif %}
 
   <div class="line"></div>
@@ -52,5 +150,6 @@ body { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; ma
     ¡Gracias por su visita!
   </div>
 </div>
+
 </body>
 </html>

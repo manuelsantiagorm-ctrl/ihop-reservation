@@ -20,11 +20,14 @@
   <div class="d-flex align-items-center justify-content-between mb-3">
     <div>
       <h1 class="page-title mb-1">{% trans "Mapa de mesas" %}</h1>
-      <p class="small-muted m-0">{% trans "Administra tus mesas, bloquea horarios y revisa estado." %}</p>
+      <p class="small-muted m-0">
+        {% trans "Administra tus mesas, bloquea horarios y revisa estado." %}
+      </p>
     </div>
 
     <div class="d-flex gap-2 align-items-center">
-      <div class="btn-group me-2" role="group" aria-label="{% trans 'Filtrar zona' %}">
+
+      <div class="btn-group me-2" role="group">
         <button type="button" class="btn btn-light btn-sm" data-zone-filter="">{% trans "Todas" %}</button>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-zone-filter="interior">{% trans "Interior" %}</button>
         <button type="button" class="btn btn-outline-secondary btn-sm" data-zone-filter="terraza">{% trans "Terraza" %}</button>
@@ -32,9 +35,11 @@
       </div>
 
       <button id="btnDesignLock" class="btn btn-link text-muted" data-sucursal-id="{{ sucursal.id }}">
-        <i class="bi bi-unlock"></i> <span data-lock-text>{% trans "Diseño editable" %}</span>
+        <i class="bi bi-unlock"></i>
+        <span data-lock-text>{% trans "Diseño editable" %}</span>
       </button>
 
+      <!-- Nueva mesa (sigue igual) -->
       <button class="btn btn-primary btn-round" data-bs-toggle="modal" data-bs-target="#modalCreateMesa">
         <i class="bi bi-plus-lg"></i> {% trans "Nueva mesa" %}
       </button>
@@ -43,6 +48,7 @@
         <i class="bi bi-search"></i> {% trans "Buscar folio" %}
       </a>
 
+      <!-- Bloquear horarios sucursal -->
       <button class="btn btn-outline-dark btn-round"
               data-bloqueo-sucursal
               data-sucursal-id="{{ sucursal.id }}"
@@ -51,6 +57,7 @@
         <i class="bi bi-calendar-x"></i> {% trans "Bloquear horarios (sucursal)" %}
       </button>
 
+      <!-- Ver bloqueos sucursal -->
       <button class="btn btn-outline-secondary btn-round"
               data-ver-bloqueos
               data-sucursal-id="{{ sucursal.id }}"
@@ -59,7 +66,6 @@
         <i class="bi bi-eye"></i> {% trans "Ver bloqueos (sucursal)" %}
       </button>
 
-      {# Acceso rápido al panel del Chef (KDS) #}
       <a class="btn btn-outline-success btn-round" href="{% url 'reservas:kds' %}">
         👨‍🍳 {% trans "Cocina (KDS)" %}
       </a>
@@ -97,19 +103,19 @@
     {% for item in estado_mesas %}
       {% with m=item.mesa est=item.estado reservas=item.reservas %}
         {% with nx=m.pos_x|default_if_none:8 ny=m.pos_y|default_if_none:8 %}
-          <div
-            class="mesa-node mesa-zona-{{ m.zona|default:'interior' }}"
-            role="button"
-            tabindex="0"
-            title="{% trans 'Doble clic para acciones' %}"
-            aria-label="{% blocktrans %}Mesa {{ m.numero }}{% endblocktrans %}"
-            data-update-url="{% url 'reservas:admin_api_mesa_pos' m.id %}"
-            data-x="{{ nx|floatformat:2 }}"
-            data-y="{{ ny|floatformat:2 }}"
-            data-id="{{ m.id }}"
-            data-numero="{{ m.numero }}"
-            data-zona="{{ m.zona|default:'interior' }}"
-            style="left: {{ nx }}%; top: {{ ny }}%;">
+
+          <div class="mesa-node mesa-zona-{{ m.zona|default:'interior' }}"
+               role="button"
+               tabindex="0"
+               title="{% trans 'Doble clic para acciones' %}"
+               aria-label="Mesa {{ m.numero }}"
+               data-update-url="{% url 'reservas:admin_api_mesa_pos' m.id %}"
+               data-x="{{ nx|floatformat:2 }}"
+               data-y="{{ ny|floatformat:2 }}"
+               data-id="{{ m.id }}"
+               data-numero="{{ m.numero }}"
+               data-zona="{{ m.zona|default:'interior' }}"
+               style="left: {{ nx }}%; top: {{ ny }}%;">
 
             <span class="mesa-badge">#{{ m.id }}</span>
             <div class="mesa-cap">{{ m.capacidad }} pax</div>
@@ -126,9 +132,14 @@
             </div>
 
             <div class="mesa-toolbar" data-toolbar>
-              <a class="btn btn-xs btn-primary" href="{% url 'reservas:admin_mesa_detalle' m.id %}">{% trans "Detalle" %}</a>
-              <a class="btn btn-xs btn-outline-secondary" href="{% url 'reservas:admin_editar_mesa' m.id %}?next=mapa">{% trans "Editar" %}</a>
 
+              <a class="btn btn-xs btn-primary"
+                 href="{% url 'reservas:admin_mesa_detalle' m.id %}">{% trans "Detalle" %}</a>
+
+              <a class="btn btn-xs btn-outline-secondary"
+                 href="{% url 'reservas:admin_editar_mesa' m.id %}?next=mapa">{% trans "Editar" %}</a>
+
+              <!-- Botón Bloquear mesa -->
               <button type="button"
                       class="btn btn-xs btn-outline-dark"
                       data-bloquear-mesa
@@ -143,99 +154,132 @@
                       class="btn btn-xs btn-success"
                       data-orden-mesa
                       data-mesa-id="{{ m.id }}"
-                      data-mesa-numero="{{ m.numero }}"
-                      data-bs-toggle="modal"
-                      data-bs-target="#modalOrden">
+                      data-mesa-numero="{{ m.numero }}">
                 <i class="bi bi-receipt"></i> {% trans "Orden" %}
               </button>
+
             </div>
           </div>
+
         {% endwith %}
       {% endwith %}
     {% empty %}
       <div class="text-muted p-3">{% trans "No hay mesas configuradas." %}</div>
     {% endfor %}
+
   </div>
 
-  <!-- Modal crear bloqueo -->
-  <div class="modal fade" id="modalBloqueo" tabindex="-1" aria-labelledby="modalBloqueoLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <!-- Config para bloqueos.js -->
+  <div id="bloqueosConfig"
+       data-sucursal-id="{{ sucursal.id }}"
+       data-url-create="{% url 'reservas:admin_api_bloqueo_create' %}"
+       data-url-list="{% url 'reservas:admin_api_bloqueo_list' %}"
+       data-url-delete="{% url 'reservas:admin_api_bloqueo_delete' %}">
+  </div>
+
+  <!-- MODAL CREAR BLOQUEO -->
+  <div class="modal fade" id="modalBloqueo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 id="modalBloqueoLabel" class="modal-title">{% trans "Crear bloqueo" %}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cerrar' %}"></button>
+          <h5 class="modal-title">{% trans "Nuevo bloqueo" %}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="{% trans 'Cerrar' %}"></button>
         </div>
+
         <div class="modal-body">
-          <form id="formBloqueo" class="row g-3" novalidate>
-            <input type="hidden" name="sucursal_id" value="{{ sucursal.id }}">
-            <div class="col-12 col-md-4">
+          <form id="formBloqueo">
+            <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
+
+            <div class="mb-3">
               <label class="form-label">{% trans "Ámbito" %}</label>
-              <select class="form-select" name="scope" data-scope>
+              <select class="form-select" data-scope>
                 <option value="sucursal">{% trans "Sucursal completa" %}</option>
                 <option value="mesa">{% trans "Mesa específica" %}</option>
               </select>
             </div>
-            <div class="col-12 col-md-4" data-mesa-wrap style="display:none;">
+
+            <div class="mb-3" data-mesa-wrap style="display:none;">
               <label class="form-label">{% trans "Mesa" %}</label>
-              <select class="form-select" name="mesa_id" data-mesa-id>
-                {% for item in estado_mesas %}{% with m=item.mesa %}
-                  <option value="{{ m.id }}">#{{ m.numero }} · id {{ m.id }} ({{ m.capacidad }} pax)</option>
-                {% endwith %}{% endfor %}
+              <select class="form-select" data-mesa-id>
+                <option value="">{% trans "Selecciona una mesa" %}</option>
+                {% for item in estado_mesas %}
+                  {% with m=item.mesa %}
+                    <option value="{{ m.id }}">#{{ m.numero }} ({{ m.capacidad }} pax)</option>
+                  {% endwith %}
+                {% endfor %}
               </select>
-              <div class="form-text" data-mesa-help style="display:none;"></div>
             </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">{% trans "Inicio" %}</label>
-              <input type="datetime-local" class="form-control" name="inicio" required>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">{% trans "Inicio" %}</label>
+                <input type="datetime-local" name="inicio" class="form-control">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">{% trans "Fin" %}</label>
+                <input type="datetime-local" name="fin" class="form-control">
+              </div>
             </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">{% trans "Fin" %}</label>
-              <input type="datetime-local" class="form-control" name="fin" required>
-            </div>
-            <div class="col-12 col-md-8">
+
+            <div class="mb-3">
               <label class="form-label">{% trans "Motivo (opcional)" %}</label>
-              <input type="text" class="form-control" name="motivo" maxlength="200" placeholder="{% trans 'Evento, mantenimiento, VIP, etc.' %}">
+              <input type="text" name="motivo" class="form-control">
             </div>
-            <div class="col-12">
-              <div class="alert alert-warning d-none" data-error></div>
-              <div class="alert alert-success d-none" data-success>{% trans "Bloqueo creado." %}</div>
+
+            <div class="alert alert-danger d-none" data-error></div>
+            <div class="alert alert-success d-none" data-success>
+              {% trans "Bloqueo creado correctamente." %}
             </div>
           </form>
         </div>
+
         <div class="modal-footer">
-          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">{% trans "Cancelar" %}</button>
-          <button class="btn btn-dark" data-action="crear-bloqueo">
-            <i class="bi bi-calendar-plus"></i> {% trans "Crear bloqueo" %}
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            {% trans "Cerrar" %}
+          </button>
+          <button type="button" class="btn btn-primary" data-action="crear-bloqueo">
+            {% trans "Guardar bloqueo" %}
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal lista de bloqueos -->
-  <div class="modal fade" id="modalBloqueosLista" tabindex="-1" aria-labelledby="modalBloqueosListaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <!-- MODAL LISTA BLOQUEOS -->
+  <div class="modal fade" id="modalBloqueosLista" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 id="modalBloqueosListaLabel" class="modal-title">{% trans "Bloqueos programados" %}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cerrar' %}"></button>
+          <h5 class="modal-title">{% trans "Bloqueos de la sucursal" %}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"
+                  aria-label="{% trans 'Cerrar' %}"></button>
         </div>
+
         <div class="modal-body">
-          <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="d-flex align-items-center gap-2">
-              <label class="form-label mb-0">{% trans "Filtrar por mesa" %}</label>
-              <select class="form-select" style="width:220px" data-filtro-mesa>
-                <option value="">{% trans "(Todas)" %}</option>
-                {% for item in estado_mesas %}{% with m=item.mesa %}
-                  <option value="{{ m.id }}">#{{ m.numero }} · id {{ m.id }}</option>
-                {% endwith %}{% endfor %}
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label">{% trans "Filtrar por mesa" %}</label>
+              <select class="form-select" data-filtro-mesa>
+                <option value="">{% trans "Todas las mesas" %}</option>
+                {% for item in estado_mesas %}
+                  {% with m=item.mesa %}
+                    <option value="{{ m.id }}">#{{ m.numero }} ({{ m.capacidad }} pax)</option>
+                  {% endwith %}
+                {% endfor %}
               </select>
             </div>
-            <small class="text-muted">{% trans "Desde hoy en adelante" %}</small>
           </div>
 
-          <div class="table-responsive">
-            <table class="table table-sm align-middle" data-tabla-bloqueos>
+          <div class="alert alert-info d-none" data-empty>
+            {% trans "No hay bloqueos vigentes." %}
+          </div>
+          <div class="alert alert-danger d-none" data-error-list>
+            {% trans "Ocurrió un error al cargar los bloqueos." %}
+          </div>
+
+          <div class="table-responsive" data-tabla-bloqueos>
+            <table class="table table-sm align-middle mb-0">
               <thead>
                 <tr>
                   <th>#</th>
@@ -250,85 +294,16 @@
               <tbody></tbody>
             </table>
           </div>
-
-          <div class="alert alert-info d-none mt-3" data-empty>{% trans "Sin bloqueos." %}</div>
-          <div class="alert alert-danger d-none mt-3" data-error-list>{% trans "No se pudieron cargar los bloqueos." %}</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal de Orden (host para inyectar el body) -->
-  <div class="modal fade" id="modalOrden" tabindex="-1" aria-labelledby="modalOrdenLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header bg-success text-white">
-          <h5 id="modalOrdenLabel" class="modal-title">
-            <i class="bi bi-receipt"></i> {% trans "Orden de mesa" %}
-          </h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{% trans 'Cerrar' %}"></button>
-        </div>
-        <div class="modal-body p-0">
-          <div id="ordenContenido" class="p-3">
-            <div class="text-center py-4 text-muted">
-              <div class="spinner-border"></div>
-              <p class="mt-2">{% trans "Cargando orden..." %}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="bloqueosConfig"
-       data-sucursal-id="{{ sucursal.id }}"
-       data-url-create="{% url 'reservas:admin_api_bloqueo_create' %}"
-       data-url-list="{% url 'reservas:admin_api_bloqueo_list' %}"
-       data-url-delete="{% url 'reservas:admin_api_bloqueo_delete' %}">
-  </div>
-
-  <input type="hidden" id="csrfToken" value="{{ csrf_token }}">
-
-  <div class="modal fade" id="modalCreateMesa" tabindex="-1" aria-labelledby="modalCreateMesaLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <form method="post" action="{% url 'reservas:admin_mesa_crear' sucursal.id %}">
-          {% csrf_token %}
-          <div class="modal-header">
-            <h5 id="modalCreateMesaLabel" class="modal-title">{% trans "Nueva mesa" %}</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Cerrar' %}"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-2">
-              <label class="form-label">{% trans "Número" %}</label>
-              <input type="number" class="form-control" name="numero" required min="1">
-            </div>
-            <div class="mb-2">
-              <label class="form-label">{% trans "Capacidad" %}</label>
-              <input type="number" class="form-control" name="capacidad" required min="1" value="4">
-            </div>
-            <div class="mb-2">
-              <label class="form-label">{% trans "Zona" %}</label>
-              <select class="form-select" name="zona">
-                <option value="interior">{% trans "Interior" %}</option>
-                <option value="terraza">{% trans "Terraza" %}</option>
-                <option value="exterior">{% trans "Exterior" %}</option>
-              </select>
-            </div>
-            <div class="mb-2">
-              <label class="form-label">{% trans "Ubicación (nota corta)" %}</label>
-              <input type="text" class="form-control" name="ubicacion">
-            </div>
-            <div class="mb-2">
-              <label class="form-label">{% trans "Notas" %}</label>
-              <textarea class="form-control" name="notas" rows="2"></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-outline-secondary" data-bs-dismiss="modal" type="button">{% trans "Cancelar" %}</button>
-            <button class="btn btn-primary" type="submit">{% trans "Crear" %}</button>
-          </div>
-        </form>
+  <!-- Modal Orden (POS nuevo) -->
+  <div class="modal fade" id="modalOrden" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content" id="ordenContenido">
+        {# contenido del POS se inyecta por AJAX #}
       </div>
     </div>
   </div>
@@ -337,32 +312,26 @@
 {% endblock %}
 
 {% block extra_js %}
-  <script>
-    window.MAPA_CONFIG = {
-      sucursalId: {{ sucursal.id }},
-      apiListUrl: "{{ api_list_url }}",
-      apiSavePosUrl: "{{ api_save_url }}"
-    };
-  </script>
+<script>
+  window.MAPA_CONFIG = {
+    sucursalId: {{ sucursal.id }},
+    apiListUrl: "{{ api_list_url }}",
+    apiSavePosUrl: "{{ api_save_url }}"
+  };
 
-  <script id="mesas-data" type="application/json">{{ mesas_json }}</script>
+  window.ORDENES_CONFIG = {
+    urlNuevaOrden: "{% url 'reservas:orden_mesa_nueva' %}",
+    csrfToken: "{{ csrf_token }}",
+    texto: {
+      cargando: "{% trans 'Cargando orden...' %}",
+      error: "{% trans 'Error al cargar la orden.' %}"
+    }
+  };
+</script>
 
-  <!-- JS del mapa y bloqueos -->
-  <script src="{% static 'reservas/js/mapa.js' %}?v=20251105"></script>
-  <script src="{% static 'reservas/js/bloqueos.js' %}"></script>
+<script id="mesas-data" type="application/json">{{ mesas_json }}</script>
 
-  <!-- Config de órdenes (ANTES de ordenes.js) -->
-  <script>
-    window.ORDENES_CONFIG = {
-      urlNuevaOrden: "{% url 'reservas:orden_mesa_nueva' %}",
-      csrfToken: document.getElementById('csrfToken')?.value || "",
-      texto: {
-        cargando: "{% trans 'Cargando orden...' %}",
-        error: "{% trans 'Error al cargar la orden' %}"
-      }
-    };
-  </script>
-
-  <!-- JS de órdenes (SOLO UNA VEZ) -->
-  <script src="{% static 'reservas/js/ordenes.js' %}?v=20251106"></script>
+<script src="{% static 'reservas/js/mapa.js' %}?v=20251119"></script>
+<script src="{% static 'reservas/js/bloqueos.js' %}?v=20251119"></script>
+<script src="{% static 'reservas/js/ordenes.js' %}?v=20251119"></script>
 {% endblock %}

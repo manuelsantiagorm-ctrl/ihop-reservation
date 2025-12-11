@@ -52,10 +52,13 @@
     });
   }
 
-  // Abrir modal con presets
+  // Abrir modales con presets
   document.addEventListener("click", (e) => {
-    const btnMesa = e.target.closest("[data-bloquear-mesa]");
-    const btnSuc  = e.target.closest("[data-bloqueo-sucursal]");
+    const btnMesa  = e.target.closest("[data-bloquear-mesa]");
+    const btnSuc   = e.target.closest("[data-bloqueo-sucursal]");
+    const btnLista = e.target.closest("[data-ver-bloqueos]");
+
+    // Bloquear una mesa específica
     if (btnMesa && modalCrear && scopeSel) {
       const mesaId = btnMesa.getAttribute("data-mesa-id");
       scopeSel.value = "mesa";
@@ -63,12 +66,27 @@
       if (mesaSel && mesaId) mesaSel.value = String(mesaId);
       if (alertErr) { alertErr.classList.add("d-none"); alertErr.textContent = ""; }
       if (alertOk)  { alertOk.classList.add("d-none"); }
+
+      // 👇 abrir modal de bloqueo
+      const modal = bootstrap.Modal.getOrCreateInstance(modalCrear);
+      modal.show();
     }
+
+    // Bloquear toda la sucursal
     if (btnSuc && modalCrear && scopeSel) {
       scopeSel.value = "sucursal";
       showMesaWrap(false);
       if (alertErr) { alertErr.classList.add("d-none"); alertErr.textContent = ""; }
       if (alertOk)  { alertOk.classList.add("d-none"); }
+
+      const modal = bootstrap.Modal.getOrCreateInstance(modalCrear);
+      modal.show();
+    }
+
+    // Ver lista de bloqueos (sucursal)
+    if (btnLista && modalLista) {
+      const modal = bootstrap.Modal.getOrCreateInstance(modalLista);
+      modal.show();
     }
   });
 

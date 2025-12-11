@@ -1,106 +1,58 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static i18n %}
+
 {% block title %}KDS · Cocina{% endblock %}
+
 {% block content %}
 <div class="container py-3">
   <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-    <h2 class="mb-0">👨‍🍳 Panel de Cocina (KDS)</h2>
-    <small class="text-muted">Auto-actualizando cada 3s</small>
+    <div>
+      <h2 class="mb-0">👨‍🍳 {% trans "Panel de Cocina (KDS)" %}</h2>
+      <small class="text-muted">
+        {% blocktrans with m=minutes_visible %}
+          Auto-actualizando cada 3s · mostrando SERVIDOS últimos {{ m }} min
+        {% endblocktrans %}
+      </small>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+      <label for="kdsMesaFilter" class="small text-muted mb-0">{% trans "Mesa" %}:</label>
+      <select id="kdsMesaFilter" class="form-select form-select-sm" style="width:auto;">
+        <option value="">{% trans "Todas" %}</option>
+        {% for m in mesas_disponibles %}
+          <option value="{{ m.numero }}" {% if mesa_filtro == m.numero|stringformat:"s" %}selected{% endif %}>
+            Mesa {{ m.numero }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <label for="kdsTimeFilter" class="small text-muted mb-0 ms-3">{% trans "Rango" %}:</label>
+      <select id="kdsTimeFilter" class="form-select form-select-sm" style="width:auto;">
+        <option value="">{% trans "Todas las horas" %}</option>
+        <option value="30"  {% if rango_filtro == "30" %}selected{% endif %}>{% trans "Últimos 30 min" %}</option>
+        <option value="60"  {% if rango_filtro == "60" %}selected{% endif %}>{% trans "Última 1 h" %}</option>
+        <option value="120" {% if rango_filtro == "120" %}selected{% endif %}>{% trans "Últimas 2 h" %}</option>
+        <option value="hoy" {% if rango_filtro == "hoy" %}selected{% endif %}>{% trans "Hoy" %}</option>
+      </select>
+    </div>
   </div>
 
-  <div id="kds-grid" class="row g-3"></div>
+  <div id="kds-grid"
+       class="row g-3"
+       data-data-url="{% url 'reservas:kds_data' %}"
+       data-update-url-pattern="{% url 'reservas:kds_update_status' 0 %}"
+       data-refresh-ms="3000">
+
+    {# fallback por si JS está apagado #}
+    {% if not orders %}
+      <div class="col-12">
+        <div class="alert alert-info mb-0">
+          {% trans "No hay platillos en preparación." %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
 </div>
 
-<script>
-function getCookie(name) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return decodeURIComponent(parts.pop().split(";").shift());
-  return "";
-}
-
-async function fetchKdsData() {
-  const res = await fetch("{% url 'reservas:kds_data' %}", { cache: "no-store" });
-  if (!res.ok) return;
-  const data = await res.json();
-  renderOrders(data.orders || []);
-}
-
-function statusBadge(st) {
-  const map = { "SUBMITTED":"secondary","IN_PREP":"warning","READY":"success","SERVED":"info" };
-  const cls = map[st] || "secondary";
-  return `<span class="badge text-bg-${cls}">${st}</span>`;
-}
-
-function itemRow(it) {
-  const notas = it.notas ? `<div><small class="text-muted">📝 ${it.notas}</small></div>` : "";
-  return `
-    <li class="list-group-item d-flex justify-content-between align-items-start">
-      <div>
-        <strong>${it.cantidad}×</strong> ${it.nombre}
-        ${notas}
-      </div>
-      <span>$${it.importe}</span>
-    </li>
-  `;
-}
-
-function actionsForStatus(order) {
-  const id = order.id;
-  const btn = (label, target, icon) =>
-    `<button class="btn btn-sm btn-outline-dark me-2" onclick="updateStatus(${id}, '${target}')">${icon} ${label}</button>`;
-  switch (order.status) {
-    case "SUBMITTED": return btn("En preparación", "IN_PREP", "👨‍🍳") + btn("Listo", "READY", "✅");
-    case "IN_PREP":   return btn("Listo", "READY", "✅");
-    case "READY":     return btn("Entregada", "SERVED", "🚶‍♂️");
-    case "SERVED":    return `<span class="text-muted">Entregada a mesa</span>`;
-    default:          return "";
-  }
-}
-
-function renderOrders(orders) {
-  const cont = document.getElementById("kds-grid");
-  cont.innerHTML = "";
-  if (!orders.length) {
-    cont.innerHTML = `<div class="col-12"><div class="alert alert-light border">Sin órdenes activas.</div></div>`;
-    return;
-  }
-  orders.forEach(o => {
-    const itemsHtml = (o.items || []).map(itemRow).join("");
-    const mesa = (o.mesa ?? "") ? `Mesa ${o.mesa}` : "Sin mesa";
-    const card = `
-      <div class="col-12 col-md-6 col-lg-4">
-        <div class="card shadow-sm h-100">
-          <div class="card-body d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <h5 class="mb-0">${mesa}</h5>
-              ${statusBadge(o.status)}
-            </div>
-            <ul class="list-group list-group-flush mb-3">${itemsHtml}</ul>
-            <div class="mt-auto">${actionsForStatus(o)}</div>
-          </div>
-          <div class="card-footer d-flex justify-content-between small text-muted">
-            <span>${o.sucursal}</span>
-            <span>${o.submitted_at ? new Date(o.submitted_at).toLocaleTimeString() : ""}</span>
-          </div>
-        </div>
-      </div>`;
-    cont.insertAdjacentHTML("beforeend", card);
-  });
-}
-
-async function updateStatus(orderId, target) {
-  const form = new FormData();
-  form.append("status", target);
-  const res = await fetch(`{% url 'reservas:kds_update_status' 0 %}`.replace("/0/", `/${orderId}/`), {
-    method: "POST",
-    headers: { "X-CSRFToken": getCookie("csrftoken") },
-    body: form
-  });
-  if (res.ok) fetchKdsData();
-}
-
-fetchKdsData();
-setInterval(fetchKdsData, 3000);
-</script>
+<script src="{% static 'reservas/js/kds.js' %}?v=20251202"></script>
 {% endblock %}

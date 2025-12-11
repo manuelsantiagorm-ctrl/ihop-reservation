@@ -4,8 +4,9 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
-# IVA por defecto (puedes moverlo a settings)
-IVA_DEFAULT = Decimal(getattr(settings, "IVA_RATE", "0.16"))  # 16%
+# IVA por defecto
+IVA_DEFAULT = Decimal(getattr(settings, "IVA_RATE", "0.16"))
+
 
 # ==========================================================
 # =============== POS v1 (Order / OrderItem) ===============
@@ -29,28 +30,28 @@ class PaymentMethod(models.TextChoices):
 
 class Order(models.Model):
     sucursal = models.ForeignKey("reservas.Sucursal", on_delete=models.PROTECT, related_name="orders")
-    mesa     = models.ForeignKey("reservas.Mesa",     on_delete=models.PROTECT, related_name="orders", null=True, blank=True)
-    reserva  = models.ForeignKey("reservas.Reserva",  on_delete=models.PROTECT, related_name="orders", null=True, blank=True)
+    mesa     = models.ForeignKey("reservas.Mesa", on_delete=models.PROTECT, related_name="orders", null=True, blank=True)
+    reserva  = models.ForeignKey("reservas.Reserva", on_delete=models.PROTECT, related_name="orders", null=True, blank=True)
 
     status = models.CharField(max_length=20, choices=OrderStatus.choices, default=OrderStatus.DRAFT)
-    iva_rate = models.DecimalField(max_digits=4, decimal_places=2, default=IVA_DEFAULT)  # 0.16
+    iva_rate = models.DecimalField(max_digits=4, decimal_places=2, default=IVA_DEFAULT)
     propina = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
-    # Totales guardados
-    subtotal_base = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))  # sin IVA
+    subtotal_base = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     iva_total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    total_bruto = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))  # con IVA
+    total_bruto = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     total_con_propina = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
     payment_method = models.CharField(max_length=10, choices=PaymentMethod.choices, default=PaymentMethod.NONE)
-    cerrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="orders_cerrados")
-    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="orders_creados")
+    cerrado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                    on_delete=models.SET_NULL, related_name="orders_cerrados")
+    creado_por = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
+                                   on_delete=models.SET_NULL, related_name="orders_creados")
 
     created_at = models.DateTimeField(auto_now_add=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
 
-    # Helpers
     def _round2(self, x: Decimal) -> Decimal:
         return x.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
@@ -97,7 +98,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey("reservas.Order", on_delete=models.CASCADE)
     nombre = models.CharField(max_length=120)
-    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)  # con IVA
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     cantidad = models.PositiveIntegerField(default=1)
     notas = models.CharField(max_length=240, blank=True, default="")
     enviado_a_cocina = models.BooleanField(default=False)
@@ -115,24 +116,61 @@ class OrderItem(models.Model):
 # =====================================================================
 # == Variante “Orden / OrdenItem” (flujo nuevo modal + catálogo Menú) ==
 # =====================================================================
-
 class Orden(models.Model):
+    # --- estados como constantes de clase ---
+    ESTADO_ABIERTA   = "ABIERTA"
+    ESTADO_EN_COCINA = "EN_COCINA"
+    ESTADO_SERVIDA   = "SERVIDA"
+    ESTADO_CERRADA   = "CERRADA"
+    ESTADO_CANCELADA = "CANCELADA"
+
     ESTADO_CHOICES = [
-        ("ABIERTA", "Abierta"),
-        ("EN_COCINA", "En cocina"),
-        ("LISTA", "Lista"),
-        ("CERRADA", "Cerrada"),
-        ("CANCELADA", "Cancelada"),
+        (ESTADO_ABIERTA,   "Abierta"),
+        (ESTADO_EN_COCINA, "En cocina"),
+        (ESTADO_SERVIDA,   "Servida"),
+        (ESTADO_CERRADA,   "Cerrada"),
+        (ESTADO_CANCELADA, "Cancelada"),
     ]
 
-    sucursal = models.ForeignKey('reservas.Sucursal', on_delete=models.CASCADE, related_name="ordenes")
-    mesa = models.ForeignKey('reservas.Mesa', on_delete=models.SET_NULL, null=True, blank=True, related_name="ordenes")
-    reserva = models.ForeignKey('reservas.Reserva', on_delete=models.SET_NULL, null=True, blank=True, related_name="ordenes")
+    # campo estado: SOLO UNA VEZ
+    estado = models.CharField(
+        max_length=20,
+        choices=ESTADO_CHOICES,
+        default=ESTADO_ABIERTA,
+    )
 
-    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default="ABIERTA")
-    total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    sucursal = models.ForeignKey(
+        "reservas.Sucursal",
+        on_delete=models.CASCADE,
+        related_name="ordenes",
+    )
+    mesa = models.ForeignKey(
+        "reservas.Mesa",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ordenes",
+    )
+    reserva = models.ForeignKey(
+        "reservas.Reserva",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ordenes",
+    )
+
+    total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+    )
     notas = models.TextField(blank=True, default="")
-    creada_por = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
+    creada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     creada_en = models.DateTimeField(default=timezone.now)
     actualizada_en = models.DateTimeField(auto_now=True)
 
@@ -140,30 +178,34 @@ class Orden(models.Model):
         ordering = ["-creada_en"]
 
     def recomputar_total(self):
-        total = sum((it.subtotal or Decimal("0.00")) for it in self.items.all())
+        total = sum(
+            (it.subtotal or Decimal("0.00"))
+            for it in self.items.all()
+        )
         self.total = total
         self.save(update_fields=["total"])
 
     def __str__(self):
         return f"Orden #{self.id} · {self.sucursal} · {self.estado} · ${self.total}"
 
-
 class OrdenItem(models.Model):
-    """
-    Modelo usado por el flujo del modal.
-    Tu template usa: it.precio y it.importe
-    """
+    ESTADO_PENDIENTE = "PENDIENTE"
+    ESTADO_EN_PREP   = "EN_PREP"
+    ESTADO_SERVIDO   = "SERVIDO"
+
+    ESTADO_CHOICES = [
+        (ESTADO_PENDIENTE, "Pendiente"),
+        (ESTADO_EN_PREP, "En preparación"),
+        (ESTADO_SERVIDO, "Servido"),
+    ]
+
     orden = models.ForeignKey('reservas.Orden', on_delete=models.CASCADE, related_name="items")
-    catalog_item = models.ForeignKey('reservas.CatalogItem', on_delete=models.SET_NULL, null=True, blank=True, related_name="orden_items")
+    catalog_item = models.ForeignKey('reservas.CatalogItem', on_delete=models.SET_NULL, null=True, blank=True)
 
     codigo = models.CharField(max_length=30, blank=True, default="")
     nombre = models.CharField(max_length=200)
-
-    # Legacy/compat: algunos flujos antiguos usan precio_unit y categoria_nombre
     categoria_nombre = models.CharField(max_length=120, blank=True, default="")
     precio_unit = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
-
-    # === Campo que requiere tu vista/plantilla actual ===
     precio = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
     cantidad = models.PositiveIntegerField(default=1)
@@ -171,22 +213,23 @@ class OrdenItem(models.Model):
     notas = models.CharField(max_length=200, blank=True, default="")
     creado_en = models.DateTimeField(auto_now_add=True)
 
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default=ESTADO_PENDIENTE)
+    cancelado = models.BooleanField(default=False)
+
     class Meta:
         ordering = ["id"]
 
     def save(self, *args, **kwargs):
-        """
-        Calcula subtotal con 'precio' (nuevo flujo).
-        Si por legado 'precio' viene en 0 pero 'precio_unit' trae dato, úsalo.
-        """
         precio_base = self.precio if self.precio and self.precio > 0 else self.precio_unit
         self.subtotal = (precio_base or Decimal("0.00")) * (self.cantidad or 0)
         super().save(*args, **kwargs)
 
     @property
-    def importe(self) -> Decimal:
-        # Lo que tu template espera: it.importe
+    def importe(self):
         return self.subtotal or Decimal("0.00")
+
+    def es_editable(self):
+        return self.estado == self.ESTADO_PENDIENTE and not self.cancelado
 
     def __str__(self):
         return f"{self.cantidad} × {self.nombre} (${self.precio or self.precio_unit})"

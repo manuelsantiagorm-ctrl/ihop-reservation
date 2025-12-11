@@ -2256,13 +2256,17 @@ def admin_finalizar_reserva(request, reserva_id):
     if next_param == "mesa":
         return redirect("reservas:admin_mesa_detalle", mesa_id=r.mesa_id)
     return redirect("reservas:admin_mapa_sucursal", sucursal_id=r.mesa.sucursal_id)
+from django.contrib.auth.decorators import login_required
+from reservas.models import Reserva, Cliente
+
+
 
 
 @require_http_methods(["POST", "GET"])
+@login_required  # 👈 Obligamos login (Google, etc.)
 def reservar_auto(request, sucursal_id):
     """
     Crea una reserva automática asignando mesa según disponibilidad.
-    Compatible con modelo IHOP (campos: fecha, inicio_utc, fin_utc, num_personas, estado, etc.)
     Maneja correctamente zonas horarias de sucursal.
     """
     from datetime import timezone as py_tz
@@ -2270,7 +2274,7 @@ def reservar_auto(request, sucursal_id):
     # 1) Obtener sucursal con seguridad
     s = _get_sucursal_scoped(request, sucursal_id)
 
-    # 2) Zona horaria local
+    # 2) Zona horaria local de la sucursal
     tz = _tz_for_sucursal(s)
 
     # 3) Parámetros recibidos
@@ -2300,7 +2304,6 @@ def reservar_auto(request, sucursal_id):
     except Exception as e:
         if request.headers.get("x-requested-with") == "XMLHttpRequest":
             return JsonResponse({"ok": False, "error": "no_table", "detail": str(e)}, status=200)
-        from django.contrib import messages
         messages.error(request, "No hay mesas disponibles para ese horario.")
         return redirect("reservas:sucursal_detalle", slug=s.slug)
 
@@ -2312,30 +2315,37 @@ def reservar_auto(request, sucursal_id):
     inicio_utc = dt_local.astimezone(py_tz.utc)
     fin_utc = dt_fin_local.astimezone(py_tz.utc)
 
-    # 8) Cliente (si está logueado)
-    cliente = getattr(request.user, "cliente", None)
+    # 8) Asegurar que el usuario tenga un Cliente asociado
+    user = request.user
+    try:
+        cliente = user.cliente  # por el OneToOneField en Cliente
+    except Cliente.DoesNotExist:
+        nombre = user.get_full_name() or user.first_name or (user.email.split("@")[0] if user.email else "Cliente")
+        email = user.email or ""
+        cliente = Cliente.objects.create(
+            user=user,
+            nombre=nombre,
+            email=email,
+        )
 
-    # 9) Crear la reserva
+    # 9) Crear la reserva (SIEMPRE con cliente)
     reserva = Reserva.objects.create(
         sucursal=s,
         mesa=mesa,
         cliente=cliente,
-        fecha=dt_local.date(),
+        fecha=dt_local,                        # 👈 DateTime con tz, no .date()
         inicio_utc=inicio_utc,
         fin_utc=fin_utc,
         local_service_date=dt_local.date(),
         local_inicio=dt_local,
         local_fin=dt_fin_local,
         num_personas=party,
-        estado="CONF",  # ✅ según tus choices reales
+        estado=Reserva.CONF,                   # usar constante del modelo
     )
 
     # 10) Mensaje de éxito
-    from django.contrib import messages
     messages.success(request, "¡Reserva creada correctamente!")
     return redirect("reservas:reserva_detalle", pk=reserva.pk)
-
-
 
 
 def _staff_puede_gestionar_reserva(user, reserva):

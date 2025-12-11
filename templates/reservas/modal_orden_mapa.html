@@ -1,4 +1,3 @@
-{# templates/reservas/partials/orden_mesa.html #}
 {% load i18n %}
 
 <div id="ordenModalBody"
@@ -16,12 +15,12 @@
   <div class="container-fluid">
     <div class="row g-3">
 
-      {# ====================== IZQUIERDA ====================== #}
+      <!-- ====================== IZQUIERDA ====================== -->
       <div class="col-12 col-lg-4">
         <div class="card shadow-xs h-100">
           <div class="card-body">
 
-            {# Mesa / Orden #}
+            <!-- Mesa / Orden -->
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
                 <div class="fw-semibold">
@@ -39,7 +38,7 @@
 
             <hr>
 
-            {# Form Agregar #}
+            <!-- Form Agregar -->
             <form id="formAgregarItem" class="row gy-2"
                   data-endpoint="{{ endpoint_add }}">
               <input type="hidden" name="orden_id" value="{{ orden.id }}">
@@ -83,7 +82,7 @@
 
             <hr>
 
-            {# Buscador #}
+            <!-- Buscador -->
             <label class="form-label small fw-semibold">{% trans "Buscar producto" %}</label>
             <input id="buscarItem" class="form-control form-control-sm"
                    placeholder="{% trans 'Escribe 2–3 letras…' %}"
@@ -115,7 +114,7 @@
         </div>
       </div>
 
-      {# ====================== DERECHA: CARRITO ====================== #}
+      <!-- ====================== DERECHA: CARRITO ====================== -->
       <div class="col-12 col-lg-8">
         <div class="card shadow-xs h-100 d-flex flex-column">
 
@@ -147,21 +146,11 @@
 
                 <tbody>
                 {% for it in orden.items.all %}
-                  {% if not it.cancelado %}
-                  <tr data-item-row data-item-id="{{ it.id }}" data-notas="{{ it.notas|default:'' }}">
+                  <tr data-item-row data-item-id="{{ it.id }}" data-notas="{{ it.notas|default:"" }}">
                     <td class="text-muted small">{{ forloop.counter }}</td>
 
                     <td>
-                      <div class="fw-semibold small">
-                        {{ it.nombre }}
-                        {% if it.estado == "PENDIENTE" %}
-                          <span class="badge bg-warning-subtle text-warning ms-1">Pendiente</span>
-                        {% elif it.estado == "EN_PREP" %}
-                          <span class="badge bg-info-subtle text-info ms-1">En prep.</span>
-                        {% elif it.estado == "SERVIDO" %}
-                          <span class="badge bg-success-subtle text-success ms-1">Servido</span>
-                        {% endif %}
-                      </div>
+                      <div class="fw-semibold small">{{ it.nombre }}</div>
                       <small class="text-muted">
                         {% if it.codigo %}{{ it.codigo }} · {% endif %}
                         {{ it.categoria_nombre }}
@@ -169,28 +158,19 @@
                       </small>
                     </td>
 
-                    <td class="text-end small">
-                      ${{ it.precio_unit|default:it.precio }}
-                    </td>
+                    <td class="text-end small">${{ it.precio_unit|default:it.precio }}</td>
                     <td class="text-center small">{{ it.cantidad }}</td>
-                    <td class="text-end small">
-                      ${{ it.subtotal|default:it.importe }}
-                    </td>
+                    <td class="text-end small">${{ it.subtotal|default:it.importe }}</td>
 
                     <td class="text-end small">
-                      {% if it.estado == "PENDIENTE" %}
-                        <button class="btn btn-sm btn-light border" data-item-edit>
-                          <i class="bi bi-pencil"></i>
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger" data-item-remove>
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      {% else %}
-                        <span class="text-muted small">—</span>
-                      {% endif %}
+                      <button class="btn btn-sm btn-light border" data-item-edit>
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" data-item-remove>
+                        <i class="bi bi-trash"></i>
+                      </button>
                     </td>
                   </tr>
-                  {% endif %}
                 {% empty %}
                   <tr>
                     <td colspan="6" class="text-center text-muted py-4">

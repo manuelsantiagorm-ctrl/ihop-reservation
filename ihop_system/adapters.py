@@ -1,18 +1,18 @@
 # ihop_system/adapters.py
 from allauth.account.adapter import DefaultAccountAdapter
 
-class CustomAccountAdapter(DefaultAccountAdapter):
-    def is_open_for_signup(self, request):
-        """
-        Cerramos el signup de Allauth (clientes usan tu flujo OTP en /accounts/).
-        Los admins se crean desde el admin o por management commands.
-        """
-        return False
 
-    def is_email_verification_required(self, request, email_address):
-        """
-        Si el usuario es staff o superuser, NO exigir verificación.
-        Para el resto, mantener la política "mandatory".
-        """
-        user = email_address.user
-        return not (user and (user.is_staff or user.is_superuser))
+class CustomAccountAdapter(DefaultAccountAdapter):
+    """
+    Adapter global para Allauth.
+
+    REGLA:
+    - Siempre permite registro (signup), ya sea normal o social (Google).
+    - Allauth se encarga de:
+        * Si el email YA existe -> solo login.
+        * Si el email NO existe -> crea usuario y entra.
+    """
+
+    def is_open_for_signup(self, request, sociallogin=None, **kwargs):
+        # 🔥 Punto clave: NUNCA cerrar registro
+        return True

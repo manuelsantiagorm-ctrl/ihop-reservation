@@ -18,6 +18,8 @@ from .views_chainadmin_menu import (
     combo_edit_components, combo_delete_component,
     menuitem_toggle_active, api_buscar_items,
 )
+from . import views_orders
+
 # POS (órdenes en modal del mapa) — usa SIEMPRE este alias
 from . import views_ordenes as ordenes
 
@@ -30,6 +32,7 @@ from .views_chainadmin_menu import (
     menuitem_toggle_active, api_buscar_items,
 )
 from .views_chainadmin_menu import MenuCatalogListView
+from . import views_ordenes
 
 # Staff: crear orden rápida (legacy opcional)
 from .views_staff_orders import crear_orden_mesa
@@ -37,8 +40,12 @@ from .views_staff_orders import crear_orden_mesa
 # Legacy Orders / KDS / Ticket (mantener)
 from .views_orders import (
     mesa_panel_order, add_item, submit_to_kitchen, cobrar_cerrar,
-    kds_list, kds_update_status, ticket_order, kds_data
+    kds_list, ticket_order, kds_data,
 )
+
+# ⚠️ IMPORTA AQUÍ EL NUEVO kds_update_status DEL STAFF
+from .views_staff_orders import kds_update_status
+
 
 # ChainAdmin: Admins de sucursal
 from .views_chainadmin_admins import (
@@ -239,6 +246,14 @@ urlpatterns = [
     path("api/orden/item/update/", ordenes.api_orden_item_update, name="api_orden_item_update"),
     path("api/orden/item/split/",  ordenes.api_orden_item_split,  name="api_orden_item_split"),
     path("api/orden/item/remove/", ordenes.api_orden_item_remove, name="api_orden_item_remove"),
+
+    # Enviar orden POS a cocina (nuevo endpoint que sincroniza con KDS)
+    path(
+        "api/orden-pos/<int:orden_id>/enviar/",
+        ordenes.api_orden_pos_enviar_cocina,
+        name="api_orden_pos_enviar_cocina",
+    ),
+
     # alias opcional por compatibilidad con tu JS viejo
     path("api/orden/item/quitar/", ordenes.api_orden_item_remove, name="api_orden_quitar_item"),
 
@@ -247,11 +262,7 @@ urlpatterns = [
     
     path("staff/buscar-folio/", views.admin_buscar_folio, name="admin_buscar_folio"),
 
-
-
     # --- Catálogo (ChainAdmin) ---
-
-    # Lista del catálogo
     path("chainadmin/menu/", MenuCatalogListView.as_view(), name="chainadmin_menu_catalogo"),
 
     # Categorías
@@ -278,8 +289,27 @@ urlpatterns = [
     path("chainadmin/menu/api/buscar-items/", api_buscar_items,
          name="chainadmin_menu_api_buscar_items"),
     
-    path("admin/kds/data/", kds_data, name="kds_data"),  # <-- NUEVA
+    # JSON para el KDS
+    path("admin/kds/data/", kds_data, name="kds_data"),
+    
+     # Cobrar y cerrar desde POS (puente a Order/ticket)
+    path(
+        "api/orden-pos/<int:orden_id>/cobrar/",
+        ordenes.api_orden_pos_cobrar,
+        name="api_orden_pos_cobrar",
+    ),
+
+    path(
+        "api/orden-pos/<int:order_id>/item/update/",
+        views_orders.api_orden_pos_item_update,
+        name="api_orden_pos_item_update",
+    ),
+    path(
+    "staff/ordenes/<int:order_id>/item-update/",
+    views_orders.api_orden_pos_item_update,
+    name="api_orden_pos_item_update",
+    ),
 
 ]
 
-
+    
